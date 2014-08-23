@@ -25,6 +25,10 @@
 ##      ## - comments [not to be uncommented]
 ##      # -- commented variables
 
+
+## TODO: Set metadata for streams (english audio, etc...)
+
+
 ## Items to handle
 # Video Stream
 # Audio Stream
@@ -141,9 +145,15 @@ function crop_detect {
 }
 
 ## TODO: select english audio channel, exclude commentary
+## TODO: audioEngStream - make it take first instead of last
+## TODO: rewrite audioChannels to use ffmpeg and grab channel count from audioEngStream number
 function audio_config {
+	## [find english audio stream]
+	audioEngStream=$(ffmpeg -i /home/jackal/test3.mkv -f null - 2>&1 | \
+		grep -o -P '(?<=Stream).*(?=\(eng\):\ Audio)' | awk -F ":" '{print $2}' | tail -1)
 	## [find number of audio channels]
-	audioChannels=$(mediainfo ${workDir}${inputFile} | awk '/Channel\(s\)/ { print $3 }' | tail -1)
+	audioChannels=$(mediainfo ${workDir}${inputFile} | \
+		awk '/Channel\(s\)/ { print $3 }' | tail -1)
 	## [set to 48kbps per channel]
 	audioBitrate=$(($audioChannels * 48))
 	## [set samplerate based on number of channels]
@@ -154,8 +164,14 @@ function audio_config {
 	fi
 }
 
+## TODO: Make subtitleEng take first stream instead of last
+function subtitles {
+	subtitleEng=$(ffmpeg -i /home/jackal/test3.mkv -f null - 2>&1 | \
+		grep -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | awk -F ":" '{print $2}' | tail -1)
+}
+
 ## TODO: multi-pass while loop
-## TODO: figure out multi-pass ffmpeg vs. x265
+## TODO: figure out multi-pass ffmpeg vs. x265 [does ffpeg -pass even work with libx265]
 ## TODO: multi-pass log
 function ark_encode {
 	ffmpeg -threads $cpuThreads -i $inputFile \
@@ -185,8 +201,6 @@ function ark_encode {
 
 ## TODO: remove multipass logs
 function cleanup {
-	# remove all temp files after completion or cancelation
-	# stats file, and anything else
 	# $workDir/$outFile.ffpass $workDir/$outFile.xpass
 	if [ "${PASS}" == "${passes}" ] ; then
 		## rm stats.file
@@ -206,9 +220,7 @@ while [ "$1" ]; do
 		-o)			 DIR=$2; shift;;
 		-h|--help|-help) eval "$msg \"${HELP}\""; exit 0;;
 		-v|--version)
-			$msg "ARKhive
-			 version: ${VERSION}\n\n";
-			lame --version | grep '^LAME';
+			$msg "ARKhive version: ${VERSION}\n\n";
 			exit 0;;
 		-*) eval "$msg \"${HELP}\""; emsg "\nUnknown option $1\n"; exit 1;;
 		*)
