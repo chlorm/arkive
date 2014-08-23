@@ -16,6 +16,7 @@
 ##    Dependencies:
 ##      ffmpeg[encode,libass,libx265,threads] recommended[aac,fdk,mp3,opus]
 ##      mediainfo
+##      awk, bash, grep, pwd, tail
 ##    Assumed Directory & File Structure:
 ##      ~/.config/ARKhive/ ------------ config directory??????????????
 ##    Legend:
@@ -50,18 +51,17 @@ NOCOLORS=0
 ## [valid file extensions to except]
 export exts=(3gp avi flv m2ts m4v mpeg mkv mov mp4 ts wmv)
 ## [set video codec, audio codec, and container]
-export vcodec="libx265"
+export videoCodec="libx265"
 export passes="2"
-## Ogg, Opus, FDK-AAC, flac to be evaluated, Ogg and Opus support more than 48 channels
-export acodec="copy"
+export audioCodec="libopus"
 export container="mkv"
 
 ## [version is incremented when file is updated]
 VERSION=1
 
 ## [sets current directory as working directory]
-workdir () {
-	pwd
+currentDir () {
+	workDir = $( pwd )
 }
 ## [terminal colors]
 colors () {
@@ -78,7 +78,7 @@ colors () {
 
 # Usage instructions [need to be updated, just an example]
 usage () {
-	HELP="\${cG}split2flac version: ${VERSION}
+	HELP="\${cG}ARKhive version: ${VERSION}
 Splits one big \${cU}APE/FLAC/WV/WAV\$cZ\$cG audio image (or a collection) into \${cU}FLAC/M4A/MP3/OGG_VORBIS/WAV\$cZ\$cG tracks with tagging and renaming.
 
 Usage: \${cZ}split2\${FORMAT} [\${cU}OPTIONS\$cZ] \${cU}FILE\$cZ [\${cU}OPTIONS\$cZ]\$cZ
@@ -115,6 +115,7 @@ Usage: \${cZ}split2\${FORMAT} [\${cU}OPTIONS\$cZ] \${cU}FILE\$cZ [\${cU}OPTIONS\
 out_filename () {
 	# Television: %title%_S%season#%E%episode#%_%country%_%vcodec%.%resolution%_%acodec%.%channels%.%bit_depth%.%samplerate%.%ext%
 	# Movie: %title%_%year%_%country%_%vcodec%.%resolution%_%acodec%.%channels%.%bitdepth%.%samlerate%.%ext%
+	inputFile
 }
 
 pass_count () {
@@ -130,37 +131,37 @@ pass_log_file () {
 ## [checks several points in video and takes greatest crop value to prevent from over cropping]
 cropdetect () {
     CROP="1"
-    TOTAL_LOOPS="10"
-    ## gather crop values
+    totalLoops="10"
+    ## [gather crop values]
     A=0
-    while [ "$A" -lt "$TOTAL_LOOPS" ] ; do
+    while [ "$A" -lt "$totalLoops" ] ; do
         A="$(( $A + 1 ))"
-        SKIP_SECS="$(( 120 * $A ))"
-		CROP[$A]=$(ffmpeg -i ${ARK_in_file} -ss $SKIP_SECS -t 1 -vf cropdetect \
+        skipSecs="$(( 120 * $A ))"
+		CROP[$A]=$(ffmpeg -i ${workDir}/${inputFile} -ss $skipSecs -t 1 -vf cropdetect \
 		-f null - 2>&1 | awk -F "=" '/crop/ { print $NF }' | tail -1)
 ##		Orginal argument
-#        ffmpeg -ss $SKIP_SECS -i "/home/jackal/test.mkv" -vframes 20
+#        ffmpeg -ss $skipSecs -i "/home/jackal/test.mkv" -vframes 20
 #		 -an -sn -vf cropdetect=30:2 -f null 2>&1
 #        CROP[$A]=$(grep -m 1 crop= $FFOUT |awk -F "=" '{print $2}')
     done
     B=0
-    while [ "$B" -lt "$TOTAL_LOOPS" ] ; do
+    while [ "$B" -lt "$totalLoops" ] ; do
         B="$(( $B + 1 ))"
     	C=0
-    	while [ "$C" -lt "$TOTAL_LOOPS" ] ; do
+    	while [ "$C" -lt "$totalLoops" ] ; do
     	    C="$(( $C + 1 ))"
     		if [ "${CROP[$B]}" == "${CROP[$C]}" ] ; then
-    		    COUNT_CROP[$B]="$(( ${COUNT_CROP[$B]} + 1 ))"
+    		    countCrop[$B]="$(( ${countCrop[$B]} + 1 ))"
     		fi
     	done
     done
-    ## find greatest crop
-    HIGHEST_COUNT=0
+    ## [find greatest crop]
+    highestCount=0
     D=0
-    while [ "$D" -lt "$TOTAL_LOOPS" ] ; do
+    while [ "$D" -lt "$totalLoops" ] ; do
         D="$(( $D + 1 ))"
-        if [ "${COUNT_CROP[$D]}" -gt "$HIGHEST_COUNT" ] ; then
-            HIGHEST_COUNT="${COUNT_CROP[$D]}"
+        if [ "${countCrop[$D]}" -gt "$highestCount" ] ; then
+            highestCount="${countCrop[$D]}"
             GREATEST="$D"
         fi
     done
@@ -168,34 +169,18 @@ cropdetect () {
     CROP="${CROP[$GREATEST]}"
 #    CROP=$(echo $CROP|awk -F ":" '{print $1-4":"$2-4":"$3+2":"$4+2}')
 	## [frame width from final crop value]
-    CROP_WIDTH=$(echo $CROP|awk -F ":" '{print $1}')
+    cropWidth=$(echo $CROP | awk -F ":" '{print $1}')
 }
 
 audio_config () {
-	# find number of audio channels in input file [used for setting audio bitrate]
-	channel_count=$(mediainfo ${ARK_in_file} | awk '/Channel\(s\)/ { print $3 }' | tail -1)
-	if [ "${channel_count}" == 1 ]; then
-		## Mono 128kbps
-		AUDIO_BITRATE="128"
-	elif [ "${channel_count}" == 2 ]; then
-		## Stereo 256kbps
-		AUDIO_BITRATE="256"
-	elif [ "${channel_count}" == 3 ]; then
-		## 2.1 320kbps
-		AUDIO_BITRATE="320"
-	elif [ "${channel_count}" == 4 ]; then
-		## Quadrophonic ~427kbps
-		AUDIO_BITRATE="128"
-	elif [ "${channel_count}" == 6 ]; then
-		## 5.1 Surround 640kbps
-		AUDIO_BITRATE="640"
-	elif [ "${channel_count}" == 8 ]; then
-		## 7.1 Surround ~853kbps
-		AUDIO_BITRATE="640"
-	## Dolby Atmos Surround [not currently available]
-	## atmos will be evaluated as the wether it will be supported as is or down mixed
+	# find number of audio channels
+	audioChannels=$(mediainfo ${workDir}${inputFile} | awk '/Channel\(s\)/ { print $3 }' | tail -1)
+	# set to 48kbps per channel
+	audioBitrate=$(($audioChannels * 48))
+	if ["${audioChannels}" -gt 6 ] ; then
+		audioSamRate = "48000"
 	else
-		echo "ERROR: Non-standard number of audio channels"
+		audioSamRate = "44100"
 	fi
 }
 
@@ -205,7 +190,7 @@ audio_config () {
 cleanup () {
 	# remove all temp files after completion or cancelation
 	# stats file, and anything else
-	if [ "${PASS}" == "${passes}" ]; then
+	if [ "${PASS}" == "${passes}" ] ; then
 		## rm stats.file
 	else
 		## do nothing
@@ -218,12 +203,15 @@ encode () {
 	ffmpeg -threads 4 -i ${@} \
 	-pass $pass_count \
 	-passlogfile "$(workdir)/$log_file" \
-	-c:v ${ARK_out_vcodec} -b:v 1024k -minrate 1k -maxrate 32k -r 24000/1001 \
-	-vf "crop=$(cropdetect),scale=$(video_width):trunc(ow/a/2)*2" \
-	-c:a ${ARK_out_acodec} \
+	-c:v $videoCodec -b:v 1024k -minrate 1k -maxrate 32k -r 24000/1001 \
+	-vf "crop=$crop,scale=$cropWidth:trunc(ow/a/2)*2" \
+	-c:a $audioCodec \
+	-ac $audioChannels \
+	-ab $audioBitrate \
+	-ar $audioSamRate \
 	-x265-params "\
 	threads=4:frame-threads=4:\
-	frames=0\
+	frames=0:\
 	wpp:ctu=64:tu-intra-depth=4:tu-inter-depth=4:\
 	me=2:subme=7:merange=60:max-merge=5:\
 	b-intra:no-tskip:no-constrained-intra:\
