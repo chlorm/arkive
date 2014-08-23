@@ -25,8 +25,7 @@
 ##      ## - comments [not to be uncommented]
 ##      # -- commented variables
 
-# Items to handle
-
+## Items to handle
 # Video Stream
 # Audio Stream
 # Subtitles (english only, figure out how to determine which is english if not titled)
@@ -34,8 +33,7 @@
 # Metadata???????
 # Chapterlist
 
-# Source
-
+## Source
 # a-Bluray
 # b-Bluray-Rip
 # c-HDTV
@@ -46,6 +44,11 @@
 # h-Screener
 # i-Telecine
 
+## COMPLETE
+# current_dir
+# cpu_detect
+# crop_detect
+
 noColors=0
 
 ## [valid file extensions to except]
@@ -54,13 +57,12 @@ export exts=(3gp avi flv m2ts m4v mpeg mkv mov mp4 ts wmv)
 ## [version is incremented when file is updated]
 VERSION=1
 
-## [sets current directory as working directory]
-function currentDir {
+function current_dir {
+	## [sets current directory as working directory]
 	workDir = $( pwd )
 }
 
 ## TODO: auto detect if terminal supports color
-## [terminal colors]
 function colors {
 	if [ "${noColors}" -eq 0 ]; then
 		colorR="\033[31m" # Red
@@ -74,7 +76,6 @@ function colors {
 }
 
 ## TODO: update help informaton and fix colors
-# Usage instructions [need to be updated, just an example]
 function usage {
 	HELP="\${cG}ARKhive version: ${VERSION}
 Automates encoding video to ARK's archive format.
@@ -86,30 +87,22 @@ Usage: \${cZ}ARKhive [\${cU}OPTIONS\$cZ] \${cU}FILE\$cZ [\${cU}OPTIONS\$cZ]\$cZ
          \$colorG-v\$cZ                    - print version"
 }
 
-## [parse input file and create output filename according to ARK specification]
 function out_filename {
+## [parse input file and create output filename according to ARK specification]
 	# Television: %title%_S%season#%E%episode#%_%country%_%vcodec%.%resolution%_%acodec%.%channels%.%bit_depth%.%samplerate%.%ext%
 	# Movie: %title%_%year%_%country%_%vcodec%.%resolution%_%acodec%.%channels%.%bitdepth%.%samlerate%.%ext%
-	inputFile
+	outputFile=$(cat $inputFile | )
 }
 
-function multi_pass {
-	# multi-pass encoding
-	# start with 1 and increment each time it is run, and exit if >2
-	# multi-pass log file [create filename and path]
-	multiPassLog=$($workDir/$outputFile.mpass)
-}
-
-function cpudetect {
+function cpu_detect {
 	## [find number of physical cpu cores]
 	cpuCores=$(cat /proc/cpuinfo | awk '/^cpu\ cores/{print $4}' | tail -1)
 	## [find number of cpu threads]
 	cpuThreads=$(grep -c ^processor /proc/cpuinfo)
 }
 
-## Crop Black Bars
-## [checks several points in video and takes greatest crop value to prevent from over cropping]
-function cropdetect {
+function crop_detect {
+	## Crop Black Bars [several checks to get accurate crop]
     CROP="1"
     totalLoops="10"
     ## [gather crop values]
@@ -119,10 +112,6 @@ function cropdetect {
         skipSecs="$(( 120 * $A ))"
 		CROP[$A]=$(ffmpeg -i ${workDir}/${inputFile} -ss $skipSecs -t 1 -vf cropdetect \
 		-f null - 2>&1 | awk -F "=" '/crop/ { print $NF }' | tail -1)
-##		Orginal argument
-#        ffmpeg -ss $skipSecs -i "/home/jackal/test.mkv" -vframes 20
-#		 -an -sn -vf cropdetect=30:2 -f null 2>&1
-#        CROP[$A]=$(grep -m 1 crop= $FFOUT |awk -F "=" '{print $2}')
     done
     B=0
     while [ "$B" -lt "$totalLoops" ] ; do
@@ -147,14 +136,11 @@ function cropdetect {
     done
     ## [final crop value]
     CROP="${CROP[$GREATEST]}"
-#    CROP=$(echo $CROP|awk -F ":" '{print $1-4":"$2-4":"$3+2":"$4+2}')
 	## [frame width from final crop value]
     cropWidth=$(echo $CROP | awk -F ":" '{print $1}')
 }
 
 ## TODO: select english audio channel, exclude commentary
-#ffmpeg -i "input" -vn -c:a ac3 -ac 6 -ar 48000 -ab 640k -dialnorm -24 -dsur_mode 0 \
-#-original 1 -dmix_mode 2 "output"
 function audio_config {
 	## [find number of audio channels]
 	audioChannels=$(mediainfo ${workDir}${inputFile} | awk '/Channel\(s\)/ { print $3 }' | tail -1)
@@ -168,20 +154,10 @@ function audio_config {
 	fi
 }
 
-## TODO: remove multipass logs
-function cleanup {
-	# remove all temp files after completion or cancelation
-	# stats file, and anything else
-	if [ "${PASS}" == "${passes}" ] ; then
-		## rm stats.file
-	else
-		## do nothing
-	fi
-}
-
 ## TODO: multi-pass while loop
-# While pass ==1 or == 2 run the following
-function encode {
+## TODO: figure out multi-pass ffmpeg vs. x265
+## TODO: multi-pass log
+function ark_encode {
 	ffmpeg -threads $cpuThreads -i $inputFile \
 	-pass $pass_count \
 	-passlogfile "$workDir/$outputFile.ffmpass" \
@@ -207,10 +183,22 @@ function encode {
 	-y "$(workdir)/${output}.mkv"
 }
 
-## call functions
+## TODO: remove multipass logs
+function cleanup {
+	# remove all temp files after completion or cancelation
+	# stats file, and anything else
+	# $workDir/$outFile.ffpass $workDir/$outFile.xpass
+	if [ "${PASS}" == "${passes}" ] ; then
+		## rm stats.file
+	else
+		## do nothing
+	fi
+}
+
+## function calls
 colors
+current_dir
 usage
-## while loop to check for flags
 ## parse arguments
 ## options (-v/--version)(-h/--help)(-i/--input)(-o/--output)
 while [ "$1" ]; do
@@ -238,4 +226,10 @@ while [ "$1" ]; do
 	shift
 done
 
-cropdetect
+## function calls
+audio_config
+cpu_detect
+crop_detect
+ark_encode
+
+## encoding
