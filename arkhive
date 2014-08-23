@@ -1,0 +1,292 @@
+#!/bin/sh
+##       ________   ___       ___
+##      /  _____/  /  /      /  /
+##     /  /       /  /      /  /
+##    /  /       /  /____  /  / _______  _______  ____  ____
+##   /  /       /  ___  / /  / /  __  / /  ____/ /    \/    \
+##  /  /_____  /  /  / / /  / /  /_/ / /  /     /  /\    /\  \
+## /________/ /__/  /_/ /__/ /______/ /__/     /__/  \__/  \__\ TM
+##
+## Title: ARKhive
+## Author: Cody Opel
+## E-mail: codyopel(at)gmail.com
+## Copyright (c) 2014 All Rights Reserved, http://www.chlorm.net
+## License: The MIT License - http://opensource.org/licenses/MIT
+## Comments:
+##    Dependencies:
+##      ffmpeg[encode,libass,libx265,threads] recommended[aac,fdk,mp3,opus]
+##      mediainfo
+##    Assumed Directory & File Structure:
+##      ~/.config/ARKhive/ ------------ config directory??????????????
+##    Legend:
+##      () - option
+##      [] - description
+##      ## - comments [not to be uncommented]
+##      # -- commented variables
+
+# Items to handle
+
+# Video Stream
+# Audio Stream
+# Subtitles (english only, figure out how to determine which is english if not titled)
+# Coverart??????????
+# Metadata???????
+# Chapterlist
+
+# Source
+
+# a-Bluray
+# b-Bluray-Rip
+# c-HDTV
+# d-DVD
+# e-SDTV
+# f-Cam
+# g-Telesync
+# h-Screener
+# i-Telecine
+
+NOCOLORS=0
+
+## [valid file extensions to except]
+export exts=(3gp avi flv m2ts m4v mpeg mkv mov mp4 ts wmv)
+## [set video codec, audio codec, and container]
+export vcodec="libx265"
+export passes="2"
+## Ogg, Opus, FDK-AAC, flac to be evaluated, Ogg and Opus support more than 48 channels
+export acodec="copy"
+export container="mkv"
+
+## [version is incremented when file is updated]
+VERSION=1
+
+## [sets current directory as working directory]
+workdir () {
+	pwd
+}
+## [terminal colors]
+colors () {
+	if [ "${NOCOLORS}" -eq 0 ]; then
+		colorR="\033[31m" # Red
+		colorG="\033[32m" # Green
+		colorP="\033[35m" # Purple
+		colorB="\033[36m" # Cyan (light blue)
+		colorD="\033[0m"  # default
+	else
+		unset colorR colorG colorP colorB colorD
+	fi
+}
+
+# Usage instructions [need to be updated, just an example]
+usage () {
+	HELP="\${cG}split2flac version: ${VERSION}
+Splits one big \${cU}APE/FLAC/WV/WAV\$cZ\$cG audio image (or a collection) into \${cU}FLAC/M4A/MP3/OGG_VORBIS/WAV\$cZ\$cG tracks with tagging and renaming.
+
+Usage: \${cZ}split2\${FORMAT} [\${cU}OPTIONS\$cZ] \${cU}FILE\$cZ [\${cU}OPTIONS\$cZ]\$cZ
+       \${cZ}split2\${FORMAT} [\${cU}OPTIONS\$cZ] \${cU}DIR\$cZ  [\${cU}OPTIONS\$cZ]\$cZ
+         \$colorG-p\$cZ                    - dry run
+         \$colorG-o \${cU}DIRECTORY\$cZ        \$cR*\$cZ - set output directory (current is \$cP\${DIR}\$cZ)
+         \$colorG-of \${cU}'PATTERN'\$cZ       \$cR*\$cZ - use specific output naming pattern (current is \$cP'\${OUTPATTERN}'\$cZ)
+         \$colorG-cue \${cU}FILE\$cZ             - use file as a cue sheet (does not work with \${cU}DIR\$cZ)
+         \$colorG-cuecharset \${cU}CHARSET\$cZ   - convert cue sheet from CHARSET to UTF-8 (no conversion by default)
+         \$colorG-nask\$cZ                 - do not ask to enter proper charset of a cue sheet (default is to ask)
+         \$colorG-f \${cU}FORMAT\$cZ             - use specific output format (current is \$cP\${FORMAT}\$cZ)
+         \$colorG-e \${cU}'ARG1 ARG2'\$cZ      \$cR*\$cZ - encoder arguments (current is \$cP'\${ENCARGS}'\$cZ)
+         \$colorG-eh\$cZ                   - show help for current encoder and exit\$cZ
+         \$colorG-enca \${cU}'ARG1 ARG2'\$cZ   \$cR*\$cZ - enca additional arguments (current is \$cP'\${ENCA_ARGS}'\$cZ)
+         \$colorG-c \${cU}FILE\$cZ             \$cR*\$cZ - use file as a cover image (does not work with \${cU}DIR\$cZ)
+         \$colorG-nc                 \${cR}*\$cZ - do not set any cover images
+         \$colorG-C \${cU}MASKS\$cZ            \$cR*\$cZ - specify wildcards for files to copy over (current is \$cP'\${COPYMASKS}'\$cZ)
+         \$colorG-nC                 \${cR}*\$cZ - do not copy any files
+         \$colorG-cs \${cU}WxH\$cZ             \$cR*\$cZ - set cover image size (current is \$cP\${PIC_SIZE}\$cZ)
+         \$colorG-d                  \$cR*\$cZ - create artist/album subdirs (default)
+         \$colorG-nd                 \$cR*\$cZ - do not create any subdirs
+         \$colorG-D                  \$cR*\$cZ - delete original file
+         \$colorG-nD                 \$cR*\$cZ - do not remove the original (default)
+         \$colorG-F\$cZ                    - force deletion without asking
+         \$colorG-colors\$cZ             \$cR*\$cZ - colorized output (default)
+         \$colorG-nocolors\$cZ           \$cR*\$cZ - turn off colors
+         \$colorG-g\$cZ                  \$cR*\$cZ - adjust audio gain
+         \$colorG-ng\$cZ                 \$cR*\$cZ - do not adjust audio gain (default)
+         \$colorG-s\$cZ                    - save configuration to \$cP\"\${CONFIG}\"\$cZ
+         \$colorG-h\$cZ                    - print this message
+         \$colorG-v\$cZ                    - print version"
+}
+## [parse input file and creates output filename according to ARK specification]
+out_filename () {
+	# Television: %title%_S%season#%E%episode#%_%country%_%vcodec%.%resolution%_%acodec%.%channels%.%bit_depth%.%samplerate%.%ext%
+	# Movie: %title%_%year%_%country%_%vcodec%.%resolution%_%acodec%.%channels%.%bitdepth%.%samlerate%.%ext%
+}
+
+pass_count () {
+	# multi-pass encoding
+	# start with 1 and increment each time it is run, and exit if >2
+}
+
+pass_log_file () {
+	# multi-pass log file [create filename and path]
+}
+
+## Crop Black Bars
+## [checks several points in video and takes greatest crop value to prevent from over cropping]
+cropdetect () {
+    CROP="1"
+    TOTAL_LOOPS="10"
+    ## gather crop values
+    A=0
+    while [ "$A" -lt "$TOTAL_LOOPS" ] ; do
+        A="$(( $A + 1 ))"
+        SKIP_SECS="$(( 120 * $A ))"
+		CROP[$A]=$(ffmpeg -i ${ARK_in_file} -ss $SKIP_SECS -t 1 -vf cropdetect \
+		-f null - 2>&1 | awk -F "=" '/crop/ { print $NF }' | tail -1)
+##		Orginal argument
+#        ffmpeg -ss $SKIP_SECS -i "/home/jackal/test.mkv" -vframes 20
+#		 -an -sn -vf cropdetect=30:2 -f null 2>&1
+#        CROP[$A]=$(grep -m 1 crop= $FFOUT |awk -F "=" '{print $2}')
+    done
+    B=0
+    while [ "$B" -lt "$TOTAL_LOOPS" ] ; do
+        B="$(( $B + 1 ))"
+    	C=0
+    	while [ "$C" -lt "$TOTAL_LOOPS" ] ; do
+    	    C="$(( $C + 1 ))"
+    		if [ "${CROP[$B]}" == "${CROP[$C]}" ] ; then
+    		    COUNT_CROP[$B]="$(( ${COUNT_CROP[$B]} + 1 ))"
+    		fi
+    	done
+    done
+    ## find greatest crop
+    HIGHEST_COUNT=0
+    D=0
+    while [ "$D" -lt "$TOTAL_LOOPS" ] ; do
+        D="$(( $D + 1 ))"
+        if [ "${COUNT_CROP[$D]}" -gt "$HIGHEST_COUNT" ] ; then
+            HIGHEST_COUNT="${COUNT_CROP[$D]}"
+            GREATEST="$D"
+        fi
+    done
+    ## [final crop value]
+    CROP="${CROP[$GREATEST]}"
+#    CROP=$(echo $CROP|awk -F ":" '{print $1-4":"$2-4":"$3+2":"$4+2}')
+	## [frame width from final crop value]
+    CROP_WIDTH=$(echo $CROP|awk -F ":" '{print $1}')
+}
+
+audio_config () {
+	# find number of audio channels in input file [used for setting audio bitrate]
+	channel_count=$(mediainfo ${ARK_in_file} | awk '/Channel\(s\)/ { print $3 }' | tail -1)
+	if [ "${channel_count}" == 1 ]; then
+		## Mono 128kbps
+		AUDIO_BITRATE="128"
+	elif [ "${channel_count}" == 2 ]; then
+		## Stereo 256kbps
+		AUDIO_BITRATE="256"
+	elif [ "${channel_count}" == 3 ]; then
+		## 2.1 320kbps
+		AUDIO_BITRATE="320"
+	elif [ "${channel_count}" == 4 ]; then
+		## Quadrophonic ~427kbps
+		AUDIO_BITRATE="128"
+	elif [ "${channel_count}" == 6 ]; then
+		## 5.1 Surround 640kbps
+		AUDIO_BITRATE="640"
+	elif [ "${channel_count}" == 8 ]; then
+		## 7.1 Surround ~853kbps
+		AUDIO_BITRATE="640"
+	## Dolby Atmos Surround [not currently available]
+	## atmos will be evaluated as the wether it will be supported as is or down mixed
+	else
+		echo "ERROR: Non-standard number of audio channels"
+	fi
+}
+
+#ffmpeg -i "input" -vn -c:a ac3 -ac 6 -ar 48000 -ab 640k -dialnorm -24 -dsur_mode 0 \
+#-original 1 -dmix_mode 2 "output"
+
+cleanup () {
+	# remove all temp files after completion or cancelation
+	# stats file, and anything else
+	if [ "${PASS}" == "${passes}" ]; then
+		## rm stats.file
+	else
+		## do nothing
+	fi
+}
+
+# While pass ==1 or == 2 run the following
+encode () {
+	## need while loop for multi-pass
+	ffmpeg -threads 4 -i ${@} \
+	-pass $pass_count \
+	-passlogfile "$(workdir)/$log_file" \
+	-c:v ${ARK_out_vcodec} -b:v 1024k -minrate 1k -maxrate 32k -r 24000/1001 \
+	-vf "crop=$(cropdetect),scale=$(video_width):trunc(ow/a/2)*2" \
+	-c:a ${ARK_out_acodec} \
+	-x265-params "\
+	threads=4:frame-threads=4:\
+	frames=0\
+	wpp:ctu=64:tu-intra-depth=4:tu-inter-depth=4:\
+	me=2:subme=7:merange=60:max-merge=5:\
+	b-intra:no-tskip:no-constrained-intra:\
+	rect:amp:no-early-skip:weightp:weightb:\
+	psy-rd=0.15:\
+	keyint=250:min-keyint=23:rc-lookahead=60:b-adapt=2:bframes=3:bframe-bias=0:b-pyramid:ref=4:\
+	vbv-bufsize=31250:vbv-maxrate=31250:vbv-init=0.9:aq-mode=0:no-cutree:cbqpoffs=3:crqpoffs=3:pass=1:no-slow-firstpass:\
+	lft:sao-lcu-opt=1:\
+	hash=2"\
+	-y "$(workdir)/${output}.${ARK_out_container}"
+}
+
+colors
+usage
+## while loop to check for flags
+## parse arguments
+while [ "$1" ]; do
+	case "$1" in
+		-o)			 DIR=$2; shift;;
+		-of)		 OUTPATTERN=$2; shift;;
+		-cue)		 CUE=$2; shift;;
+		-cuecharset) CHARSET=$2; shift;;
+		-nask)		 NASK=1;;
+		-f)			 FORMAT=$2; update_encargs; shift;;
+		-e)			 ENCARGS=$2; shift;;
+		-eh)		 ENCHELP=1;;
+		-enca)		 ENCA_ARGS=$2; shift;;
+		-c)			 NOPIC=0; PIC=$2; shift;;
+		-nc)		 NOPIC=1;;
+		-C)			 COPYMASKS=$2; COPYFILES=1; shift;;
+		-nC)		 COPYFILES=0;;
+		-cs)		 PIC_SIZE=$2; shift;;
+		-d)			 NOSUBDIRS=0;;
+		-nd)		 NOSUBDIRS=1;;
+		-p)			 DRY=1;;
+		-D)			 REMOVE=1;;
+		-nD)		 REMOVE=0;;
+		-F)			 FORCE=1;;
+		-colors)	 NOCOLORS=0; update_colors;;
+		-nocolors)	 NOCOLORS=1; update_colors;;
+		-g)			 REPLAY_GAIN=1;;
+		-ng)		 REPLAY_GAIN=0;;
+		-s)			 SAVE=1;;
+		-h|--help|-help) eval "$msg \"${HELP}\""; exit 0;;
+		-v|--version)
+			$msg "ARKhive
+			 version: ${VERSION}\n\n";
+			lame --version | grep '^LAME';
+			exit 0;;
+		-*) eval "$msg \"${HELP}\""; emsg "\nUnknown option $1\n"; exit 1;;
+		*)
+			if [ -n "${INPATH}" ]; then
+				eval "$msg \"${HELP}\""
+				emsg "\nUnknown option $1\n"
+				exit 1
+			elif [ ! -r "$1" ]; then
+				emsg "Unable to read $1\n"
+				exit 2
+			else
+				INPATH="$1"
+			fi;;
+	esac
+	shift
+done
+
+cropdetect
