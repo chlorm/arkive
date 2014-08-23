@@ -25,10 +25,6 @@
 ##      ## - comments [not to be uncommented]
 ##      # -- commented variables
 
-
-## TODO: Set metadata for streams (english audio, etc...)
-
-
 ## Items to handle
 # Video Stream
 # Audio Stream
@@ -47,11 +43,6 @@
 # g-Telesync
 # h-Screener
 # i-Telecine
-
-## COMPLETE
-# current_dir
-# cpu_detect
-# crop_detect
 
 noColors=0
 
