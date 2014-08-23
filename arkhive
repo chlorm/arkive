@@ -16,7 +16,7 @@
 ##    Dependencies:
 ##      ffmpeg[encode,libass,libx265,threads] recommended[aac,fdk,mp3,opus]
 ##      mediainfo
-##      awk, bash, grep, pwd, tail
+##      awk, bash, cat, grep, pwd, tail
 ##    Assumed Directory & File Structure:
 ##      ~/.config/ARKhive/ ------------ config directory??????????????
 ##    Legend:
@@ -127,6 +127,11 @@ pass_log_file () {
 	# multi-pass log file [create filename and path]
 }
 
+cpudetect () {
+	# Find number of threads and physical cpu cores
+	cpuCores=$(cat /proc/cpuinfo | awk '/^cpu\ cores/{print $4}' | tail -1)
+	cpuThreads=$(grep -c ^processor /proc/cpuinfo)
+}
 ## Crop Black Bars
 ## [checks several points in video and takes greatest crop value to prevent from over cropping]
 cropdetect () {
@@ -178,9 +183,9 @@ audio_config () {
 	# set to 48kbps per channel
 	audioBitrate=$(($audioChannels * 48))
 	if ["${audioChannels}" -gt 6 ] ; then
-		audioSamRate = "48000"
+		audioSamRate="48000"
 	else
-		audioSamRate = "44100"
+		audioSamRate="44100"
 	fi
 }
 
@@ -224,7 +229,7 @@ encode () {
 	hash=2"\
 	-y "$(workdir)/${output}.${container}"
 }
-
+## call functions
 colors
 usage
 ## while loop to check for flags
