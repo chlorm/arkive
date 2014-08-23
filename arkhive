@@ -161,7 +161,7 @@ function audio_config {
 	## [set to 48kbps per channel]
 	audioBitrate=$(($audioChannels * 48))
 	## [set samplerate based on number of channels]
-	if ["${audioChannels}" -gt 6 ] ; then
+	if ["${audioChannels}" -gt 4 ] ; then
 		audioSamRate="48000"
 	else
 		audioSamRate="44100"
@@ -186,29 +186,46 @@ function meta_data {
 ## TODO: figure out multi-pass ffmpeg vs. x265 [does ffpeg -pass even work with libx265]
 ## TODO: multi-pass log
 function ark_encode {
-	ffmpeg -threads $cpuThreads -i $inputFile \
-	-pass $pass_count \
-	-passlogfile "$workDir/$outputFile.ffmpass" \
-	-c:v libx265 -b:v 1024k -minrate 1k -maxrate 32k -r 24000/1001 \
-	-vf "crop=$crop,scale=$cropWidth:trunc(ow/a/2)*2" \
-	-c:a libopus \
-	-ac $audioChannels \
-	-ab $audioBitrate \
-	-ar $audioSamRate \
-	-x265-params "\
-	threads=$cpuCores:frame-threads=4:\
-	frames=0:\
-	wpp:ctu=64:tu-intra-depth=4:tu-inter-depth=4:\
-	me=2:subme=7:merange=60:max-merge=5:\
-	b-intra:no-tskip:no-constrained-intra:\
-	rect:amp:no-early-skip:weightp:weightb:\
-	psy-rd=0.15:\
-	keyint=250:min-keyint=23:rc-lookahead=60:b-adapt=2:bframes=3:bframe-bias=0:b-pyramid:ref=4:\
-	vbv-bufsize=31250:vbv-maxrate=31250:vbv-init=0.9:aq-mode=0:no-cutree:cbqpoffs=3:crqpoffs=3:\
-	pass=1:no-slow-firstpass:\
-	lft:sao-lcu-opt=1:\
-	hash=2"\
-	-y "$(workdir)/${output}.mkv"
+	## function calls
+	out_filename
+	audio_config
+	cpu_detect
+	crop_detect
+	sub_titles
+	meta_data
+	ark_encode
+	cleanup
+
+	passes="2"
+	PASS=1
+	while [ "$PASS" -le "$passes" ] ; do
+
+		ffmpeg -threads $cpuThreads -i $inputFile \
+		-pass $PASS \
+		-passlogfile "\$workDir/\$outputFile.ffmpass" \
+		-c:v libx265 -b:v 1024k -minrate 1k -maxrate 32k -r 24000/1001 \
+		-vf "crop=\$crop,scale=\$cropWidth:trunc(ow/a/2)*2" \
+		-c:a libopus \
+		-ac $audioChannels \
+		-ab $audioBitrate \
+		-ar $audioSamRate \
+		-x265-params "\
+		threads=\$cpuCores:frame-threads=\$cpuCores:\
+		frames=0:\
+		wpp:ctu=64:tu-intra-depth=4:tu-inter-depth=4:\
+		me=2:subme=7:merange=60:max-merge=5:\
+		b-intra:no-tskip:no-constrained-intra:\
+		rect:amp:no-early-skip:weightp:weightb:\
+		psy-rd=0.15:\
+		keyint=250:min-keyint=23:rc-lookahead=60:b-adapt=2:bframes=3:bframe-bias=0:b-pyramid:ref=4:\
+		vbv-bufsize=31250:vbv-maxrate=31250:vbv-init=0.9:aq-mode=0:no-cutree:cbqpoffs=3:crqpoffs=3:\
+		pass=\$PASS:no-slow-firstpass:\
+		lft:sao-lcu-opt=1:\
+		hash=2"\
+		-y "\$workDir/\$outputFile.mkv"
+
+		PASS=$(( $PASS + 1 ))
+	done
 	echo "Encoding complete"
 }
 
@@ -253,23 +270,4 @@ while [ "$1" ]; do
 done
 
 ## function calls
-echo "\${colorG}Commencing pre-flight checks"
-echo "\${colorG}Parsing input file"
-out_filename
-echo "\${colorG}Configuring audio settings"
-audio_config
-echo "\${colorG}Finding CPU details"
-cpu_detect
-echo "\${colorG}Checking for black-bars"
-crop_detect
-echo "\${colorG}Looking for English subtitles"
-sub_titles
-echo "\${colorG}Setting Metadata"
-meta_data
-echo "\${colorG}Encoding"
 ark_encode
-echo "\${colorG}Finishing Up...cleaning tmp files"
-cleanup
-
-
-## encoding
