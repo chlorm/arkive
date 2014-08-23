@@ -64,6 +64,7 @@ VERSION=1
 function current_dir {
 	## [sets current directory as working directory]
 	workDir = $( pwd )
+	echo "Working Directory: \$workDir"
 }
 
 ## TODO: auto detect if terminal supports color
@@ -103,6 +104,8 @@ function cpu_detect {
 	cpuCores=$(cat /proc/cpuinfo | awk '/^cpu\ cores/{print $4}' | tail -1)
 	## [find number of cpu threads]
 	cpuThreads=$(grep -c ^processor /proc/cpuinfo)
+	echo "Found CPU details:"
+	echo "Cores: \$cpuCores Threads: \$cpuThreads"
 }
 
 function crop_detect {
@@ -142,6 +145,7 @@ function crop_detect {
     CROP="${CROP[$GREATEST]}"
 	## [frame width from final crop value]
     cropWidth=$(echo $CROP | awk -F ":" '{print $1}')
+    echo "Crop detection complete"
 }
 
 ## TODO: select english audio channel, exclude commentary
@@ -162,12 +166,20 @@ function audio_config {
 	else
 		audioSamRate="44100"
 	fi
+	echo "Audio configuration complete:"
+	echo "Channels: \$audioChannels Bitrate: \$audioBitrate Samplerate: \$audioSamRate"
 }
 
 ## TODO: Make subtitleEng take first stream instead of last
-function subtitles {
+function sub_titles {
 	subtitleEng=$(ffmpeg -i /home/jackal/test3.mkv -f null - 2>&1 | \
 		grep -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | awk -F ":" '{print $2}' | tail -1)
+}
+
+## TODO: everything
+function meta_data {
+	## add language to streams
+	## add title to video
 }
 
 ## TODO: multi-pass while loop
@@ -197,6 +209,7 @@ function ark_encode {
 	lft:sao-lcu-opt=1:\
 	hash=2"\
 	-y "$(workdir)/${output}.mkv"
+	echo "Encoding complete"
 }
 
 ## TODO: remove multipass logs
@@ -211,6 +224,7 @@ function cleanup {
 
 ## function calls
 colors
+echo "Setting current directory as working directory"
 current_dir
 usage
 ## parse arguments
@@ -239,9 +253,23 @@ while [ "$1" ]; do
 done
 
 ## function calls
+echo "\${colorG}Commencing pre-flight checks"
+echo "\${colorG}Parsing input file"
+out_filename
+echo "\${colorG}Configuring audio settings"
 audio_config
+echo "\${colorG}Finding CPU details"
 cpu_detect
+echo "\${colorG}Checking for black-bars"
 crop_detect
+echo "\${colorG}Looking for English subtitles"
+sub_titles
+echo "\${colorG}Setting Metadata"
+meta_data
+echo "\${colorG}Encoding"
 ark_encode
+echo "\${colorG}Finishing Up...cleaning tmp files"
+cleanup
+
 
 ## encoding
