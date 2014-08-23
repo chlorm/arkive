@@ -218,10 +218,11 @@ encode () {
 	rect:amp:no-early-skip:weightp:weightb:\
 	psy-rd=0.15:\
 	keyint=250:min-keyint=23:rc-lookahead=60:b-adapt=2:bframes=3:bframe-bias=0:b-pyramid:ref=4:\
-	vbv-bufsize=31250:vbv-maxrate=31250:vbv-init=0.9:aq-mode=0:no-cutree:cbqpoffs=3:crqpoffs=3:pass=1:no-slow-firstpass:\
+	vbv-bufsize=31250:vbv-maxrate=31250:vbv-init=0.9:aq-mode=0:no-cutree:cbqpoffs=3:crqpoffs=3:\
+	pass=1:no-slow-firstpass:\
 	lft:sao-lcu-opt=1:\
 	hash=2"\
-	-y "$(workdir)/${output}.${ARK_out_container}"
+	-y "$(workdir)/${output}.${container}"
 }
 
 colors
