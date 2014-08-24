@@ -26,12 +26,12 @@
 ##      # -- commented variables
 
 ## Items to handle
-# Video Stream
-# Audio Stream
-# Subtitles (english only, figure out how to determine which is english if not titled)
-# Coverart??????????
-# Metadata???????
-# Chapterlist
+# Video Stream ^
+# Audio Stream ^
+# Subtitles (english only, figure out how to determine which is english if not titled) ^
+# Coverart?????????? TODO
+# Metadata??????? TODO
+# Chapterlist TODO
 
 ## Source
 # a-Bluray
@@ -90,8 +90,9 @@ usage
 ## options (-v/--version)(-h/--help)(-i/--input)(-o/--output)
 while [ "$1" ]; do
 	case "$1" in
-		-o)			 DIR=$2; shift;;
-		-h|--help|-help) eval "$msg \"${HELP}\""; exit 0;;
+		-i|--input)			 DIR=$2; shift;;
+		-o|--output)			 DIR=$2; shift;;
+		-h|--help) eval "$msg \"${HELP}\""; exit 0;;
 		-v|--version)
 			$msg "ARKhive version: ${VERSION}\n\n";
 			exit 0;;
@@ -126,20 +127,21 @@ function cpu_detect {
 		tail -1)
 	## [find number of cpu threads]
 	cpuThreads=$(grep -c ^processor /proc/cpuinfo)
+
 	echo "Found CPU details..."
 	echo "Cores: $cpuCores Threads: $cpuThreads"
 }
 
 function crop_detect {
-	## Crop Black Bars [several checks to get accurate crop]
-    CROP="1"
+	## [several checks to accurately crop black-bars]
+    crop="1"
     totalLoops="10"
     ## [gather crop values]
     A=0
     while [ "$A" -lt "$totalLoops" ] ; do
         A="$(( $A + 1 ))"
         skipSecs="$(( 120 * $A ))"
-		CROP[$A]=$(\
+		crop[$A]=$(\
 			ffmpeg -i $workDir/$inputFile -ss $skipSecs \
 			-t 1 -vf cropdetect -f null - 2>&1 | \
 			awk -F "=" '/crop/ { print $NF }' | \
@@ -151,7 +153,7 @@ function crop_detect {
     	C=0
     	while [ "$C" -lt "$totalLoops" ] ; do
     	    C="$(( $C + 1 ))"
-    		if [ "${CROP[$B]}" == "${CROP[$C]}" ] ; then
+    		if [ "${crop[$B]}" == "${crop[$C]}" ] ; then
     		    countCrop[$B]="$(( ${countCrop[$B]} + 1 ))"
     		fi
     	done
@@ -163,13 +165,13 @@ function crop_detect {
         D="$(( $D + 1 ))"
         if [ "${countCrop[$D]}" -gt "$highestCount" ] ; then
             highestCount="${countCrop[$D]}"
-            GREATEST="$D"
+            greatest="$D"
         fi
     done
     ## [final crop value]
-    CROP="${CROP[$GREATEST]}"
+    crop="${crop[$greatest]}"
 	## [frame width from final crop value]
-    cropWidth=$(echo $CROP | awk -F ":" '{print $1}')
+    cropWidth=$(echo $crop | awk -F ":" '{print $1}')
     echo "Crop detection complete"
 }
 
@@ -214,7 +216,7 @@ function meta_data {
 	## add title to video
 }
 
-## TODO: multi-pass while loop
+## TODO: multi-pass while loop ???not sure if it works???
 ## TODO: figure out multi-pass ffmpeg vs. x265 [does ffpeg -pass even work with libx265]
 ## TODO: multi-pass log
 function ark_encode {
@@ -234,7 +236,7 @@ function ark_encode {
 
 		ffmpeg -threads $cpuThreads -i $inputFile \
 		-pass $PASS \
-		-passlogfile "\$workDir/\$outputFile.ffmpass" \
+		-passlogfile "\$workDir/\$outputFile.ffpass" \
 		-c:v libx265 -b:v 1024k -minrate 1k -maxrate 32k -r 24000/1001 \
 		-vf "crop=\$crop,scale=\$cropWidth:trunc(ow/a/2)*2" \
 		-c:a libopus \
