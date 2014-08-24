@@ -115,12 +115,15 @@ function out_filename {
 ## [parse input file and create output filename according to ARK specification]
 	# Television: %title%_S%season#%E%episode#%_%country%_%vcodec%.%resolution%_%acodec%.%channels%.%bit_depth%.%samplerate%.%ext%
 	# Movie: %title%_%year%_%country%_%vcodec%.%resolution%_%acodec%.%channels%.%bitdepth%.%samlerate%.%ext%
-	outputFile=$(cat $inputFile | )
+	#outputFile=$(cat $inputFile | )
 }
 
 function cpu_detect {
 	## [find number of physical cpu cores]
-	cpuCores=$(cat /proc/cpuinfo | awk '/^cpu\ cores/{print $4}' | tail -1)
+	cpuCores=$(\
+		cat /proc/cpuinfo | \
+		awk '/^cpu\ cores/{print $4}' | \
+		tail -1)
 	## [find number of cpu threads]
 	cpuThreads=$(grep -c ^processor /proc/cpuinfo)
 	echo "Found CPU details:"
@@ -136,8 +139,11 @@ function crop_detect {
     while [ "$A" -lt "$totalLoops" ] ; do
         A="$(( $A + 1 ))"
         skipSecs="$(( 120 * $A ))"
-		CROP[$A]=$(ffmpeg -i ${workDir}/${inputFile} -ss $skipSecs -t 1 -vf cropdetect \
-		-f null - 2>&1 | awk -F "=" '/crop/ { print $NF }' | tail -1)
+		CROP[$A]=$(\
+			ffmpeg -i $workDir/$inputFile -ss $skipSecs \
+			-t 1 -vf cropdetect -f null - 2>&1 | \
+			awk -F "=" '/crop/ { print $NF }' | \
+			tail -1)
     done
     B=0
     while [ "$B" -lt "$totalLoops" ] ; do
@@ -167,16 +173,20 @@ function crop_detect {
     echo "Crop detection complete"
 }
 
-## TODO: select english audio channel, exclude commentary
-## TODO: audioEngStream - make it take first instead of last
-## TODO: rewrite audioChannels to use ffmpeg and grab channel count from audioEngStream number
 function audio_config {
-	## [find english audio stream]
-	audioEngStream=$(ffmpeg -i /home/jackal/test3.mkv -f null - 2>&1 | \
-		grep -o -P '(?<=Stream).*(?=\(eng\):\ Audio)' | awk -F ":" '{print $2}' | tail -1)
+	## [finds first english audio stream]
+	audioEngStream=$(\
+		ffmpeg -i /home/jackal/test3.mkv -f null - 2>&1 | \
+		grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Audio)' | \
+		awk -F ":" '{print $2}' | \
+		tail -1)
+	## [offset audio stream by one for ffprobe because it counts from zero]
+	audioChnStream=$(( $audioEngStream - 1 ))
 	## [find number of audio channels]
-	audioChannels=$(mediainfo ${workDir}${inputFile} | \
-		awk '/Channel\(s\)/ { print $3 }' | tail -1)
+	audioChannels=$(\
+		ffprobe test3.mkv -show_streams -select_streams a:$audioChnStream 2>&1 | \
+		awk -F "=" '/channels/ { print $2 }' | \
+		tail -1)
 	## [set to 48kbps per channel]
 	audioBitrate=$(($audioChannels * 48))
 	## [set samplerate based on number of channels]
@@ -189,10 +199,13 @@ function audio_config {
 	echo "Channels: \$audioChannels Bitrate: \$audioBitrate Samplerate: \$audioSamRate"
 }
 
-## TODO: Make subtitleEng take first stream instead of last
 function sub_titles {
-	subtitleEng=$(ffmpeg -i /home/jackal/test3.mkv -f null - 2>&1 | \
-		grep -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | awk -F ":" '{print $2}' | tail -1)
+	## [finds first english subtitle stream]
+	subtitleEng=$(\
+		ffmpeg -i /home/jackal/test3.mkv -f null - 2>&1 | \
+		grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | \
+		awk -F ":" '{print $2}' | \
+		tail -1)
 }
 
 ## TODO: everything
