@@ -54,7 +54,7 @@ VERSION=1
 
 function current_dir {
 	## [sets current directory as working directory]
-	workDir = $( pwd )
+	workDir=$( pwd )
 	echo "Working Directory: \$workDir"
 }
 
@@ -126,8 +126,8 @@ function cpu_detect {
 		tail -1)
 	## [find number of cpu threads]
 	cpuThreads=$(grep -c ^processor /proc/cpuinfo)
-	echo "Found CPU details:"
-	echo "Cores: \$cpuCores Threads: \$cpuThreads"
+	echo "Found CPU details..."
+	echo "Cores: $cpuCores Threads: $cpuThreads"
 }
 
 function crop_detect {
