@@ -46,27 +46,9 @@
 ## [version is incremented when file is updated]
 VERSION=1
 
-function current_dir {
-	## [sets current directory as working directory]
-	workDir=$( pwd )
-	echo "Working Directory: $workDir"
-}
-
-msg="printf"
-
-function emsg {
-	$msg "${cR}$1${cZ}"
-}
-
-function update_encargs {
-	e="\${ENCARGS_${FORMAT}}"
-	ENCARGS=`eval echo "$e"`
-	ENCHELP=0
-}
-
 ## TODO: only enabled color it terminal supports it
 ## [add colors once finished]
-colorR="\033[31m" # Red
+colorR="\033[1;31m" # Red
 colorG="\033[1;32m" # Green
 colorP="\033[1;35m" # Purple
 colorB="\033[0;36m" # Cyan (light blue)
@@ -88,39 +70,40 @@ Usage: \${colorD}ARKhive [\${colorU}OPTIONS\$colorD] \${colorU}FILE\$colorD [\${
          \$colorB-v\$colorD                    - print version\n\n"
 }
 
-update_encargs
 usage
 
 ## [if no input exit with error]
-if [ -z "$1" ];then echo "ERROR: No arguments provided";exit 0;else
+if [ -z "$1" ];then echo -e "${colorR}ERROR: No arguments provided";exit 0;else
 ## parse arguments
 while [ "$1" ]; do
 	case "$1" in
 		-i|--input)
-			if [ -z "$2" ];then echo "ERROR: No input provided"; exit 0;
-			#elif [ ! -d "$2" || ! -f "$2" ]; then
-				#echo "ERROR: input is not a directory";
-				#exit 0
-			else userInput=$2;shift;fi;;
+			if [ -z "$2" ];then echo -e "${colorR}ERROR: No input provided"; exit 0;
+			elif [ -d "$2" ]; then
+				userInputDir=$2;shift;
+			elif [ -f "$2" ]; then
+				userInputFile=$2;shift;
+			## TODO: improve error message to specify only file or directory
+			else echo "ERROR: Input is not a file or directory";exit 0;fi;;
 		-o|--output)
-			if [ -z "$2" ];then echo "ERROR: No output directory provided";exit 0;
-			elif [ ! -d "$2" ];then echo "ERROR: Output is not a directory";exit 0;
+			if [ -z "$2" ];then echo -e "${colorR}ERROR: No output directory provided";exit 0;
+			elif [ ! -d "$2" ];then echo -e "${colorR}ERROR: Output is not a directory";exit 0;
 			else userOutput=$2;shift;fi;;
 		-t|--temp)
-			if [ -z "$2" ];then echo "ERROR: No output provided";exit 0;
-			elif [ ! -d "$2" ];then echo "ERROR: Temp is not a directory";exit 0;
+			if [ -z "$2" ];then echo -e "${colorR}ERROR: No output provided";exit 0;
+			elif [ ! -d "$2" ];then echo -e "${colorR}ERROR: Temp is not a directory";exit 0;
 			else userTemp=$2; shift;fi;;
-		-h|--help) eval "$msg \"${HELP}\""; exit 0;;
+		-h|--help) eval "printf \"${HELP}\""; exit 0;;
 		-v|--version)
-			$msg "ARKhive version: ${VERSION}\n\n";exit 0;;
-		-*) eval "$msg \"${HELP}\""; emsg "\nUnknown option $1\n"; exit 1;;
+			printf "ARKhive version: ${VERSION}\n\n";exit 0;;
+		-*) eval "printf \"${HELP}\""; printf "\nERROR: Unknown option $1\n"; exit 1;;
 		*)
 			if [ -n "${INPATH}" ]; then
-				eval "$msg \"${HELP}\""
-				emsg "\nUnknown option $1\n"
+				eval "printf \"${HELP}\""
+				printf "\nERROR: Unknown option $1\n"
 				exit 1
 			elif [ ! -r "$1" ]; then
-				emsg "Unable to read $1\n"
+				printf "ERROR: Unable to read $1\n"
 				exit 2
 			else
 				INPATH="$1"
@@ -132,12 +115,22 @@ done;fi
 ## TEMPORARY
 inputFile=$userInput
 
-function out_filename {
+############################## THIS SHOULD NOT BE A FUNCTION, REORDER ACCORDINGLY #################################
+function parse_filename {
 ## [parse input file and create output filename according to ARK specification]
 	# Television: %title%_S%season#%E%episode#%_%country%_%vcodec%.%resolution%_%acodec%.%channels%.%bit_depth%.%samplerate%.%ext%
 	# Movie: %title%_%year%_%country%_%vcodec%.%resolution%_%acodec%.%channels%.%bitdepth%.%samlerate%.%ext%
 	#outputFile=$(cat $inputFile | )
-	outputFile=$inputFile
+
+	# Inputs:
+	# userInputDir
+		# if directory, use for i in $userInput, run all of ARKhive
+	# userInputDir
+
+	# get file extension
+	#inFileExt=${inputFile##*.} # move this to another section
+
+	outputFile=$userInput
 }
 
 ## [cpu detection for encoders]
@@ -147,10 +140,10 @@ function cpu_detect {
 		cat /proc/cpuinfo | \
 		awk '/^cpu\ cores/{print $4}' | \
 		tail -1)
-	if [ -z "$cpuCores" ];then echo "ERROR: Could not find # of cpu cores";exit 0;fi
+	if [ -z "$cpuCores" ];then echo -e "${colorR}ERROR: Could not find # of cpu cores";exit 0;fi
 	## [find number of cpu threads]
 	cpuThreads=$(grep -c ^processor /proc/cpuinfo)
-	if [ -z "$cpuCores" ];then echo "ERROR: Could not find # of cpu threads";exit 0;fi
+	if [ -z "$cpuCores" ];then echo -e "${colorR}ERROR: Could not find # of cpu threads";exit 0;fi
 	echo "            Cores: $cpuCores Threads: $cpuThreads"
 }
 
@@ -178,13 +171,15 @@ function progress_counter {
 }
 
 ## [subtitle stream selector]
+## TODO: case for subtitle without language set
 function sub_titles {
 	## [finds first english subtitle stream]
 	subtitleEng=$(\
-		ffmpeg -i /home/jackal/test3.mkv -f null - 2>&1 | \
+		ffmpeg -i $userInput -f null - 2>&1 | \
 		grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | \
 		awk -F ":" '{print $2}' | \
 		tail -1)
+	#ffmpeg -i $userInput $outputFile.srt
 }
 
 function chapter_list {
@@ -200,14 +195,15 @@ function meta_data {
 }
 
 ## [audio stream selection and configuration]
-## TODO: if audio stream ==0 after selection, set to 1
 ## TODO: audioEngStream only detects mkv english stream, adapt for other formats
+## TODO: mkv audio needs to be tested with more possible exceptions
 ## TODO: this section (and subtitles) should contain the most logic to find
 ## 		 correct streams consistently, should account for all container formats
 function config_audio {
 	## Contaier Formats: avi flv/f4v m2ts mpeg mkv mov mp4/m4v ts wmv
 	## [find audio stream to use]
-	inFileExt=${inputFile##*.} # move this to another section
+	inFileExt=${userInputFile##*.} # move this to another section
+	if [ -z "inFileExt" ]; then echo "ERROR: could not find file extension";exit 0;fi
 	if [ $inFileExt == "mkv" ]; then
 		## [finds first english audio stream]
 		audioEngStream=$(\
@@ -223,17 +219,17 @@ function config_audio {
 			ffprobe $workDir/$inputFile -show_streams -select_streams a:$audioChnStream 2>&1 | \
 			awk -F "=" '/channels/ { print $2 }' | \
 			tail -1)
-		if [ -z "$audioChannels" ];then echo "ERROR: Could not find # of audio channels";exit 0;fi
+		if [ -z "$audioChannels" ];then echo -e "${colorR}ERROR: Could not find # of audio channels";exit 0;fi
 	else
 		## [assume audio stream is 1]
 		audioEngStream="1"
 		## [find number of audio channels]
 		## <select_stream does not seem to work with mp4 container>
 		audioChannels=$(\
-			ffprobe $workDir/$inputFile -show_streams 2>&1 | \
+			ffprobe $workDir/$userInputFile -show_streams 2>&1 | \
 			awk -F "=" '/channels/ { print $2 }' | \
 			tail -1)
-		if [ -z "$audioChannels" ];then echo "ERROR: Could not find # of audio channels";exit 0;fi
+		if [ -z "$audioChannels" ];then echo -e "${colorR}ERROR: Could not find # of audio channels";exit 0;fi
 	fi
 	## [set to 48kbps per channel]
 	audioBitrate=$(($audioChannels * 48))
@@ -292,7 +288,7 @@ function crop_detect {
 stepTotal="10"
 echo -e "${colorG}1 of $stepTotal${colorB}............................${colorP}Filename${colorD}"
 #current_dir
-out_filename
+parse_filename
 echo -e "${colorG}2 of $stepTotal${colorB}................................${colorP}CPUs${colorD}"
 cpu_detect
 echo -e "${colorG}3 of $stepTotal${colorB}...........................${colorP}Subtitles${colorD}"
@@ -317,7 +313,7 @@ echo "encoding audio"
 	-ar 48000 \
 	-compression_level 10 \
 	-y $workDir/$outputFile.opus 2>/dev/null || \
-	{ echo "ERROR: audio failed to encode"; exit 0; }
+	{ echo "${colorR}ERROR: audio failed to encode"; exit 0; }
 echo "audio complete"
 
 ## [get duration and fps then calculate total frames]
@@ -327,7 +323,7 @@ HRS=$(echo $totalLength | cut -d":" -f1)
 MIN=$(echo $totalLength | cut -d":" -f2)
 SEC=$(echo $totalLength | cut -d":" -f3)
 totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
-if [ -z "$totalFrames" ];then echo "ERROR: Cound not calculate total frames";exit 0;fi
+if [ -z "$totalFrames" ];then echo -e "${colorR}ERROR: Cound not calculate total frames";exit 0;fi
 
 echo -e "${colorG}8 of $stepTotal${colorB}......................${colorP}Encoding Video${colorD}"
 ## TODO: multi-pass log --stats=/path/file.log
@@ -399,7 +395,7 @@ while [ $PASS -le $passes ]; do
     elif [ $PASS == 2 ]; then
 		echo "Encoding complete"
     else
-    	echo "probably some kind of error"
+    	echo "ERROR: Something went wrong encoding video"
     fi
 
     ## [the fps was orginally calculated from source, but the fps may]
@@ -411,7 +407,7 @@ while [ $PASS -le $passes ]; do
 done
 
 echo -e "${colorG}9 of $stepTotal${colorB}.........................${colorP}Mux Streams${colorD}"
-echo "  WARNING, You are about to cross the streams"
+echo "  ${colorY}WARNING: You are about to cross the streams${colorD}"
 echo "         This section does nothing"
 ## metadata if any to be added here
 #	ffmpeg \
@@ -428,14 +424,14 @@ echo -e "${colorG}10 of $stepTotal${colorB}............................${colorP}
 ## CLEANUP
 ## TODO: remove multipass logs
 	# $workDir/$outFile.ffpass $workDir/$outFile.xpass
-	if [ "$PASS" == "$passes" ] ; then
+	if [ "$PASS" == "2" ] ; then
 		echo "remove stats.file"
-		## x265 stats file
-		## ffmpeg redirected output
-		## hvc tmp video
-		## opus tmp audio
-		## srt tmp subtitles
-		## xml tmp chapterlist
+		## x265 stats file [outputFile.stats]
+		## ffmpeg redirected output [nul]
+		## hvc tmp video [outputFile.hvc]
+		## opus tmp audio [oputFile.opus]
+		## srt tmp subtitles [outputFiel.srt]
+		## xml tmp chapterlist [outputFile.xml]
 	else
 		echo "do nothing"
 	fi
