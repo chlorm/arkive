@@ -25,13 +25,7 @@
 ##      ## - comments [not to be uncommented]
 ##      # -- commented variables
 
-## Items to handle
-# Video Stream ^
-# Audio Stream ^
-# Subtitles (english only, figure out how to determine which is english if not titled) ^
 # Coverart?????????? TODO
-# Metadata??????? TODO
-# Chapterlist TODO
 
 ## Source
 # a-Bluray
@@ -46,8 +40,6 @@
 
 inputFile=$@
 
-#noColors=0
-
 ## [valid file extensions to except]
 #export exts=(3gp avi flv m2ts m4v mpeg mkv mov mp4 ts wmv)
 
@@ -60,6 +52,53 @@ function current_dir {
 	echo "Working Directory: $workDir"
 }
 
+#	colorR="\033[31m" # Red
+#	colorG="\033[32m" # Green
+#	colorP="\033[35m" # Purple
+#	colorB="\033[36m" # Cyan (light blue)
+#	colorD="\033[0m"  # default
+
+## TODO: update help informaton and fix colors
+#function usage {
+#	HELP="\${cG}ARKhive version: ${VERSION}
+#Automates encoding video to ARK's archive format.
+#
+#Usage: \${cZ}ARKhive [\${cU}OPTIONS\$cZ] \${cU}FILE\$cZ [\${cU}OPTIONS\$cZ]\$cZ
+#       \${cZ}ARKhive [\${cU}OPTIONS\$cZ] \${cU}DIR\$cZ  [\${cU}OPTIONS\$cZ]\$cZ
+#         \$colorG-o \${cU}DIRECTORY\$cZ        \$cR*\$cZ - set output directory (current is \$cP\${DIR}\$cZ)
+#         \$colorG-h\$cZ                    - print this message
+#         \$colorG-v\$cZ                    - print version"
+#}
+
+#current_dir
+#usage
+
+## parse arguments
+## options (-v/--version)(-h/--help)(-i/--input)(-o/--output)
+#while [ "$1" ]; do
+#	case "$1" in
+#		-i|--input)			 DIR=$2; shift;;
+#		-o|--output)			 DIR=$2; shift;;
+#		-h|--help) eval "$msg \"${HELP}\""; exit 0;;
+#		-v|--version)
+#			$msg "ARKhive version: ${VERSION}\n\n";
+#			exit 0;;
+#		-*) eval "$msg \"${HELP}\""; emsg "\nUnknown option $1\n"; exit 1;;
+#		*)
+#			if [ -n "${INPATH}" ]; then
+#				eval "$msg \"${HELP}\""
+#				emsg "\nUnknown option $1\n"
+#				exit 1
+#			elif [ ! -r "$1" ]; then
+#				emsg "Unable to read $1\n"
+#				exit 2
+#			else
+#				INPATH="$1"
+#			fi;;
+#	esac
+#	shift
+#done
+
 function out_filename {
 ## [parse input file and create output filename according to ARK specification]
 	# Television: %title%_S%season#%E%episode#%_%country%_%vcodec%.%resolution%_%acodec%.%channels%.%bit_depth%.%samplerate%.%ext%
@@ -68,6 +107,7 @@ function out_filename {
 	outputFile=$inputFile
 }
 
+## [cpu detection for encoders]
 function cpu_detect {
 	## [find number of physical cpu cores]
 	cpuCores=$(\
@@ -77,10 +117,34 @@ function cpu_detect {
 	## [find number of cpu threads]
 	cpuThreads=$(grep -c ^processor /proc/cpuinfo)
 
-	echo "            Found CPU details"
-	echo "           Cores: $cpuCores Threads: $cpuThreads"
+	echo "              Found CPU details"
+	echo "             Cores: $cpuCores Threads: $cpuThreads"
 }
 
+## [ffmpeg progress indicator]
+function progress_counter {
+    START=$(date +%s); frameCounter=0; ETA=0; elapsedTime=0
+    ## [check to see if ffmpeg is running]
+    while [ -e /proc/$PID ]; do
+        sleep 2
+        ## [parse vstats file]
+        VSTATS=$(awk '{gsub(/frame=/, "")}/./{line=$1-1} END{print line}' \
+        $HOME/vstats)
+        if [[ $VSTATS -gt $frameCounter ]]; then                # Parsed sane or no?
+            frameCounter=$VSTATS
+            ## [progress-bar calc]
+            percentageCounter=$(( 100 * frameCounter / totalFrames ))
+            elapsedTime=$(( $(date +%s) - START )); echo $elapsedTime > $HOME/elapsed.value
+            ## [etc clac]
+            ETA=$(date -d @$(awk 'BEGIN{print int(('$elapsedTime' / '$frameCounter') *\
+            ('$totalFrames' - '$frameCounter'))}') -u +%H:%M:%S)
+        fi
+        ## [format for stats output]
+        echo -ne "\rFrame:$frameCounter of $totalFrames Time:$(date -d @$elapsedTime -u +%H:%M:%S) ETA:$ETA Percent:$percentageCounter"
+    done
+}
+
+## [subtitle stream selector]
 function sub_titles {
 	## [finds first english subtitle stream]
 	subtitleEng=$(\
@@ -90,6 +154,11 @@ function sub_titles {
 		tail -1)
 }
 
+function chapter_list {
+	## [finds first english subtitle stream]
+	echo " TODO: section"
+}
+
 ## TODO: everything
 function meta_data {
 	## add language to streams
@@ -97,54 +166,26 @@ function meta_data {
 	echo "        metadata doesn't work yet"
 }
 
-function audio_find_stream {
+## [audio stream selection and configuration]
+function config_audio {
 	## [finds first english audio stream]
 	audioEngStream=$(ffmpeg -i $workDir/$inputFile -f null - 2>&1 | \
 		grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Audio)' | \
 		awk -F ":" '{print $2}' | \
 		tail -1)
-}
-
-function audio_find_channels {
-	audio_find_stream
 	## [offset audio stream by one for ffprobe because it counts from zero]
 	audioChnStream=$(( $audioEngStream - 1 ))
 	## [find number of audio channels]
 	audioChannels=$(ffprobe $workDir/$inputFile -show_streams -select_streams a:$audioChnStream 2>&1 | \
 		awk -F "=" '/channels/ { print $2 }' | \
 		tail -1)
-}
-
-function audio_set_bitrate {
-	audio_find_channels
 	## [set to 48kbps per channel]
-	audioBitrate="$(( $audioChannels * 48 ))"
+	audioBitrate=$(($audioChannels * 48))
 	audioBitrateUnit="k"
 	audioBitrate="$audioBitrate$audioBitrateUnit"
 }
 
-function audio_set_samplerate {
-	audio_find_channels
-	## [set samplerate based on number of channels]
-	if [[ "$audioChannels" -gt 4 ]] ; then
-		audioSamRate="48000"
-	else
-		audioSamRate="44100"
-	fi
-}
-
-function audio_encode {
-	audio_find_stream
-	audio_find_channels
-	audio_set_bitrate
-	audio_set_samplerate
-	cpu_detect
-
-	ffmpeg -threads $cpuCores -i $inputFile -c:a libopus -map 0:$audioEngStream \
-	-ac $audioChannels -b:a $audioBitrate -vbr on -ar $audioSamRate \
-	-compression_level 10 -y $workDir/$outputFile.opus
-}
-
+## [black-bar detection and cropping]
 function crop_detect {
 	cpu_detect >/dev/null 2>&1
 	## [several checks to accurately crop black-bars]
@@ -160,7 +201,7 @@ function crop_detect {
 			-t 1 -vf cropdetect -f null - 2>&1 | \
 			awk -F "=" '/crop/ { print $NF }' | \
 			tail -1)
-		echo "     crop detection $A of 10 complete"
+		echo "        crop detect $A of 10 complete"
     done
     B=0
     while [ "$B" -lt "$totalLoops" ] ; do
@@ -191,77 +232,120 @@ function crop_detect {
     echo "Crop: $crop"
 }
 
+## function calls
+echo "1 of numVal............................Filename"
+out_filename
+echo "2 of numVal................................CPUs"
+cpu_detect
+echo "3 of numVal...........................Subtitles"
+echo "  Subtitle currently aren't mapped to output"
+sub_titles
+echo "4 of numVal......................TODO: Metadata"
+meta_data
+echo "5 of numVal...................Configuring Audio"
+config_audio
+echo "6 of numVal................................Crop"
+crop_detect
+
+
+echo "7 of numVal......................Encoding Audio"
+ffmpeg -i $inputFile -c:a libopus -map 0:$audioEngStream \
+-ac $audioChannels -b:a $audioBitrate -vbr on -ar 48000 \
+-compression_level 10 -y $workDir/$outputFile.opus 2>/dev/null &
+PID=$! && 
+echo "ffmpeg PID = $PID"
+## [show progress]
+progress_counter
+
+## [get duration and fps then calculate total frames]
+FPS=$(ffprobe "$1" 2>&1 | sed -n "s/.*, \(.*\) tbr.*/\1/p")
+totalLength=$(ffprobe "$1" 2>&1 | sed -n "s/.* Duration: \([^,]*\), .*/\1/p")
+HRS=$(echo $totalLength | cut -d":" -f1)
+MIN=$(echo $totalLength | cut -d":" -f2)
+SEC=$(echo $totalLength | cut -d":" -f3)
+totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
+#if [ ! "$totalFrames" -gt "0" ]; then echo error; exit; fi
+
+echo "8 of numVal......................Encoding Video"
+## TODO: finish this section
 ## TODO: multi-pass while loop ???not sure if it works???
 ## TODO: figure out multi-pass ffmpeg vs. x265 [does ffpeg -pass even work with libx265]
 ## TODO: multi-pass log
-function encode_video {
 
-	passes="2"
-	PASS=0
-	while [ "$PASS" -le "$passes" ] ; do
+passes="2"
+PASS=1
+while [ "$PASS" -le "$passes" ] ; do
+    ffmpeg \
+    -threads $cpuThreads \
+    -i "$inputFile" \
+    -vf "crop=$crop,scale=$cropWidth:trunc(ow/a/2)*2" \
+    -r 24000/1001 \
+    -pix_fmt yuv420p \
+    -f yuv4mpegpipe - 2> nul | \
+    x265 \
+    --y4m \
+    --threads=$cpuCores \
+    --frame-threads=$cpuCores \
+    --wpp \
+    --ctu=64 \
+    --no-cutree \
+    --tu-intra-depth=4 \
+    --tu-inter-depth=4 \
+    --me=2 \
+    --cbqpoffs=3 \
+    --crqpoffs=3 \
+    --psy-rd=0.15 \
+    --subme=7 \
+    --merange=60 \
+    --ref=4 \
+    --bframes=3 \
+    --b-pyramid \
+    --b-adapt=2 \
+    --bframe-bias=0 \
+    --b-intra \
+    --weightb \
+    --weightp \
+    --bitrate=1024 \
+    --vbv-init=0.9 \
+    --vbv-bufsize=31250 \
+    --vbv-maxrate=31250 \
+    --no-slow-firstpass \
+    --pass=$PASS \
+    --keyint=250 \
+    --min-keyint=23 \
+    --rc-lookahead=60 \
+    --no-constrained-intra \
+    --aq-mode=0 \
+    --lft \
+    --sao-lcu-opt=1 \
+    --cbqpoffs=-3 \
+    --crqpoffs=-3 \
+    --rect \
+    --amp \
+    --max-merge=5 \
+    --no-early-skip \
+    --no-tskip \
+    --hash=2 \
+    -f 0 \
+    -o "$workDir/$outputFile.$container" - 2>/dev/null &
+PID=$! && 
+echo "ffmpeg PID = $PID"
+## [show progress]
+progress_counter
 
-		ffmpeg \
-		-threads $cpuThreads \
-		-i $inputFile \
-		-pass $PASS \
-		-passlogfile "\$workDir/\$outputFile.ffpass" \
-		-c:v libx265 \
-		-b:v 1024k \
-		-minrate 1k \
-		-maxrate 32k \
-		-r 24000/1001 \
-		-vf "crop=\$crop,scale=\$cropWidth:trunc(ow/a/2)*2" \
-		-c:a libopus \
-		-ac $audioChannels \
-		-ab $audioBitrate \
-		-ar $audioSamRate \
-		-x265-params "\
-		threads=$cpuCores:frame-threads=$cpuCores:\
-		frames=0:\
-		wpp:ctu=64:tu-intra-depth=4:tu-inter-depth=4:\
-		me=2:subme=7:merange=60:max-merge=5:\
-		b-intra:no-tskip:no-constrained-intra:\
-		rect:amp:no-early-skip:weightp:weightb:\
-		psy-rd=0.15:\
-		keyint=250:min-keyint=23:rc-lookahead=60:b-adapt=2:bframes=3:bframe-bias=0:b-pyramid:ref=4:\
-		vbv-bufsize=31250:vbv-maxrate=31250:vbv-init=0.9:aq-mode=0:no-cutree:cbqpoffs=3:crqpoffs=3:\
-		pass=\$PASS:no-slow-firstpass:\
-		lft:sao-lcu-opt=1:\
-		hash=2"\
-		-y "\$workDir/\$outputFile.mkv"
+    ## [if pass one complete output message]
 
-		PASS="$(( $PASS + 1 ))"
-	done
-	echo "Encoding complete"
-}
+    PASS="$(( $PASS + 1 ))"
+done
+echo "Encoding complete"
 
+
+echo "9 of numVal.............................Cleanup"
+## CLEANUP
 ## TODO: remove multipass logs
-function cleanup {
 	# $workDir/$outFile.ffpass $workDir/$outFile.xpass
 	if [ "${PASS}" == "${passes}" ] ; then
 		echo "rm stats.file"
 	else
 		echo "do nothing"
 	fi
-}
-
-## function calls
-echo "1 of numVal............................Filename"
-out_filename
-echo "2 of numVal................................CPUs"
-cpu_detect
-echo "4 of numVal................................Crop"
-crop_detect
-echo "5 of numVal...........................Subtitles"
-sub_titles
-echo "6 of numVal......................TODO: Metadata"
-meta_data
-echo "3 of numVal...................Configuring Audio"
-config_audio
-echo "7 of numVal......................Encoding Audio"
-encode_audio
-echo "8 of numVal......................Encoding Video"
-encode_video
-echo "9 of numVal.............................Cleanup"
-cleanup
-## TODO: finish this section
