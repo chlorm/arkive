@@ -91,17 +91,28 @@ Usage: \${colorD}ARKhive [\${colorU}OPTIONS\$colorD] \${colorU}FILE\$colorD [\${
 update_encargs
 usage
 
+## [if no input exit with error]
+if [ -z "$1" ];then echo "ERROR: No arguments provided";exit 0;else
 ## parse arguments
-## options (-v/--version)(-h/--help)(-i/--input)(-o/--output)
 while [ "$1" ]; do
 	case "$1" in
-		-i|--input)			userInput=$2; shift;;
-		-o|--output)		DIR=$2; shift;;
-		-t|--temp)			DIR=$2; shift;;
+		-i|--input)
+			if [ -z "$2" ];then echo "ERROR: No input provided"; exit 0;
+			#elif [ ! -d "$2" || ! -f "$2" ]; then
+				#echo "ERROR: input is not a directory";
+				#exit 0
+			else userInput=$2;shift;fi;;
+		-o|--output)
+			if [ -z "$2" ];then echo "ERROR: No output directory provided";exit 0;
+			elif [ ! -d "$2" ];then echo "ERROR: Output is not a directory";exit 0;
+			else userOutput=$2;shift;fi;;
+		-t|--temp)
+			if [ -z "$2" ];then echo "ERROR: No output provided";exit 0;
+			elif [ ! -d "$2" ];then echo "ERROR: Temp is not a directory";exit 0;
+			else userTemp=$2; shift;fi;;
 		-h|--help) eval "$msg \"${HELP}\""; exit 0;;
 		-v|--version)
-			$msg "ARKhive version: ${VERSION}\n\n";
-			exit 0;;
+			$msg "ARKhive version: ${VERSION}\n\n";exit 0;;
 		-*) eval "$msg \"${HELP}\""; emsg "\nUnknown option $1\n"; exit 1;;
 		*)
 			if [ -n "${INPATH}" ]; then
@@ -116,7 +127,7 @@ while [ "$1" ]; do
 			fi;;
 	esac
 	shift
-done
+done;fi
 
 ## TEMPORARY
 inputFile=$userInput
@@ -136,35 +147,35 @@ function cpu_detect {
 		cat /proc/cpuinfo | \
 		awk '/^cpu\ cores/{print $4}' | \
 		tail -1)
+	if [ -z "$cpuCores" ];then echo "ERROR: Could not find # of cpu cores";exit 0;fi
 	## [find number of cpu threads]
 	cpuThreads=$(grep -c ^processor /proc/cpuinfo)
-
-	echo "             Found CPU details"
+	if [ -z "$cpuCores" ];then echo "ERROR: Could not find # of cpu threads";exit 0;fi
 	echo "            Cores: $cpuCores Threads: $cpuThreads"
 }
 
-## [ffmpeg progress indicator]
-#function progress_counter {
-#    START=$(date +%s); frameCounter=0; ETA=0; elapsedTime=0
-#    ## [check to see if ffmpeg is running]
-#    while [ -e /proc/$PID ]; do
-#        sleep 2
-#        ## [parse vstats file]
-#        VSTATS=$(awk '{gsub(/frame=/, "")}/./{line=$1-1} END{print line}' \
-#        	$HOME/vstats)
-#        if [[ $VSTATS -gt $frameCounter ]]; then
-#            frameCounter=$VSTATS
-#            ## [progress-bar calc]
-#            percentageCounter=$(( 100 * frameCounter / totalFrames ))
-#            elapsedTime=$(( $(date +%s) - START )); echo $elapsedTime > $HOME/elapsed.value
-#            ## [etc clac]
-#            ETA=$(date -d @$(awk 'BEGIN{print int(('$elapsedTime' / '$frameCounter') *\
-#            ('$totalFrames' - '$frameCounter'))}') -u +%H:%M:%S)
-#        fi
-#        ## [format for stats output]
-#        echo -ne "\rFrame:$frameCounter of $totalFrames Time:$(date -d @$elapsedTime -u +%H:%M:%S) ETA:$ETA Percent:$percentageCounter"
-#   done
-#}
+## [progress indicator]
+function progress_counter {
+    START=$(date +%s); frameCounter=0; ETA=0; elapsedTime=0
+    ## [check to see if ffmpeg is running]
+    while [ -e /proc/$PID ]; do
+        sleep 2
+        ## [parse vstats file]
+        VSTATS=$(awk '{gsub(/frame=/, "")}/./{line=$1-1} END{print line}' \
+        	$HOME/vstats)
+        if [[ $VSTATS -gt $frameCounter ]]; then
+            frameCounter=$VSTATS
+            ## [progress-bar calc]
+            percentageCounter=$(( 100 * frameCounter / totalFrames ))
+            elapsedTime=$(( $(date +%s) - START )); echo $elapsedTime > $HOME/elapsed.value
+            ## [etc clac]
+            ETA=$(date -d @$(awk 'BEGIN{print int(('$elapsedTime' / '$frameCounter') *\
+            ('$totalFrames' - '$frameCounter'))}') -u +%H:%M:%S)
+        fi
+        ## [format for stats output]
+        echo -ne "\rFrame:$frameCounter of $totalFrames Time:$(date -d @$elapsedTime -u +%H:%M:%S) ETA:$ETA Percent:$percentageCounter"
+   done
+}
 
 ## [subtitle stream selector]
 function sub_titles {
@@ -196,7 +207,7 @@ function meta_data {
 function config_audio {
 	## Contaier Formats: avi flv/f4v m2ts mpeg mkv mov mp4/m4v ts wmv
 	## [find audio stream to use]
-	inFileExt=${inputFile##*.}
+	inFileExt=${inputFile##*.} # move this to another section
 	if [ $inFileExt == "mkv" ]; then
 		## [finds first english audio stream]
 		audioEngStream=$(\
@@ -204,6 +215,7 @@ function config_audio {
 			grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Audio)' | \
 			awk -F ":" '{print $2}' | \
 			tail -1)
+		if [ -z "$audioEngStream" ];then $audioEngStream="2";fi
 		## [offset audio stream by one for ffprobe because it counts from zero]
 		audioChnStream=$(( $audioEngStream - 1 ))
 		## [find number of audio channels]
@@ -211,6 +223,7 @@ function config_audio {
 			ffprobe $workDir/$inputFile -show_streams -select_streams a:$audioChnStream 2>&1 | \
 			awk -F "=" '/channels/ { print $2 }' | \
 			tail -1)
+		if [ -z "$audioChannels" ];then echo "ERROR: Could not find # of audio channels";exit 0;fi
 	else
 		## [assume audio stream is 1]
 		audioEngStream="1"
@@ -220,6 +233,7 @@ function config_audio {
 			ffprobe $workDir/$inputFile -show_streams 2>&1 | \
 			awk -F "=" '/channels/ { print $2 }' | \
 			tail -1)
+		if [ -z "$audioChannels" ];then echo "ERROR: Could not find # of audio channels";exit 0;fi
 	fi
 	## [set to 48kbps per channel]
 	audioBitrate=$(($audioChannels * 48))
