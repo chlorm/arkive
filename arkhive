@@ -167,18 +167,33 @@ function meta_data {
 }
 
 ## [audio stream selection and configuration]
+## TODO: if audio stream ==0 after selection, set to 1
+## TODO: audioEngStream only detects mkv english stream, adapt for other formats
+## TODO: if not mkv, skip finding stream and only find number of audio channels
+## TODO: Channel mapping for output is no loger necessary, streams will be manually remuxed at a later step based on filename
 function config_audio {
-	## [finds first english audio stream]
-	audioEngStream=$(ffmpeg -i $workDir/$inputFile -f null - 2>&1 | \
-		grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Audio)' | \
-		awk -F ":" '{print $2}' | \
-		tail -1)
-	## [offset audio stream by one for ffprobe because it counts from zero]
-	audioChnStream=$(( $audioEngStream - 1 ))
-	## [find number of audio channels]
-	audioChannels=$(ffprobe $workDir/$inputFile -show_streams -select_streams a:$audioChnStream 2>&1 | \
-		awk -F "=" '/channels/ { print $2 }' | \
-		tail -1)
+	## [find audio stream to use]
+	inFileExt=${inputFile##*.}
+	echo $inFileExt
+	if [ $inFileExt == "mkv" ]; then
+		## [finds first english audio stream]
+		audioEngStream=$(ffmpeg -i $workDir/$inputFile -f null - 2>&1 | \
+			grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Audio)' | \
+			awk -F ":" '{print $2}' | \
+			tail -1)
+		## [offset audio stream by one for ffprobe because it counts from zero]
+		audioChnStream=$(( $audioEngStream - 1 ))
+		## [find number of audio channels]
+		audioChannels=$(ffprobe $workDir/$inputFile -show_streams -select_streams a:$audioChnStream 2>&1 | \
+			awk -F "=" '/channels/ { print $2 }' | \
+			tail -1)
+		echo "found an mkv"
+	else
+		## [find number of audio channels]
+		audioChannels=$(mediainfo $workDir/$inputFile | \
+			awk '/Channel\(s\)/ { print $3 }' | tail -1)
+		echo "Found an $inFileExt"
+	fi
 	## [set to 48kbps per channel]
 	audioBitrate=$(($audioChannels * 48))
 	audioBitrateUnit="k"
@@ -256,7 +271,8 @@ ffmpeg -i $inputFile -c:a libopus -map 0:$audioEngStream \
 echo "audio complete"
 
 ## [get duration and fps then calculate total frames]
-FPS=$(ffprobe "$1" 2>&1 | sed -n "s/.*, \(.*\) tbr.*/\1/p")
+#FPS=$(ffprobe "$1" 2>&1 | sed -n "s/.*, \(.*\) tbr.*/\1/p")
+FPS="23.976"
 totalLength=$(ffprobe "$1" 2>&1 | sed -n "s/.* Duration: \([^,]*\), .*/\1/p")
 HRS=$(echo $totalLength | cut -d":" -f1)
 MIN=$(echo $totalLength | cut -d":" -f2)
@@ -274,6 +290,7 @@ echo "8 of numVal......................Encoding Video"
 passes="2"
 PASS=1
 while [ "$PASS" -le "$passes" ] ; do
+	echo "Encoding Pass: $PASS"
     ffmpeg \
     -threads $cpuThreads \
     -i "$inputFile" \
@@ -332,20 +349,29 @@ while [ "$PASS" -le "$passes" ] ; do
 #echo "ffmpeg PID = $PID"
 ## [show progress]
 #progress_counter
-
+echo " the pass value is $PASS"
     ## [if pass one complete output message]
+    if [ $PASS == 1 ]; then
+    	echo
+    	echo "Pass 1 complete!"
+    	echo "Starting Pass 2..."
+    if [ $PASS == 2 ]; then
+    	echo
+		echo "Encoding complete"
+    else
+    	echo "probably some kind of error"
+    fi
 
     PASS="$(( $PASS + 1 ))"
 done
-echo "Encoding complete"
 
 
 echo "9 of numVal.............................Cleanup"
 ## CLEANUP
 ## TODO: remove multipass logs
 	# $workDir/$outFile.ffpass $workDir/$outFile.xpass
-	if [ "${PASS}" == "${passes}" ] ; then
-		echo "rm stats.file"
+	if [ "$PASS" == "$passes" ] ; then
+		echo "remove stats.file"
 	else
 		echo "do nothing"
 	fi
