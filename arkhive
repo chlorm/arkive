@@ -189,6 +189,8 @@ function config_audio {
 			tail -1)
 		echo "found an mkv"
 	else
+		## [assume audio stream is 1]
+		audioEngStream="1"
 		## [find number of audio channels]
 		audioChannels=$(mediainfo $workDir/$inputFile | \
 			awk '/Channel\(s\)/ { print $3 }' | tail -1)
@@ -247,7 +249,7 @@ function crop_detect {
     echo "Crop: $crop"
 }
 
-## function calls
+## [function calls]
 echo "1 of numVal............................Filename"
 out_filename
 echo "2 of numVal................................CPUs"
@@ -261,24 +263,29 @@ echo "5 of numVal...................Configuring Audio"
 config_audio
 echo "6 of numVal................................Crop"
 crop_detect
-
-
 echo "7 of numVal......................Encoding Audio"
 echo "encoding audio"
-ffmpeg -i $inputFile -c:a libopus -map 0:$audioEngStream \
--ac $audioChannels -b:a $audioBitrate -vbr on -ar 48000 \
--compression_level 10 -y $workDir/$outputFile.opus 2>/dev/null
+	ffmpeg \
+	-i "$inputFile" \
+	-c:a libopus \
+	-map 0:$audioEngStream \
+	-ac $audioChannels \
+	-b:a $audioBitrate \
+	-vbr on \
+	-ar 48000 \
+	-compression_level 10 \
+	-y $workDir/$outputFile.opus 2>/dev/null
 echo "audio complete"
 
 ## [get duration and fps then calculate total frames]
-#FPS=$(ffprobe "$1" 2>&1 | sed -n "s/.*, \(.*\) tbr.*/\1/p")
-FPS="23.976"
+FPS="23.976023976"
 totalLength=$(ffprobe "$1" 2>&1 | sed -n "s/.* Duration: \([^,]*\), .*/\1/p")
 HRS=$(echo $totalLength | cut -d":" -f1)
 MIN=$(echo $totalLength | cut -d":" -f2)
 SEC=$(echo $totalLength | cut -d":" -f3)
 totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
-#if [ ! "$totalFrames" -gt "0" ]; then echo error; exit; fi
+## [if there are no frames then ERROR]
+if [ ! "$totalFrames" -gt "0" ]; then echo error; exit; fi
 
 echo "8 of numVal......................Encoding Video"
 ## TODO: multi-pass log
