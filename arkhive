@@ -122,27 +122,27 @@ function cpu_detect {
 }
 
 ## [ffmpeg progress indicator]
-function progress_counter {
-    START=$(date +%s); frameCounter=0; ETA=0; elapsedTime=0
-    ## [check to see if ffmpeg is running]
-    while [ -e /proc/$PID ]; do
-        sleep 2
-        ## [parse vstats file]
-        VSTATS=$(awk '{gsub(/frame=/, "")}/./{line=$1-1} END{print line}' \
-        $HOME/vstats)
-        if [[ $VSTATS -gt $frameCounter ]]; then                # Parsed sane or no?
-            frameCounter=$VSTATS
-            ## [progress-bar calc]
-            percentageCounter=$(( 100 * frameCounter / totalFrames ))
-            elapsedTime=$(( $(date +%s) - START )); echo $elapsedTime > $HOME/elapsed.value
-            ## [etc clac]
-            ETA=$(date -d @$(awk 'BEGIN{print int(('$elapsedTime' / '$frameCounter') *\
-            ('$totalFrames' - '$frameCounter'))}') -u +%H:%M:%S)
-        fi
-        ## [format for stats output]
-        echo -ne "\rFrame:$frameCounter of $totalFrames Time:$(date -d @$elapsedTime -u +%H:%M:%S) ETA:$ETA Percent:$percentageCounter"
-    done
-}
+#function progress_counter {
+#    START=$(date +%s); frameCounter=0; ETA=0; elapsedTime=0
+#    ## [check to see if ffmpeg is running]
+#    while [ -e /proc/$PID ]; do
+#        sleep 2
+#        ## [parse vstats file]
+#        VSTATS=$(awk '{gsub(/frame=/, "")}/./{line=$1-1} END{print line}' \
+#        	$HOME/vstats)
+#        if [[ $VSTATS -gt $frameCounter ]]; then
+#            frameCounter=$VSTATS
+#            ## [progress-bar calc]
+#            percentageCounter=$(( 100 * frameCounter / totalFrames ))
+#            elapsedTime=$(( $(date +%s) - START )); echo $elapsedTime > $HOME/elapsed.value
+#            ## [etc clac]
+#            ETA=$(date -d @$(awk 'BEGIN{print int(('$elapsedTime' / '$frameCounter') *\
+#            ('$totalFrames' - '$frameCounter'))}') -u +%H:%M:%S)
+#        fi
+#        ## [format for stats output]
+#        echo -ne "\rFrame:$frameCounter of $totalFrames Time:$(date -d @$elapsedTime -u +%H:%M:%S) ETA:$ETA Percent:$percentageCounter"
+#   done
+#}
 
 ## [subtitle stream selector]
 function sub_titles {
@@ -281,15 +281,12 @@ totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
 #if [ ! "$totalFrames" -gt "0" ]; then echo error; exit; fi
 
 echo "8 of numVal......................Encoding Video"
-## TODO: finish this section
-## TODO: multi-pass while loop ???not sure if it works???
-## TODO: figure out multi-pass ffmpeg vs. x265 [does ffpeg -pass even work with libx265]
 ## TODO: multi-pass log
-## TODO: set frame count in x265, account for change in rate
-
+## [number of encoding passes]
 passes="2"
+## [initial pass number, DO NOT CHANGE VALUE]
 PASS=1
-while [ "$PASS" -le "$passes" ] ; do
+while [ $PASS -le $passes ]; do
 	echo "Encoding Pass: $PASS"
     ffmpeg \
     -threads $cpuThreads \
@@ -343,20 +340,12 @@ while [ "$PASS" -le "$passes" ] ; do
     --no-tskip \
     --hash=2 \
     -f $totalFrames \
-    -o "$workDir/$outputFile.mkv" - 
-#&
-#PID=$! && 
-#echo "ffmpeg PID = $PID"
-## [show progress]
-#progress_counter
-echo " the pass value is $PASS"
+    -o "$workDir/$outputFile.hvc" - 
+
     ## [if pass one complete output message]
     if [ $PASS == 1 ]; then
-    	echo
-    	echo "Pass 1 complete!"
-    	echo "Starting Pass 2..."
-    if [ $PASS == 2 ]; then
-    	echo
+    	echo "Pass 1 complete"
+    elif [ $PASS == 2 ]; then
 		echo "Encoding complete"
     else
     	echo "probably some kind of error"
@@ -365,6 +354,9 @@ echo " the pass value is $PASS"
     PASS="$(( $PASS + 1 ))"
 done
 
+echo "9 of numVal.........................Mux Streams"
+echo "  WARNING, You are about to cross the streams"
+echo "         This section does nothing"
 
 echo "9 of numVal.............................Cleanup"
 ## CLEANUP
