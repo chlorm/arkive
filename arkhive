@@ -249,13 +249,11 @@ crop_detect
 
 
 echo "7 of numVal......................Encoding Audio"
+echo "encoding audio"
 ffmpeg -i $inputFile -c:a libopus -map 0:$audioEngStream \
 -ac $audioChannels -b:a $audioBitrate -vbr on -ar 48000 \
--compression_level 10 -y $workDir/$outputFile.opus 2>/dev/null &
-PID=$! && 
-echo "ffmpeg PID = $PID"
-## [show progress]
-progress_counter
+-compression_level 10 -y $workDir/$outputFile.opus 2>/dev/null
+echo "audio complete"
 
 ## [get duration and fps then calculate total frames]
 FPS=$(ffprobe "$1" 2>&1 | sed -n "s/.*, \(.*\) tbr.*/\1/p")
@@ -271,6 +269,7 @@ echo "8 of numVal......................Encoding Video"
 ## TODO: multi-pass while loop ???not sure if it works???
 ## TODO: figure out multi-pass ffmpeg vs. x265 [does ffpeg -pass even work with libx265]
 ## TODO: multi-pass log
+## TODO: set frame count in x265, account for change in rate
 
 passes="2"
 PASS=1
@@ -326,12 +325,13 @@ while [ "$PASS" -le "$passes" ] ; do
     --no-early-skip \
     --no-tskip \
     --hash=2 \
-    -f 0 \
-    -o "$workDir/$outputFile.$container" - 2>/dev/null &
-PID=$! && 
-echo "ffmpeg PID = $PID"
+    -f $totalFrames \
+    -o "$workDir/$outputFile.mkv" - 
+#&
+#PID=$! && 
+#echo "ffmpeg PID = $PID"
 ## [show progress]
-progress_counter
+#progress_counter
 
     ## [if pass one complete output message]
 
