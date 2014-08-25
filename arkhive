@@ -258,7 +258,7 @@ function crop_detect {
 			-t 1 -vf cropdetect -f null - 2>&1 | \
 			awk -F "=" '/crop/ { print $NF }' | \
 			tail -1)
-		echo "        crop detect $A of 10 complete"
+		echo "       crop detect $A of 10 complete"
     done
     B=0
     while [ "$B" -lt "$totalLoops" ] ; do
@@ -285,8 +285,7 @@ function crop_detect {
     crop="${crop[$greatest]}"
 	## [frame width from final crop value]
     cropWidth=$(echo $crop | awk -F ":" '{print $1}')
-    echo "Crop detection complete"
-    echo "Crop: $crop"
+    echo "        Crop: $crop"
 }
 
 ## [function calls]
@@ -317,19 +316,18 @@ echo "encoding audio"
 	-vbr on \
 	-ar 48000 \
 	-compression_level 10 \
-	-y $workDir/$outputFile.opus 2>/dev/null
+	-y $workDir/$outputFile.opus 2>/dev/null || \
+	{ echo "ERROR: audio failed to encode"; exit 0; }
 echo "audio complete"
 
 ## [get duration and fps then calculate total frames]
-FPS=$(ffprobe "$1" 2>&1 | sed -n "s/.*, \(.*\) tbr.*/\1/p")
-FPS="23.976023976"
+FPS=$(ffprobe "$userInput" 2>&1 | sed -n "s/.*, \(.*\) tbr.*/\1/p")
 totalLength=$(ffprobe "$userInput" 2>&1 | sed -n "s/.* Duration: \([^,]*\), .*/\1/p")
 HRS=$(echo $totalLength | cut -d":" -f1)
 MIN=$(echo $totalLength | cut -d":" -f2)
 SEC=$(echo $totalLength | cut -d":" -f3)
 totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
-## [if there are no frames then ERROR]
-#if [ ! "$totalFrames" -gt "0" ]; then echo error; exit; fi
+if [ -z "$totalFrames" ];then echo "ERROR: Cound not calculate total frames";exit 0;fi
 
 echo -e "${colorG}8 of $stepTotal${colorB}......................${colorP}Encoding Video${colorD}"
 ## TODO: multi-pass log --stats=/path/file.log
