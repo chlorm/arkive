@@ -39,9 +39,6 @@
 # h-Screener
 # i-Telecine
 
-## TODO: add logic and except flags
-inputFile=$@
-
 ## [valid file extensions to except]
 #export exts=(avi f4v flv m2ts m4v mpeg mkv mov mp4 ts wmv)
 #inFileExt=${inputFile##*.}
@@ -67,6 +64,7 @@ function update_encargs {
 	ENCHELP=0
 }
 
+## TODO: only enabled color it terminal supports it
 ## [add colors once finished]
 colorR="\033[31m" # Red
 colorG="\033[1;32m" # Green
@@ -78,15 +76,16 @@ colorD="\033[0;0m"  # default
 
 ## TODO: update help informaton and fix colors
 function usage {
-	HELP="\n\${colorG}ARKhive version: ${VERSION}
-Automates encoding video to ARK's archive format.
+	HELP="\n\${colorP}ARKhive version:\${colorG} ${VERSION}
+\${colorP}Automates encoding video to ARK's archive format.
 
 Usage: \${colorD}ARKhive [\${colorU}OPTIONS\$colorD] \${colorU}FILE\$colorD [\${colorU}OPTIONS\$colorD]\$colorD
        \${colorD}ARKhive [\${colorU}OPTIONS\$colorD] \${colorU}DIR\$colorD  [\${colorU}OPTIONS\$colorD]\$colorD
-         \$colorG-o \${colorU}DIRECTORY\$colorD        \$cR*\$colorD - set output directory (current is \$cP\${DIR}\$colorD)
-         \$colorG-t \${colorU}DIRECTORY\$colorD        \$cR*\$colorD - set temp directory (current is \$cP\${DIR}\$colorD)
-         \$colorG-h\$colorD                    - print this message
-         \$colorG-v\$colorD                    - print version\n\n"
+         \$colorB-i \${colorU}FILE/DIRECTORY\$colorD   \$colorY*\$colorD - set input file\$colorD
+         \$colorB-o \${colorU}DIRECTORY\$colorD          - set output directory (current is \$cP\${DIR}\$colorD)
+         \$colorB-t \${colorU}DIRECTORY\$colorD          - set temp directory (current is \$cP\${DIR}\$colorD)
+         \$colorB-h\$colorD                    - print this message
+         \$colorB-v\$colorD                    - print version\n\n"
 }
 
 update_encargs
@@ -96,8 +95,8 @@ usage
 ## options (-v/--version)(-h/--help)(-i/--input)(-o/--output)
 while [ "$1" ]; do
 	case "$1" in
-		-i|--input)			 DIR=$2; shift;;
-		-o|--output)			 DIR=$2; shift;;
+		-i|--input)			userInput=$2; shift;;
+		-o|--output)		DIR=$2; shift;;
 		-t|--temp)			DIR=$2; shift;;
 		-h|--help) eval "$msg \"${HELP}\""; exit 0;;
 		-v|--version)
@@ -118,6 +117,9 @@ while [ "$1" ]; do
 	esac
 	shift
 done
+
+## TEMPORARY
+inputFile=$userInput
 
 function out_filename {
 ## [parse input file and create output filename according to ARK specification]
@@ -276,6 +278,7 @@ function crop_detect {
 ## [function calls]
 stepTotal="10"
 echo -e "${colorG}1 of $stepTotal${colorB}............................${colorP}Filename${colorD}"
+#current_dir
 out_filename
 echo -e "${colorG}2 of $stepTotal${colorB}................................${colorP}CPUs${colorD}"
 cpu_detect
@@ -304,22 +307,24 @@ echo "encoding audio"
 echo "audio complete"
 
 ## [get duration and fps then calculate total frames]
+FPS=$(ffprobe "$1" 2>&1 | sed -n "s/.*, \(.*\) tbr.*/\1/p")
 FPS="23.976023976"
-totalLength=$(ffprobe "$1" 2>&1 | sed -n "s/.* Duration: \([^,]*\), .*/\1/p")
+totalLength=$(ffprobe "$userInput" 2>&1 | sed -n "s/.* Duration: \([^,]*\), .*/\1/p")
 HRS=$(echo $totalLength | cut -d":" -f1)
 MIN=$(echo $totalLength | cut -d":" -f2)
 SEC=$(echo $totalLength | cut -d":" -f3)
 totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
 ## [if there are no frames then ERROR]
-if [ ! "$totalFrames" -gt "0" ]; then echo error; exit; fi
+#if [ ! "$totalFrames" -gt "0" ]; then echo error; exit; fi
 
-echo "8 of $stepTotal......................Encoding Video"
+echo -e "${colorG}8 of $stepTotal${colorB}......................${colorP}Encoding Video${colorD}"
 ## TODO: multi-pass log --stats=/path/file.log
 ## TODO: redirect ffmpeg output to a tmp file, name same as other files and remove after finished
 ## [number of encoding passes]
 passes="2"
 ## [initial pass number, DO NOT CHANGE VALUE]
 PASS=1
+echo "total $totalFrames"
 while [ $PASS -le $passes ]; do
 	echo "Encoding Pass: $PASS"
     ffmpeg \
@@ -328,7 +333,7 @@ while [ $PASS -le $passes ]; do
     -vf "crop=$crop,scale=$cropWidth:trunc(ow/a/2)*2" \
     -r 24000/1001 \
     -pix_fmt yuv420p \
-    -f yuv4mpegpipe - 2> $workDir/this.is.a.test | \
+    -f yuv4mpegpipe - 2> nul | \
     x265 \
     --y4m \
     --threads=$cpuCores \
@@ -385,24 +390,29 @@ while [ $PASS -le $passes ]; do
     	echo "probably some kind of error"
     fi
 
+    ## [the fps was orginally calculated from source, but the fps may]
+    ## [have changed because fps from source is not used, recalculate]
+	FPS="23.976023976"
+	totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
+	## [increment pass count]
     PASS="$(( $PASS + 1 ))"
 done
 
-echo "9 of $stepTotal.........................Mux Streams"
+echo -e "${colorG}9 of $stepTotal${colorB}.........................${colorP}Mux Streams${colorD}"
 echo "  WARNING, You are about to cross the streams"
 echo "         This section does nothing"
 ## metadata if any to be added here
-	ffmpeg \
-	-i ## video \
-	-i ## audio \
-	-i ## subtitles (if any) \
-	-i ## chapter list (if any) \
-	-vcodec copy
-	-acodec copy
-	$outputFile.mkv
+#	ffmpeg \
+#	-i ## video \
+#	-i ## audio \
+#	-i ## subtitles (if any) \
+#	-i ## chapter list (if any) \
+#	-vcodec copy
+#	-acodec copy
+#	$outputFile.mkv
 
 
-echo "9 of $stepTotal.............................Cleanup"
+echo -e "${colorG}10 of $stepTotal${colorB}............................${colorP}Cleanup${colorD}"
 ## CLEANUP
 ## TODO: remove multipass logs
 	# $workDir/$outFile.ffpass $workDir/$outFile.xpass
