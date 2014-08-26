@@ -82,9 +82,18 @@ while [ "$1" ]; do
 			elif [ -d "$2" ]; then
 				userInputDir=$2;shift;
 			elif [ -f "$2" ]; then
-				userInputFile=$2;shift;
+				inFileExt=${inputFile##*.}
+				case "$inFileExt" in
+					avi|f4v|flv|m2ts|m4v|mkv|mp4|mpeg|mpg|mov|ts|wmv)
+				   		userInputFile=$2;shift;;
+				   	*)
+						echo "ERROR: Selected file's extension is not an allowed type!";
+						echo "Allowed file types are: avi,f4v,flv,m2ts,m4v,mkv,mp4,mpeg,mpg,mov,ts,wmv";
+						exit 0;;
+				esac
+				shift
 			## TODO: improve error message to specify only file or directory
-			else echo "ERROR: Input is not a file or directory";exit 0;fi;;
+			else echo "ERROR: Input is not a valid file or directory";exit 0;fi;;
 		-o|--output)
 			if [ -z "$2" ];then echo -e "${colorR}ERROR: No output directory provided";exit 0;
 			elif [ ! -d "$2" ];then echo -e "${colorR}ERROR: Output is not a directory";exit 0;
