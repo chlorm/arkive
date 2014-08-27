@@ -79,8 +79,6 @@ while [ "$1" ]; do
 	case "$1" in
 		-i|--input)
 			if [ -z "$2" ];then echo -e "${colorR}ERROR: No input provided"; exit 0;
-			elif [ -d "$2" ]; then
-				userInputDir=$2;shift;
 			elif [ -f "$2" ]; then
 				inputFileExt=${2##*.}
 					case "$inputFileExt" in
@@ -93,7 +91,7 @@ while [ "$1" ]; do
 					esac
 					shift
 			## TODO: improve error message to specify only file or directory
-			else echo "ERROR: Input is not a valid file or directory";exit 0;fi;;
+			else echo "ERROR: Input is not a file";exit 0;fi;;
 		-o|--output)
 			if [ -z "$2" ];then echo -e "${colorR}ERROR: No output directory provided";exit 0;
 			elif [ ! -d "$2" ];then echo -e "${colorR}ERROR: Output is not a directory";exit 0;
@@ -139,7 +137,7 @@ function parse_filename {
 	# get file extension
 	#inputFileExt=${inputFile##*.} # move this to another section
 
-	outputFile=$userInput
+	outputFile=$userInputFile
 }
 
 ## [cpu detection for encoders]
@@ -181,7 +179,7 @@ function progress_counter {
 function sub_titles {
 	## [finds first english subtitle stream]
 	subtitleEng=$(\
-		ffmpeg -i $userInput -f null - 2>&1 | \
+		ffmpeg -i $userInputFile -f null - 2>&1 | \
 		grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | \
 		awk -F ":" '{print $2}' | \
 		tail -1)
@@ -221,7 +219,7 @@ function config_audio {
 		audioChnStream=$(( $audioEngStream - 1 ))
 		## [find number of audio channels]
 		audioChannels=$(\
-			ffprobe $workDir/$inputFile -show_streams -select_streams a:$audioChnStream 2>&1 | \
+			ffprobe $userInputFile -show_streams -select_streams a:$audioChnStream 2>&1 | \
 			awk -F "=" '/channels/ { print $2 }' | \
 			tail -1)
 		if [ -z "$audioChannels" ];then echo -e "${colorR}ERROR: Could not find # of audio channels";exit 0;fi
@@ -231,7 +229,7 @@ function config_audio {
 		## [find number of audio channels]
 		## <select_stream does not seem to work with mp4 container>
 		audioChannels=$(\
-			ffprobe $workDir/$userInputFile -show_streams 2>&1 | \
+			ffprobe $userInputFile -show_streams 2>&1 | \
 			awk -F "=" '/channels/ { print $2 }' | \
 			tail -1)
 		if [ -z "$audioChannels" ];then echo -e "${colorR}ERROR: Could not find # of audio channels";exit 0;fi
@@ -255,7 +253,7 @@ function crop_detect {
         A="$(( $A + 1 ))"
         skipSecs="$(( 120 * $A ))"
 		crop[$A]=$(\
-			ffmpeg -threads $cpuCores -i $workDir/$inputFile -ss $skipSecs \
+			ffmpeg -threads $cpuCores -i $userInputFile -ss $skipSecs \
 			-t 1 -vf cropdetect -f null - 2>&1 | \
 			awk -F "=" '/crop/ { print $NF }' | \
 			tail -1)
@@ -288,156 +286,154 @@ function crop_detect {
     cropWidth=$(echo $crop | awk -F ":" '{print $1}')
     echo "        Crop: $crop"
 }
-for i in $userInputDir; do
-	## [function calls]
-	stepTotal="10"
-	echo -e "${colorG}1 of $stepTotal${colorB}............................${colorP}Filename${colorD}"
-	#current_dir
-	parse_filename
-	echo -e "${colorG}2 of $stepTotal${colorB}................................${colorP}CPUs${colorD}"
-	cpu_detect
-	echo -e "${colorG}3 of $stepTotal${colorB}...........................${colorP}Subtitles${colorD}"
-	echo "Subtitles currently aren't mapped to output"
-	sub_titles
-	echo -e "${colorG}4 of $stepTotal${colorB}......................${colorP}TODO: Metadata${colorD}"
-	meta_data
-	echo -e "${colorG}5 of $stepTotal${colorB}...................${colorP}Configuring Audio${colorD}"
-	config_audio
-	echo -e "${colorG}6 of $stepTotal${colorB}................................${colorP}Crop${colorD}"
-	echo -e "    ${colorY}WARNING: This step may take a while${colorD}"
-	crop_detect
-	echo -e "${colorG}7 of $stepTotal${colorB}......................${colorP}Encoding Audio${colorD}"
-	echo "encoding audio"
-		ffmpeg \
-		-i "$inputFile" \
-		-c:a libopus \
-		-map 0:$audioEngStream \
-		-ac $audioChannels \
-		-b:a $audioBitrate \
-		-vbr on \
-		-ar 48000 \
-		-compression_level 10 \
-		-y $workDir/$outputFile.opus 2>/dev/null || \
-		{ echo -e "${colorR}ERROR: audio failed to encode"; exit 0; }
-	echo "audio complete"
 
-	## [get duration and fps then calculate total frames]
-	FPS=$(ffprobe "$userInput" 2>&1 | sed -n "s/.*, \(.*\) tbr.*/\1/p")
-	totalLength=$(ffprobe "$userInput" 2>&1 | sed -n "s/.* Duration: \([^,]*\), .*/\1/p")
-	HRS=$(echo $totalLength | cut -d":" -f1)
-	MIN=$(echo $totalLength | cut -d":" -f2)
-	SEC=$(echo $totalLength | cut -d":" -f3)
+## [function calls]
+stepTotal="10"
+echo -e "${colorG}1 of $stepTotal${colorB}............................${colorP}Filename${colorD}"
+parse_filename
+echo -e "${colorG}2 of $stepTotal${colorB}................................${colorP}CPUs${colorD}"
+cpu_detect
+echo -e "${colorG}3 of $stepTotal${colorB}...........................${colorP}Subtitles${colorD}"
+echo "Subtitles currently aren't mapped to output"
+sub_titles
+echo -e "${colorG}4 of $stepTotal${colorB}......................${colorP}TODO: Metadata${colorD}"
+meta_data
+echo -e "${colorG}5 of $stepTotal${colorB}...................${colorP}Configuring Audio${colorD}"
+config_audio
+echo -e "${colorG}6 of $stepTotal${colorB}................................${colorP}Crop${colorD}"
+echo -e "    ${colorY}WARNING: This step may take a while${colorD}"
+crop_detect
+echo -e "${colorG}7 of $stepTotal${colorB}......................${colorP}Encoding Audio${colorD}"
+echo "encoding audio"
+	ffmpeg \
+	-i "$userInputFile" \
+	-c:a libopus \
+	-map 0:$audioEngStream \
+	-ac $audioChannels \
+	-b:a $audioBitrate \
+	-vbr on \
+	-ar 48000 \
+	-compression_level 10 \
+	-y $workDir/$outputFile.opus 2>/dev/null || \
+	{ echo -e "${colorR}ERROR: audio failed to encode"; exit 0; }
+echo "audio complete"
+
+## [get duration and fps then calculate total frames]
+FPS=$(ffprobe "$userInputFile" 2>&1 | sed -n "s/.*, \(.*\) tbr.*/\1/p")
+totalLength=$(ffprobe "$userInput" 2>&1 | sed -n "s/.* Duration: \([^,]*\), .*/\1/p")
+HRS=$(echo $totalLength | cut -d":" -f1)
+MIN=$(echo $totalLength | cut -d":" -f2)
+SEC=$(echo $totalLength | cut -d":" -f3)
+totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
+if [ -z "$totalFrames" ];then echo -e "${colorR}ERROR: Cound not calculate total frames";exit 0;fi
+
+echo -e "${colorG}8 of $stepTotal${colorB}......................${colorP}Encoding Video${colorD}"
+## TODO: multi-pass log --stats=/path/file.log
+## TODO: redirect ffmpeg output to a tmp file, name same as other files and remove after finished
+## [number of encoding passes]
+passes="2"
+## [initial pass number, DO NOT CHANGE VALUE]
+PASS=1
+echo "total $totalFrames"
+while [ $PASS -le $passes ]; do
+	echo "Encoding Pass: $PASS"
+    ffmpeg \
+    -threads $cpuThreads \
+    -i "$userInputFile" \
+    -vf "crop=$crop,scale=$cropWidth:trunc(ow/a/2)*2" \
+    -r 24000/1001 \
+    -pix_fmt yuv420p \
+    -f yuv4mpegpipe - 2> nul | \
+    x265 \
+    --y4m \
+    --threads=$cpuCores \
+    --frame-threads=$cpuCores \
+    --wpp \
+    --ctu=64 \
+    --no-cutree \
+    --tu-intra-depth=4 \
+    --tu-inter-depth=4 \
+    --me=2 \
+    --cbqpoffs=3 \
+    --crqpoffs=3 \
+    --psy-rd=0.15 \
+    --subme=7 \
+    --merange=60 \
+    --ref=4 \
+    --bframes=3 \
+    --b-pyramid \
+    --b-adapt=2 \
+    --bframe-bias=0 \
+    --b-intra \
+    --weightb \
+    --weightp \
+    --bitrate=1024 \
+    --vbv-init=0.9 \
+    --vbv-bufsize=31250 \
+    --vbv-maxrate=31250 \
+    --no-slow-firstpass \
+    --pass=$PASS \
+    --keyint=250 \
+    --min-keyint=23 \
+    --rc-lookahead=60 \
+    --no-constrained-intra \
+    --aq-mode=0 \
+    --lft \
+    --sao-lcu-opt=1 \
+    --cbqpoffs=-3 \
+    --crqpoffs=-3 \
+    --rect \
+    --amp \
+    --max-merge=5 \
+    --no-early-skip \
+    --no-tskip \
+    --hash=2 \
+    -f $totalFrames \
+    -o "$userInputFile.hvc" - 
+
+    ## [if pass one complete output message]
+    if [ $PASS == 1 ]; then
+    	echo "Pass 1 complete"
+    elif [ $PASS == 2 ]; then
+		echo "Encoding complete"
+    else
+    	echo -e "ERROR: Something went wrong encoding video"
+    fi
+
+    ## [the fps was orginally calculated from source, but the fps may]
+    ## [have changed because fps from source is not used, recalculate]
+	FPS="23.976023976"
 	totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
-	if [ -z "$totalFrames" ];then echo -e "${colorR}ERROR: Cound not calculate total frames";exit 0;fi
-
-	echo -e "${colorG}8 of $stepTotal${colorB}......................${colorP}Encoding Video${colorD}"
-	## TODO: multi-pass log --stats=/path/file.log
-	## TODO: redirect ffmpeg output to a tmp file, name same as other files and remove after finished
-	## [number of encoding passes]
-	passes="2"
-	## [initial pass number, DO NOT CHANGE VALUE]
-	PASS=1
-	echo "total $totalFrames"
-	while [ $PASS -le $passes ]; do
-		echo "Encoding Pass: $PASS"
-	    ffmpeg \
-	    -threads $cpuThreads \
-	    -i "$inputFile" \
-	    -vf "crop=$crop,scale=$cropWidth:trunc(ow/a/2)*2" \
-	    -r 24000/1001 \
-	    -pix_fmt yuv420p \
-	    -f yuv4mpegpipe - 2> nul | \
-	    x265 \
-	    --y4m \
-	    --threads=$cpuCores \
-	    --frame-threads=$cpuCores \
-	    --wpp \
-	    --ctu=64 \
-	    --no-cutree \
-	    --tu-intra-depth=4 \
-	    --tu-inter-depth=4 \
-	    --me=2 \
-	    --cbqpoffs=3 \
-	    --crqpoffs=3 \
-	    --psy-rd=0.15 \
-	    --subme=7 \
-	    --merange=60 \
-	    --ref=4 \
-	    --bframes=3 \
-	    --b-pyramid \
-	    --b-adapt=2 \
-	    --bframe-bias=0 \
-	    --b-intra \
-	    --weightb \
-	    --weightp \
-	    --bitrate=1024 \
-	    --vbv-init=0.9 \
-	    --vbv-bufsize=31250 \
-	    --vbv-maxrate=31250 \
-	    --no-slow-firstpass \
-	    --pass=$PASS \
-	    --keyint=250 \
-	    --min-keyint=23 \
-	    --rc-lookahead=60 \
-	    --no-constrained-intra \
-	    --aq-mode=0 \
-	    --lft \
-	    --sao-lcu-opt=1 \
-	    --cbqpoffs=-3 \
-	    --crqpoffs=-3 \
-	    --rect \
-	    --amp \
-	    --max-merge=5 \
-	    --no-early-skip \
-	    --no-tskip \
-	    --hash=2 \
-	    -f $totalFrames \
-	    -o "$workDir/$outputFile.hvc" - 
-
-	    ## [if pass one complete output message]
-	    if [ $PASS == 1 ]; then
-	    	echo "Pass 1 complete"
-	    elif [ $PASS == 2 ]; then
-			echo "Encoding complete"
-	    else
-	    	echo -e "ERROR: Something went wrong encoding video"
-	    fi
-
-	    ## [the fps was orginally calculated from source, but the fps may]
-	    ## [have changed because fps from source is not used, recalculate]
-		FPS="23.976023976"
-		totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
-		## [increment pass count]
-	    PASS="$(( $PASS + 1 ))"
-	done
-
-	echo -e "${colorG}9 of $stepTotal${colorB}.........................${colorP}Mux Streams${colorD}"
-	echo -e "  ${colorY}WARNING: You are about to cross the streams${colorD}"
-	echo "         This section does nothing"
-	## metadata if any to be added here
-	#	ffmpeg \
-	#	-i ## video \
-	#	-i ## audio \
-	#	-i ## subtitles (if any) \
-	#	-i ## chapter list (if any) \
-	#	-vcodec copy
-	#	-acodec copy
-	#	$outputFile.mkv
-
-
-	echo -e "${colorG}10 of $stepTotal${colorB}............................${colorP}Cleanup${colorD}"
-	## CLEANUP
-	## TODO: remove multipass logs
-		# $workDir/$outFile.ffpass $workDir/$outFile.xpass
-		if [ "$PASS" == "2" ] ; then
-			echo "remove stats.file"
-			## x265 stats file [outputFile.stats]
-			## ffmpeg redirected output [nul]
-			## hvc tmp video [outputFile.hvc]
-			## opus tmp audio [oputFile.opus]
-			## srt tmp subtitles [outputFiel.srt]
-			## xml tmp chapterlist [outputFile.xml]
-		else
-			echo "do nothing"
-		fi
+	## [increment pass count]
+    PASS="$(( $PASS + 1 ))"
 done
+
+echo -e "${colorG}9 of $stepTotal${colorB}.........................${colorP}Mux Streams${colorD}"
+echo -e "  ${colorY}WARNING: You are about to cross the streams${colorD}"
+echo "         This section does nothing"
+## metadata if any to be added here
+#	ffmpeg \
+#	-i ## video \
+#	-i ## audio \
+#	-i ## subtitles (if any) \
+#	-i ## chapter list (if any) \
+#	-vcodec copy
+#	-acodec copy
+#	$outputFile.mkv
+
+
+echo -e "${colorG}10 of $stepTotal${colorB}............................${colorP}Cleanup${colorD}"
+## CLEANUP
+## TODO: remove multipass logs
+	# $workDir/$outFile.ffpass $workDir/$outFile.xpass
+	if [ "$PASS" == "2" ] ; then
+		echo "remove stats.file"
+		## x265 stats file [outputFile.stats]
+		## ffmpeg redirected output [nul]
+		## hvc tmp video [outputFile.hvc]
+		## opus tmp audio [oputFile.opus]
+		## srt tmp subtitles [outputFiel.srt]
+		## xml tmp chapterlist [outputFile.xml]
+	else
+		echo "do nothing"
+	fi
