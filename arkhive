@@ -26,9 +26,31 @@
 ##      ## - comments [not to be uncommented]
 ##      # -- commented variables
 
-# Coverart?????????? TODO
+## IDEAS
+#> Coverart
+#> Remove Logos
+# https://www.ffmpeg.org/ffmpeg-filters.html#removelogo
+# http://superuser.com/questions/683643/how-to-add-my-logo-for-the-first-30-seconds-in-a-video-with-ffmpeg
+#> De-Interlace
+# detect for interlaced content and de-interlace
+#> File Counter x of # of files processed
+
+## Example application
+# https://github.com/macmichael01/ffmpeg-basher/blob/master/ffmpeg.sh
+
+## Bash Portability
+# http://wiki.bash-hackers.org/scripting/nonportable
+
+## cut command
+# http://www.computerhope.com/unix/ucut.htm
+
+## Shelly - Shell scripts in haskell
+# http://www.yesodweb.com/blog/2012/03/shelly-for-shell-scripts
+
+# http://en.wikipedia.org/wiki/ISO_base_media_file_format
 
 ## Source
+# https://github.com/z1lt0id/encoder/blob/master/encode-tv
 # a-Bluray
 # b-Bluray-Rip
 # c-HDTV
@@ -40,7 +62,7 @@
 # i-Telecine
 
 ## [valid file extensions to except]
-#export exts=(avi f4v flv m2ts m4v mpeg mkv mov mp4 ts wmv)
+allowedExtensions=(avi f4v flv m2ts m4v mpeg mkv mov mp4 ts wmv)
 #inputFileExt=${inputFile##*.}
 
 ## [version is incremented when file is updated]
@@ -72,6 +94,8 @@ Usage: \${colorD}ARKhive [\${colorU}OPTIONS\$colorD] \${colorU}FILE\$colorD [\${
 
 usage
 
+## TODO: rewrite input to check against allowedExtensions array for reusability instead of explicitly defining
+# http://hacktux.com/bash/arrays
 ## [if no input exit with error]
 if [ -z "$1" ];then echo -e "${colorR}ERROR: No arguments provided";exit 0;else
 ## parse arguments
@@ -124,7 +148,10 @@ done;fi
 ## TEMPORARY
 inputFile=$userInput
 
-############################## THIS SHOULD NOT BE A FUNCTION, REORDER ACCORDINGLY #################################
+## TODO: take input file and extact the following: filename, file path, and file extension
+## TODO: rename function to parse user input
+## TODO: check userInputDir against allowedExtensions array
+## TODO: since this function is called by the loop no looping is needed here, only a statement for if the input is dir or file
 function parse_filename {
 ## [parse input file and create output filename according to ARK specification]
 	# Television: %title%_S%season#%E%episode#%_%country%_%vcodec%.%resolution%_%acodec%.%channels%.%bit_depth%.%samplerate%.%ext%
@@ -142,6 +169,7 @@ function parse_filename {
 	outputFile=$userInput
 }
 
+## TODO: see if 'cat' can be eliminated
 ## [cpu detection for encoders]
 function cpu_detect {
 	## [find number of physical cpu cores]
@@ -153,6 +181,9 @@ function cpu_detect {
 	echo "            Cores: $cpuCores Threads: $cpuThreads"
 }
 
+## TODO: rewrite to use x265 instead of ffmpeg and rewrite second instance for ffmpeg audio
+## video_progress
+## audio_progress
 ## [progress indicator]
 function progress_counter {
     START=$(date +%s); frameCounter=0; ETA=0; elapsedTime=0
@@ -178,7 +209,10 @@ function progress_counter {
 
 ## [subtitle stream selector]
 ## TODO: case for subtitle without language set
+## TODO: handle videos without subtitles
 function sub_titles {
+	## use something like cpuThreads, if greater than 0 then continue, else file has no subtitles
+	## http://en.wikibooks.org/wiki/FFMPEG_An_Intermediate_Guide/subtitle_options
 	## [finds first english subtitle stream]
 	subtitleEng=$(\
 		ffmpeg -i $userInput -f null - 2>&1 | \
@@ -188,23 +222,32 @@ function sub_titles {
 	#ffmpeg -i $userInput $outputFile.srt
 }
 
+## TODO: detect if input has chapters
+## TODO: decide on method of transfering chapters from source to output
+#		read input file at time of muxing and map chapters
+#		output chapters to text file and input into muxing
 function chapter_list {
+	## use something like cpuThreads, if greater than 0 then continue, else file has no chapters
+	## https://www.bunkus.org/videotools/mkvtoolnix/doc/mkvextract.html
 	## [finds first english subtitle stream]
 	echo " TODO: section"
 }
 
-## TODO: everything
+## TODO: find if source contains metadata and depending on feild map export to file
 function meta_data {
+	## TODO: set creation date
+	## http://multimedia.cx/eggs/supplying-ffmpeg-with-metadata/
+	## http://jonhall.info/how_to/dump_and_load_metadata_with_ffmpeg
 	## add language to streams
 	## add title to video
 	echo "        metadata doesn't work yet"
 }
 
 ## [audio stream selection and configuration]
-## TODO: audioEngStream only detects mkv english stream, adapt for other formats
-## TODO: mkv audio needs to be tested with more possible exceptions
+## TODO: audioEngStream only detects mkv english stream, adapt for other formats (m2ts)
+## TODO: mkv audio needs to be tested with more possible exceptions (not tested with und audio streams)
 ## TODO: this section (and subtitles) should contain the most logic to find
-## 		 correct streams consistently, should account for all container formats
+## 		 correct streams consistently, should account for all allowed container formats
 function config_audio {
 	## Contaier Formats: avi flv/f4v m2ts mpeg mkv mov mp4/m4v ts wmv
 	## [find audio stream to use]
@@ -288,11 +331,12 @@ function crop_detect {
     cropWidth=$(echo $crop | awk -F ":" '{print $1}')
     echo "        Crop: $crop"
 }
+
+## TODO: work on loop to encode all files in directory and case for when encoding single input to exit loop
 for i in $userInputDir; do
 	## [function calls]
 	stepTotal="10"
 	echo -e "${colorG}1 of $stepTotal${colorB}............................${colorP}Filename${colorD}"
-	#current_dir
 	parse_filename
 	echo -e "${colorG}2 of $stepTotal${colorB}................................${colorP}CPUs${colorD}"
 	cpu_detect
@@ -414,6 +458,8 @@ for i in $userInputDir; do
 	echo -e "${colorG}9 of $stepTotal${colorB}.........................${colorP}Mux Streams${colorD}"
 	echo -e "  ${colorY}WARNING: You are about to cross the streams${colorD}"
 	echo "         This section does nothing"
+	## TODO: decide between ffmpeg and mkvtoolniv [mkvmerge] for muxing finished files
+	## http://cfc.kizzx2.com/index.php/muxing-audio-and-video-with-ffmpeg/
 	## metadata if any to be added here
 	#	ffmpeg \
 	#	-i ## video \
@@ -435,7 +481,7 @@ for i in $userInputDir; do
 			## ffmpeg redirected output [nul]
 			## hvc tmp video [outputFile.hvc]
 			## opus tmp audio [oputFile.opus]
-			## srt tmp subtitles [outputFiel.srt]
+			## srt tmp subtitles [outputFile.srt]
 			## xml tmp chapterlist [outputFile.xml]
 		else
 			echo "do nothing"
