@@ -105,15 +105,15 @@ while [ "$1" ]; do
 			if [ -z "$2" ];then echo -e "${colorR}ERROR: No input provided"; exit 0;
 			elif [ -f "$2" ]; then
 				inputFileExt=${2##*.}
-					case "$inputFileExt" in
-						avi|f4v|flv|m2ts|m4v|mkv|mp4|mpeg|mpg|mov|ts|wmv)
-					   		userInputFile=$2;shift;;
-					   	*)
-							echo "ERROR: Selected file's extension is not an allowed type!";
-							echo "Allowed file types are: avi,f4v,flv,m2ts,m4v,mkv,mp4,mpeg,mpg,mov,ts,wmv";
-							exit 0;;
-					esac
-					shift
+				case "$inputFileExt" in
+					avi|f4v|flv|m2ts|m4v|mkv|mp4|mpeg|mpg|mov|ts|wmv)
+				   		userInput=$2;shift;;
+				   	*)
+						echo "ERROR: Selected file's extension is not an allowed type!";
+						echo "Allowed file types are: avi,f4v,flv,m2ts,m4v,mkv,mp4,mpeg,mpg,mov,ts,wmv";
+						exit 0;;
+				esac
+				shift
 			## TODO: improve error message to specify only file or directory
 			else echo "ERROR: Input is not a file";exit 0;fi;;
 		-o|--output)
@@ -143,35 +143,25 @@ while [ "$1" ]; do
 	shift
 done;fi
 
-## TEMPORARY
-inputFile=$userInput
-
 ## TODO: take input file and extact the following: filename, file path, and file extension
 ## TODO: rename function to parse user input
 ## TODO: check userInputDir against allowedExtensions array
 ## TODO: since this function is called by the loop no looping is needed here, only a statement for if the input is dir or file
 function parse_filename {
-## [parse input file and create output filename according to ARK specification]
-	# Television: %title%_S%season#%E%episode#%_%country%_%vcodec%.%resolution%_%acodec%.%channels%.%bit_depth%.%samplerate%.%ext%
-	# Movie: %title%_%year%_%country%_%vcodec%.%resolution%_%acodec%.%channels%.%bitdepth%.%samlerate%.%ext%
-	#outputFile=$(cat $inputFile | )
-
-	# Inputs:
-	# userInputDir
-		# if directory, use for i in $userInput, run all of ARKhive
-	# userInputDir
-
-	# get file extension
-	#inputFileExt=${inputFile##*.} # move this to another section
-
-	outputFile=$userInputFile
+	## [find input file directory]
+	cd $(dirname $userInput)
+	inputFilePath=$(pwd)
+	fileName=${userInput##*/}
+	fileName=${fileName%%.*}
+	arkMark="-ARK"
+	fileName=$fileName$arkMark
+	echo "Filename: $fileName"
 }
 
-## TODO: see if 'cat' can be eliminated
 ## [cpu detection for encoders]
 function cpu_detect {
 	## [find number of physical cpu cores]
-	cpuCores=$(cat /proc/cpuinfo | awk '/^cpu\ cores/{print $4}' | tail -1)
+	cpuCores=$(awk '/^cpu\ cores/{print $4;exit}' /proc/cpuinfo)
 	if [ -z "$cpuCores" ];then echo -e "${colorR}ERROR: Could not find # of cpu cores";exit 0;fi
 	## [find number of cpu threads]
 	cpuThreads=$(grep -c ^processor /proc/cpuinfo)
@@ -183,7 +173,7 @@ function cpu_detect {
 ## video_progress
 ## audio_progress
 ## [progress indicator]
-function progress_counter {
+function example_progress_counter {
     START=$(date +%s); frameCounter=0; ETA=0; elapsedTime=0
     ## [check to see if ffmpeg is running]
     while [ -e /proc/$PID ]; do
@@ -205,6 +195,14 @@ function progress_counter {
    done
 }
 
+function audio_progress {
+	echo "incomplete"
+}
+
+function video_progress {
+	echo "incomplete"
+}
+
 ## [subtitle stream selector]
 ## TODO: case for subtitle without language set
 ## TODO: handle videos without subtitles
@@ -213,7 +211,7 @@ function sub_titles {
 	## http://en.wikibooks.org/wiki/FFMPEG_An_Intermediate_Guide/subtitle_options
 	## [finds first english subtitle stream]
 	subtitleEng=$(\
-		ffmpeg -i $userInputFile -f null - 2>&1 | \
+		ffmpeg -i $userInput -f null - 2>&1 | \
 		grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | \
 		awk -F ":" '{print $2}' | \
 		tail -1)
@@ -249,11 +247,11 @@ function meta_data {
 function config_audio {
 	## Contaier Formats: avi flv/f4v m2ts mpeg mkv mov mp4/m4v ts wmv
 	## [find audio stream to use]
-	if [ -z "inputFileExt" ]; then echo "ERROR: could not find file extension";exit 0;fi
-	if [ $inputFileExt == "mkv" ]; then
+	if [ -z "$inputFileExt" ]; then echo "ERROR: could not find file extension";exit 0;
+	elif [ $inputFileExt == "mkv" ]; then
 		## [finds first english audio stream]
 		audioEngStream=$(\
-			ffmpeg -i $userInputFile -f null - 2>&1 | \
+			ffmpeg -i $userInput -f null - 2>&1 | \
 			grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Audio)' | \
 			awk -F ":" '{print $2}' | \
 			tail -1)
@@ -262,7 +260,7 @@ function config_audio {
 		audioChnStream=$(( $audioEngStream - 1 ))
 		## [find number of audio channels]
 		audioChannels=$(\
-			ffprobe $userInputFile -show_streams -select_streams a:$audioChnStream 2>&1 | \
+			ffprobe $userInput -show_streams -select_streams a:$audioChnStream 2>&1 | \
 			awk -F "=" '/channels/ { print $2 }' | \
 			tail -1)
 		if [ -z "$audioChannels" ];then echo -e "${colorR}ERROR: Could not find # of audio channels";exit 0;fi
@@ -272,7 +270,7 @@ function config_audio {
 		## [find number of audio channels]
 		## <select_stream does not seem to work with mp4 container>
 		audioChannels=$(\
-			ffprobe $userInputFile -show_streams 2>&1 | \
+			ffprobe $userInput -show_streams 2>&1 | \
 			awk -F "=" '/channels/ { print $2 }' | \
 			tail -1)
 		if [ -z "$audioChannels" ];then echo -e "${colorR}ERROR: Could not find # of audio channels";exit 0;fi
@@ -296,7 +294,7 @@ function crop_detect {
         A="$(( $A + 1 ))"
         skipSecs="$(( 120 * $A ))"
 		crop[$A]=$(\
-			ffmpeg -threads $cpuCores -i $userInputFile -ss $skipSecs \
+			ffmpeg -threads $cpuCores -i $userInput -ss $skipSecs \
 			-t 1 -vf cropdetect -f null - 2>&1 | \
 			awk -F "=" '/crop/ { print $NF }' | \
 			tail -1)
@@ -329,42 +327,6 @@ function crop_detect {
     cropWidth=$(echo $crop | awk -F ":" '{print $1}')
     echo "        Crop: $crop"
 }
-<<<<<<< HEAD
-
-## TODO: work on loop to encode all files in directory and case for when encoding single input to exit loop
-for i in $userInputDir; do
-	## [function calls]
-	stepTotal="10"
-	echo -e "${colorG}1 of $stepTotal${colorB}............................${colorP}Filename${colorD}"
-	parse_filename
-	echo -e "${colorG}2 of $stepTotal${colorB}................................${colorP}CPUs${colorD}"
-	cpu_detect
-	echo -e "${colorG}3 of $stepTotal${colorB}...........................${colorP}Subtitles${colorD}"
-	echo "Subtitles currently aren't mapped to output"
-	sub_titles
-	echo -e "${colorG}4 of $stepTotal${colorB}......................${colorP}TODO: Metadata${colorD}"
-	meta_data
-	echo -e "${colorG}5 of $stepTotal${colorB}...................${colorP}Configuring Audio${colorD}"
-	config_audio
-	echo -e "${colorG}6 of $stepTotal${colorB}................................${colorP}Crop${colorD}"
-	echo -e "    ${colorY}WARNING: This step may take a while${colorD}"
-	crop_detect
-	echo -e "${colorG}7 of $stepTotal${colorB}......................${colorP}Encoding Audio${colorD}"
-	echo "encoding audio"
-		ffmpeg \
-		-i "$inputFile" \
-		-c:a libopus \
-		-map 0:$audioEngStream \
-		-ac $audioChannels \
-		-b:a $audioBitrate \
-		-vbr on \
-		-ar 48000 \
-		-compression_level 10 \
-		-y $workDir/$outputFile.opus 2>/dev/null || \
-		{ echo -e "${colorR}ERROR: audio failed to encode"; exit 0; }
-	echo "audio complete"
-=======
->>>>>>> 2286bc13f83f95d86a21b3cd8af676953eb98939
 
 ## [function calls]
 stepTotal="10"
@@ -385,7 +347,7 @@ crop_detect
 echo -e "${colorG}7 of $stepTotal${colorB}......................${colorP}Encoding Audio${colorD}"
 echo "encoding audio"
 	ffmpeg \
-	-i "$userInputFile" \
+	-i "$userInput" \
 	-c:a libopus \
 	-map 0:$audioEngStream \
 	-ac $audioChannels \
@@ -393,12 +355,12 @@ echo "encoding audio"
 	-vbr on \
 	-ar 48000 \
 	-compression_level 10 \
-	-y $workDir/$outputFile.opus 2>/dev/null || \
+	-y $inputFilePath/$fileName.opus || \
 	{ echo -e "${colorR}ERROR: audio failed to encode"; exit 0; }
 echo "audio complete"
 
 ## [get duration and fps then calculate total frames]
-FPS=$(ffprobe "$userInputFile" 2>&1 | sed -n "s/.*, \(.*\) tbr.*/\1/p")
+FPS=$(ffprobe "$userInput" 2>&1 | sed -n "s/.*, \(.*\) tbr.*/\1/p")
 totalLength=$(ffprobe "$userInput" 2>&1 | sed -n "s/.* Duration: \([^,]*\), .*/\1/p")
 HRS=$(echo $totalLength | cut -d":" -f1)
 MIN=$(echo $totalLength | cut -d":" -f2)
@@ -418,13 +380,14 @@ while [ $PASS -le $passes ]; do
 	echo "Encoding Pass: $PASS"
     ffmpeg \
     -threads $cpuThreads \
-    -i "$userInputFile" \
+    -i "$userInput" \
     -vf "crop=$crop,scale=$cropWidth:trunc(ow/a/2)*2" \
     -r 24000/1001 \
     -pix_fmt yuv420p \
     -f yuv4mpegpipe - 2> nul | \
     x265 \
     --y4m \
+    --stats=$inputFilePath/$fileName.stats \
     --threads=$cpuCores \
     --frame-threads=$cpuCores \
     --wpp \
@@ -468,7 +431,7 @@ while [ $PASS -le $passes ]; do
     --no-tskip \
     --hash=2 \
     -f $totalFrames \
-    -o "$userInputFile.hvc" - 
+    -o "$inputFilePath/$fileName.hvc" - 
 
     ## [if pass one complete output message]
     if [ $PASS == 1 ]; then
@@ -487,43 +450,11 @@ while [ $PASS -le $passes ]; do
     PASS="$(( $PASS + 1 ))"
 done
 
-<<<<<<< HEAD
-	echo -e "${colorG}9 of $stepTotal${colorB}.........................${colorP}Mux Streams${colorD}"
-	echo -e "  ${colorY}WARNING: You are about to cross the streams${colorD}"
-	echo "         This section does nothing"
-	## TODO: decide between ffmpeg and mkvtoolniv [mkvmerge] for muxing finished files
-	## http://cfc.kizzx2.com/index.php/muxing-audio-and-video-with-ffmpeg/
-	## metadata if any to be added here
-	#	ffmpeg \
-	#	-i ## video \
-	#	-i ## audio \
-	#	-i ## subtitles (if any) \
-	#	-i ## chapter list (if any) \
-	#	-vcodec copy
-	#	-acodec copy
-	#	$outputFile.mkv
-
-
-	echo -e "${colorG}10 of $stepTotal${colorB}............................${colorP}Cleanup${colorD}"
-	## CLEANUP
-	## TODO: remove multipass logs
-		# $workDir/$outFile.ffpass $workDir/$outFile.xpass
-		if [ "$PASS" == "2" ] ; then
-			echo "remove stats.file"
-			## x265 stats file [outputFile.stats]
-			## ffmpeg redirected output [nul]
-			## hvc tmp video [outputFile.hvc]
-			## opus tmp audio [oputFile.opus]
-			## srt tmp subtitles [outputFile.srt]
-			## xml tmp chapterlist [outputFile.xml]
-		else
-			echo "do nothing"
-		fi
-done
-=======
 echo -e "${colorG}9 of $stepTotal${colorB}.........................${colorP}Mux Streams${colorD}"
 echo -e "  ${colorY}WARNING: You are about to cross the streams${colorD}"
 echo "         This section does nothing"
+## TODO: decide between ffmpeg and mkvtoolniv [mkvmerge] for muxing finished files
+## http://cfc.kizzx2.com/index.php/muxing-audio-and-video-with-ffmpeg/
 ## metadata if any to be added here
 #	ffmpeg \
 #	-i ## video \
@@ -532,22 +463,26 @@ echo "         This section does nothing"
 #	-i ## chapter list (if any) \
 #	-vcodec copy
 #	-acodec copy
-#	$outputFile.mkv
 
 
 echo -e "${colorG}10 of $stepTotal${colorB}............................${colorP}Cleanup${colorD}"
 ## CLEANUP
 ## TODO: remove multipass logs
-	# $workDir/$outFile.ffpass $workDir/$outFile.xpass
-	if [ "$PASS" == "2" ] ; then
-		echo "remove stats.file"
-		## x265 stats file [outputFile.stats]
-		## ffmpeg redirected output [nul]
-		## hvc tmp video [outputFile.hvc]
-		## opus tmp audio [oputFile.opus]
-		## srt tmp subtitles [outputFiel.srt]
-		## xml tmp chapterlist [outputFile.xml]
-	else
-		echo "do nothing"
-	fi
->>>>>>> 2286bc13f83f95d86a21b3cd8af676953eb98939
+# $workDir/$outFile.ffpass $workDir/$outFile.xpass
+if [ "$PASS" == "2" ] ; then
+	echo "remove stats.file"
+	## x265 stats file [outputFile.stats]
+	## ffmpeg redirected output [nul]
+	## hvc tmp video [outputFile.hvc]
+	## opus tmp audio [oputFile.opus]
+	## srt tmp subtitles [outputFiel.srt]
+	## xml tmp chapterlist [outputFile.xml]
+	# $fileName.hvc
+	# $fileName.stats
+	# $fileName.opus
+	# $fileName.nul
+	# $fileName.xml
+	# $fileName.srt
+else
+	echo "do nothing"
+fi
