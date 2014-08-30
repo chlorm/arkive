@@ -63,7 +63,6 @@
 
 ## [valid file extensions to except]
 allowedExtensions=(avi f4v flv m2ts m4v mpeg mkv mov mp4 ts wmv)
-#inputFileExt=${inputFile##*.}
 
 ## [version is incremented when file is updated]
 VERSION=1
@@ -98,7 +97,7 @@ usage
 # http://hacktux.com/bash/arrays
 ## [if no input exit with error]
 if [ -z "$1" ];then echo -e "${colorR}ERROR: No arguments provided";exit 0;else
-## parse arguments
+## [parse arguments]
 while [ "$1" ]; do
 	case "$1" in
 		-i|--input)
@@ -114,7 +113,6 @@ while [ "$1" ]; do
 						exit 0;;
 				esac
 				shift
-			## TODO: improve error message to specify only file or directory
 			else echo "ERROR: Input is not a file";exit 0;fi;;
 		-o|--output)
 			if [ -z "$2" ];then echo -e "${colorR}ERROR: No output directory provided";exit 0;
