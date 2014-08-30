@@ -16,7 +16,7 @@
 ##    Dependencies:
 ##      ffmpeg[encode,libass,libx265,threads] recommended:[aac,fdk,mp3,opus]
 ##      ffprobe
-##      mkvtoolnix
+##      mkvtoolnix[mkvextract,mkvmerge]
 ##      Obviously: awk, bash, cat, grep, pwd, tail
 ##    Assumed Directory & File Structure:
 ##      ~/.config/ARKhive/ ------------ config directory??????????????
@@ -61,11 +61,8 @@
 # h-Screener
 # i-Telecine
 
-## [valid file extensions to except]
-allowedExtensions=(avi f4v flv m2ts m4v mpeg mkv mov mp4 ts wmv)
-
-## [version is incremented when file is updated]
 VERSION=1
+allowedExtensions=(avi f4v flv m2ts m4v mpeg mkv mov mp4 ts wmv)
 
 ## TODO: only enabled color it terminal supports it
 ## [add colors once finished]
@@ -91,11 +88,11 @@ Usage: \${colorD}ARKhive [\${colorU}OPTIONS\$colorD] \${colorU}FILE\$colorD [\${
          \$colorB-v\$colorD                    - print version\n\n"
 }
 
+## [function call]
 usage
 
 ## TODO: rewrite input to check against allowedExtensions array for reusability instead of explicitly defining
 # http://hacktux.com/bash/arrays
-## [if no input exit with error]
 if [ -z "$1" ];then echo -e "${colorR}ERROR: No arguments provided";exit 0;else
 ## [parse arguments]
 while [ "$1" ]; do
@@ -141,27 +138,27 @@ while [ "$1" ]; do
 	shift
 done;fi
 
-## TODO: take input file and extact the following: filename, file path, and file extension
-## TODO: rename function to parse user input
-## TODO: check userInputDir against allowedExtensions array
-## TODO: since this function is called by the loop no looping is needed here, only a statement for if the input is dir or file
-function parse_filename {
-	## [find input file directory]
+function parse_input {
+	## [input file directory]
 	cd $(dirname $userInput)
 	inputFilePath=$(pwd)
+	## [input filename w/ ext]
 	fileName=${userInput##*/}
+	## [input filename w/o ext]
 	fileName=${fileName%%.*}
+	## [add tag]
 	arkMark="-ARK"
 	fileName=$fileName$arkMark
-	echo "Filename: $fileName"
+	echo "Filename : $fileName"
+	echo "Directory: $inputFilePath"
+	echo "Extension: $inputFileExt"
 }
 
-## [cpu detection for encoders]
 function cpu_detect {
-	## [find number of physical cpu cores]
+	## [cpu cores]
 	cpuCores=$(awk '/^cpu\ cores/{print $4;exit}' /proc/cpuinfo)
 	if [ -z "$cpuCores" ];then echo -e "${colorR}ERROR: Could not find # of cpu cores";exit 0;fi
-	## [find number of cpu threads]
+	## [cpu threads]
 	cpuThreads=$(grep -c ^processor /proc/cpuinfo)
 	if [ -z "$cpuCores" ];then echo -e "${colorR}ERROR: Could not find # of cpu threads";exit 0;fi
 	echo "            Cores: $cpuCores Threads: $cpuThreads"
@@ -169,37 +166,37 @@ function cpu_detect {
 
 ## TODO: rewrite to use x265 instead of ffmpeg and rewrite second instance for ffmpeg audio
 ## [progress indicator]
-function example_progress_counter {
-    START=$(date +%s); frameCounter=0; ETA=0; elapsedTime=0
-    ## [check to see if ffmpeg is running]
-    while [ -e /proc/$PID ]; do
-        sleep 2
-        ## [parse vstats file]
-        VSTATS=$(awk '{gsub(/frame=/, "")}/./{line=$1-1} END{print line}' \
-        	$HOME/vstats)
-        if [[ $VSTATS -gt $frameCounter ]]; then
-            frameCounter=$VSTATS
-            ## [progress-bar calc]
-            percentageCounter=$(( 100 * frameCounter / totalFrames ))
-            elapsedTime=$(( $(date +%s) - START )); echo $elapsedTime > $HOME/elapsed.value
-            ## [etc clac]
-            ETA=$(date -d @$(awk 'BEGIN{print int(('$elapsedTime' / '$frameCounter') *\
-            ('$totalFrames' - '$frameCounter'))}') -u +%H:%M:%S)
-        fi
-        ## [format for stats output]
-        echo -ne "\rFrame:$frameCounter of $totalFrames Time:$(date -d @$elapsedTime -u +%H:%M:%S) ETA:$ETA Percent:$percentageCounter"
-   done
-}
+#function example_progress_counter {
+#    START=$(date +%s); frameCounter=0; ETA=0; elapsedTime=0
+#    ## [check to see if ffmpeg is running]
+#    while [ -e /proc/$PID ]; do
+#        sleep 2
+#        ## [parse vstats file]
+#        VSTATS=$(awk '{gsub(/frame=/, "")}/./{line=$1-1} END{print line}' \
+#        	$HOME/vstats)
+#        if [[ $VSTATS -gt $frameCounter ]]; then
+#            frameCounter=$VSTATS
+#            ## [progress-bar calc]
+#            percentageCounter=$(( 100 * frameCounter / totalFrames ))
+#            elapsedTime=$(( $(date +%s) - START )); echo $elapsedTime > $HOME/elapsed.value
+#            ## [etc clac]
+#            ETA=$(date -d @$(awk 'BEGIN{print int(('$elapsedTime' / '$frameCounter') *\
+#            ('$totalFrames' - '$frameCounter'))}') -u +%H:%M:%S)
+#        fi
+#        ## [format for stats output]
+#        echo -ne "\rFrame:$frameCounter of $totalFrames Time:$(date -d @$elapsedTime -u +%H:%M:%S) ETA:$ETA Percent:$percentageCounter"
+#   done
+#}
 
 ## [audio encoding progress]
-function audio_progress {
-	echo "incomplete"
-}
+#function audio_progress {
+#	echo "incomplete"
+#}
 
 ## [audio encoding progress]
-function video_progress {
-	echo "incomplete"
-}
+#function video_progress {
+#	echo "incomplete"
+#}
 
 ## [subtitle stream selector]
 ## TODO: case for subtitle without language set
@@ -217,18 +214,28 @@ function sub_titles {
 		grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | \
 		awk -F ":" '{print $2}' | \
 		tail -1)
+	echo "does nothing"
 	#ffmpeg -i $userInput $outputFile.srt
 }
 
-## TODO: detect if input has chapters
-## TODO: decide on method of transfering chapters from source to output
-#		read input file at time of muxing and map chapters
-#		output chapters to text file and input into muxing
 function chapter_list {
-	## use something like cpuThreads, if greater than 0 then continue, else file has no chapters
-	## https://www.bunkus.org/videotools/mkvtoolnix/doc/mkvextract.html
-	## [finds first english subtitle stream]
-	echo " TODO: section"
+	## [find chapters if any]
+	hasChapters=$(\
+		ffprobe $userInput 2>&1 | \
+		awk '/Chapter/ { print $2 }' | \
+		tail -1)
+	## [no chapters were found]
+	if [ -z "$hasChapters" ]; then
+		## [set $hasChapters for muxing]
+		hasChapters="0"
+		echo "           input has no chapters"
+	## [chapters were found]
+	else
+		## [set $hasChapters for muxing]
+		hasChapters="1"
+		mkvextract chapters --simple $userInput --redirect-output $inputFilePath/$fileName.xml
+		echo "exported chapters"
+	fi
 }
 
 ## TODO: find if source contains metadata and depending on feild map export to file
@@ -284,7 +291,9 @@ function config_audio {
 	echo "    Stream: $audioEngStream Channels: $audioChannels Bitrate: $audioBitrate"
 }
 
-## [black-bar detection and cropping]
+#function interlace_detect {
+#}
+
 function crop_detect {
 	cpu_detect >/dev/null
 	## [several checks to accurately crop black-bars]
@@ -332,10 +341,12 @@ function crop_detect {
 
 ## [function calls]
 stepTotal="10"
-echo -e "${colorG}1 of $stepTotal${colorB}............................${colorP}Filename${colorD}"
-parse_filename
+echo -e "${colorG}1 of $stepTotal${colorB}.........................${colorP}Parse Input${colorD}"
+parse_input
 echo -e "${colorG}2 of $stepTotal${colorB}................................${colorP}CPUs${colorD}"
 cpu_detect
+echo -e "${colorG}2 of $stepTotal${colorB}........................${colorP}Chapter List${colorD}"
+chapter_list
 echo -e "${colorG}3 of $stepTotal${colorB}...........................${colorP}Subtitles${colorD}"
 echo "Subtitles currently aren't mapped to output"
 sub_titles
@@ -343,6 +354,8 @@ echo -e "${colorG}4 of $stepTotal${colorB}......................${colorP}TODO: M
 meta_data
 echo -e "${colorG}5 of $stepTotal${colorB}...................${colorP}Configuring Audio${colorD}"
 config_audio
+#echo -e "${colorG}5 of $stepTotal${colorB}........................${colorP}De-Interlace${colorD}"
+#interlace_detect
 echo -e "${colorG}6 of $stepTotal${colorB}................................${colorP}Crop${colorD}"
 echo -e "    ${colorY}WARNING: This step may take a while${colorD}"
 crop_detect
@@ -362,7 +375,7 @@ echo "encoding audio"
 echo "audio complete"
 
 ## [get duration and fps then calculate total frames]
-FPS=$(ffprobe "$userInput" 2>&1 | sed -n "s/.*, \(.*\) tbr.*/\1/p")
+FPS="23.976023976"
 totalLength=$(ffprobe "$userInput" 2>&1 | sed -n "s/.* Duration: \([^,]*\), .*/\1/p")
 HRS=$(echo $totalLength | cut -d":" -f1)
 MIN=$(echo $totalLength | cut -d":" -f2)
@@ -379,6 +392,7 @@ PASS=1
 echo "total $totalFrames"
 while [ $PASS -le $passes ]; do
 	echo "Encoding Pass: $PASS"
+	echo "total $totalFrames"
     ffmpeg \
     -threads $cpuThreads \
     -i "$userInput" \
@@ -432,19 +446,17 @@ while [ $PASS -le $passes ]; do
     --no-tskip \
     --hash=2 \
     -f $totalFrames \
-    -o "$inputFilePath/$fileName.hvc" - 
+    -o "$inputFilePath/$fileName.hvc" - || \
+    echo "ERROR: video encoding failed"
 
     ## [if pass one complete output message]
     if [ $PASS == 2 ]; then
+    	echo
 		echo "Encoding complete"
     else
-    	echo -e "ERROR: Something went wrong encoding video"
+    	echo
     fi
 
-    ## [the fps was orginally calculated from source, but the fps may]
-    ## [have changed because fps from source is not used, recalculate]
-	FPS="23.976023976"
-	totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
 	## [increment pass count]
     PASS="$(( $PASS + 1 ))"
 done
@@ -462,6 +474,47 @@ echo "         This section does nothing"
 #	-i ## chapter list (if any) \
 #	-vcodec copy
 #	-acodec copy
+## TODO: account for possible change in fps that may offset audio, always set for 23.976 (24000/1001)
+## TODO: make subtitles toggleable incase none exist
+
+#? --title [metadata title]
+#? --default-language [default everything to be labeled as english]
+#? --chapters $fileName [read chapters from file]
+## NOTE: since multiple audio or subtitle tracks aren't allowed set all streams except subtitle to default
+mkvmerge \
+## GLOBAL
+-o $inputFilePath/$fileName \
+--output-charset UTF-8 \
+--ui-language eng \ ##[always set to english to force default]
+## VIDEO
+--default-track $num \ ##[set to default track and default position]
+--forced-track \ ##[since its required anyways]
+--track-name VIDEO-$fileName \ ##[filename inside mkv container of streams]
+--language $language \ ##[if eng set to english; elif no eng set to lang provided; elif und > error]
+--default-duration 1:24000/1001fps \ ##[nTrack ID:fps (prevents audio sync issues)]
+--video-tracks \
+$inputFilePath/$fileName.hvc \
+## AUDIO
+--default-track $num \ ##[set to default track and default position]
+--forced-track \ ##[since its required anyways]
+--track-name AUDIO-$fileName \ ##[filename inside mkv container of streams]
+--language $language \ ##[if eng set to english; elif no eng set to lang provided; elif und > error]
+--audio-tracks \
+$inputFilePath/$fileName.opus \
+## SUBTITLES
+--track-name SUBTITLES-$fileName \ ##[filename inside mkv container of streams]
+--language $language \ ##[if eng set to english; else error] ONLY ALLOW ENGLISH
+--sub-charset \
+--subtitle-tracks \
+$inputFilePath/$fileName.srt \
+## CHAPTERS
+--default-track $num \ ##[set to default track and default position]
+--forced-track \ ##[since its required anyways] ?? determine if forcing chapters causes issues with some players
+--track-name CHAPTERS-$fileName \ ##[filename inside mkv container of streams]
+--chapter-language $language \ ##[this will need some work to figure out if chapters have titles]
+--chapter-charset $chaptersCharset \ ##[whatever ffmpeg outputs]
+--chapters \
+$inputFilePath/$fileName.xml
 
 
 echo -e "${colorG}10 of $stepTotal${colorB}............................${colorP}Cleanup${colorD}"
@@ -476,9 +529,9 @@ if [ "$PASS" == "2" ] ; then
 	## opus tmp audio [oputFile.opus]
 	## srt tmp subtitles [outputFiel.srt]
 	## xml tmp chapterlist [outputFile.xml]
-	# $fileName.hvc
-	# $fileName.stats
-	# $fileName.opus
+	rm $inputFilePath/$fileName.hvc
+	rm $inputFilePath/$fileName.stats
+	rm $inputFilePath/$fileName.opus
 	# $fileName.nul
 	# $fileName.xml
 	# $fileName.srt
