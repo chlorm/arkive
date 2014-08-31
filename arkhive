@@ -149,9 +149,9 @@ function parse_input {
 	## [add tag]
 	arkMark="-ARK"
 	fileName=$fileName$arkMark
-	echo "Filename : $fileName"
-	echo "Directory: $inputFilePath"
-	echo "Extension: $inputFileExt"
+	echo "         Filename : $fileName"
+	echo "         Directory: $inputFilePath"
+	echo "         Extension: $inputFileExt"
 }
 
 function cpu_detect {
@@ -194,41 +194,78 @@ function cpu_detect {
 #}
 
 ## [audio encoding progress]
-#function video_progress {
-#	echo "incomplete"
-#}
+function video_progress {
+    START=$(date +%s); frameCounter=0; ETA=0; elapsedTime=0
+    ## [check to see if ffmpeg is running]
+    while [ -e /proc/$PID ]; do
+        sleep 2
+        ## [parse vstats file]
+        #currentFrame=$(awk '{gsub(/\[.\%\]\ /, "")}/./{line=$3-1} END{print line}' \
+        #	$inputFilePath/test.x265)
+        currentFrame=$(awk -F'[^0-9]*' 'NR > 1 {gsub("/[.%] /","", $1);print $1}' FS='/' $inputFilePath/test.x265)
+        #isNum='^[0-9]+$'
+        #if [[ $findFrame =~ $isNum ]]; then
+        #	currentFrame=$findFrame
+        #fi
+        if [[ $currentFrame -gt $frameCounter ]]; then
+            frameCounter=$currentFrame
+            ## [progress-bar calc]
+            percentageCounter=$(( 100 * frameCounter / totalFrames ))
+            elapsedTime=$(( $(date +%s) - START )); echo $elapsedTime > $HOME/elapsed.value
+            ## [etc clac]
+            ETA=$(date -d @$(awk 'BEGIN{print int(('$elapsedTime' / '$frameCounter') *\
+            ('$totalFrames' - '$frameCounter'))}') -u +%H:%M:%S)
+        fi
+        ## [format for stats output]
+        echo -ne "\rFrame:$frameCounter of $totalFrames Time:$(date -d @$elapsedTime -u +%H:%M:%S) ETA:$ETA Percent:$percentageCounter"
+    done
+}
 
 ## [subtitle stream selector]
 ## TODO: case for subtitle without language set
-## TODO: handle videos without subtitles
-# if no subtitles exist, skip this step
-# elif eng exists do ... check for >1 eng, if so compare results further
-# elif ... check und options for english ... find best result
-# else ERROR: ....
+## TODO: actually export subtitles to be muxed later
+## TODO: if .sub/.idx covert to .srt with VobSub2SRT
 function sub_titles {
-	## use something like cpuThreads, if greater than 0 then continue, else file has no subtitles
-	## http://en.wikibooks.org/wiki/FFMPEG_An_Intermediate_Guide/subtitle_options
-	## [finds first english subtitle stream]
-	subtitleEng=$(\
-		ffmpeg -i $userInput -f null - 2>&1 | \
-		grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | \
-		awk -F ":" '{print $2}' | \
-		tail -1)
-	echo "does nothing"
-	#ffmpeg -i $userInput $outputFile.srt
+	## [find subtitles if any]
+	hasSubtitles=$(\
+		ffprobe $userInput 2>&1 | \
+		awk '/Subtitle/ { print $2 }')
+	## [no subtitles were found]
+	if [ -z "$hasSubtitles" ]; then
+		## [set $hasChapters for muxing]
+		hasSubtitles="0"
+		echo "           input has no subtitles"
+	## [subtitles were found]
+	else
+		## [set $hasChapters for muxing]
+		hasSubtitles="1"
+		## [finds first english subtitle stream]
+		subtitleStream=$(\
+			ffmpeg -i $userInput -f null - 2>&1 | \
+			grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | \
+			awk -F ":" '{print $2}' | \
+			tail -1)
+		if [ -z "subtitleStream" ]; then
+			echo "no english subtitles found"
+		fi
+		mkvextract tracks $userInput $subtitleStream:$fileName
+		#subtitleType=$(mkvextract tracks $userInput $subtitleStream:$fileName | \
+		#awk '/$fileName/{print $0}')
+		# >/dev/null
+		echo "    Found English Subtitles, Stream: $subtitleStream Format: $subtitleType"
+	fi
 }
 
 function chapter_list {
 	## [find chapters if any]
 	hasChapters=$(\
 		ffprobe $userInput 2>&1 | \
-		awk '/Chapter/ { print $2 }' | \
-		tail -1)
+		awk '/Chapter/ { print $2 }')
 	## [no chapters were found]
 	if [ -z "$hasChapters" ]; then
 		## [set $hasChapters for muxing]
 		hasChapters="0"
-		echo "           input has no chapters"
+		echo "             No Chapters Found"
 	## [chapters were found]
 	else
 		## [set $hasChapters for muxing]
@@ -264,6 +301,8 @@ function config_audio {
 			grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Audio)' | \
 			awk -F ":" '{print $2}' | \
 			tail -1)
+		## [if no english audio then assume stream number 1 is audio]
+		## TODO: this needs some work, may cause error with non-english videos by assuming there is always audio in stream 1
 		if [ -z "$audioEngStream" ];then $audioEngStream="2";fi
 		## [offset audio stream by one for ffprobe because it counts from zero]
 		audioChnStream=$(( $audioEngStream - 1 ))
@@ -343,16 +382,15 @@ function crop_detect {
 stepTotal="10"
 echo -e "${colorG}1 of $stepTotal${colorB}.........................${colorP}Parse Input${colorD}"
 parse_input
-echo -e "${colorG}2 of $stepTotal${colorB}................................${colorP}CPUs${colorD}"
+echo -e "${colorG}2 of $stepTotal${colorB}.................................${colorP}CPU${colorD}"
 cpu_detect
-echo -e "${colorG}2 of $stepTotal${colorB}........................${colorP}Chapter List${colorD}"
+echo -e "${colorG}2 of $stepTotal${colorB}............................${colorP}Chapters${colorD}"
 chapter_list
 echo -e "${colorG}3 of $stepTotal${colorB}...........................${colorP}Subtitles${colorD}"
-echo "Subtitles currently aren't mapped to output"
 sub_titles
 echo -e "${colorG}4 of $stepTotal${colorB}......................${colorP}TODO: Metadata${colorD}"
 meta_data
-echo -e "${colorG}5 of $stepTotal${colorB}...................${colorP}Configuring Audio${colorD}"
+echo -e "${colorG}5 of $stepTotal${colorB}...............................${colorP}Audio${colorD}"
 config_audio
 #echo -e "${colorG}5 of $stepTotal${colorB}........................${colorP}De-Interlace${colorD}"
 #interlace_detect
@@ -390,9 +428,9 @@ passes="2"
 ## [initial pass number, DO NOT CHANGE VALUE]
 PASS=1
 echo "total $totalFrames"
+touch $inputFilePath/$fileName.stats
 while [ $PASS -le $passes ]; do
 	echo "Encoding Pass: $PASS"
-	echo "total $totalFrames"
     ffmpeg \
     -threads $cpuThreads \
     -i "$userInput" \
@@ -448,17 +486,22 @@ while [ $PASS -le $passes ]; do
     -f $totalFrames \
     -o "$inputFilePath/$fileName.hvc" - || \
     echo "ERROR: video encoding failed"
+    #2>/dev/null &
+    #PID=$! &&
+    #echo "x265 PID: $PID"
+	#video_progress
 
-    ## [if pass one complete output message]
-    if [ $PASS == 2 ]; then
+    ## [finished]
+    if [ $PASS == $passes ]; then
     	echo
 		echo "Encoding complete"
+	## [not finised]
     else
     	echo
     fi
 
 	## [increment pass count]
-    PASS="$(( $PASS + 1 ))"
+	PASS="$(( $PASS + 1 ))"
 done
 
 echo -e "${colorG}9 of $stepTotal${colorB}.........................${colorP}Mux Streams${colorD}"
@@ -481,6 +524,32 @@ echo "         This section does nothing"
 #? --default-language [default everything to be labeled as english]
 #? --chapters $fileName [read chapters from file]
 ## NOTE: since multiple audio or subtitle tracks aren't allowed set all streams except subtitle to default
+if [ $hasChapters == 1 ]; then
+	muxChapters="
+		--default-track $num \ ##[set to default track and default position]
+		--forced-track \ ##[since its required anyways] ?? determine if forcing chapters causes issues with some players
+		--track-name CHAPTERS-$fileName \ ##[filename inside mkv container of streams]
+		--chapter-language $language \ ##[this will need some work to figure out if chapters have titles]
+		--chapter-charset $chaptersCharset \ ##[whatever ffmpeg outputs]
+		--chapters \
+		$inputFilePath/$fileName.xml"
+elif [ $hasChapters == 0 ]; then
+	muxChapters="\\"
+else
+	echo "ERROR: muxing chapters"
+fi
+if [ $hasSubtitles == 1 ]; then
+	muxSubtitles="
+		--track-name SUBTITLES-$fileName \\ ##[filename inside mkv container of streams]
+		--language $language \\ ##[if eng set to english; else error] ONLY ALLOW ENGLISH
+		--sub-charset \\
+		--subtitle-tracks \\
+		$inputFilePath/$fileName.srt \\"
+elif [ $hasSubtitles == 0 ]; then
+	muxSubtitles="\\"
+else
+	echo "ERROR: muxing subtitles"
+fi
 mkvmerge \
 ## GLOBAL
 -o $inputFilePath/$fileName \
@@ -502,19 +571,9 @@ $inputFilePath/$fileName.hvc \
 --audio-tracks \
 $inputFilePath/$fileName.opus \
 ## SUBTITLES
---track-name SUBTITLES-$fileName \ ##[filename inside mkv container of streams]
---language $language \ ##[if eng set to english; else error] ONLY ALLOW ENGLISH
---sub-charset \
---subtitle-tracks \
-$inputFilePath/$fileName.srt \
+printf $muxSubtitles
 ## CHAPTERS
---default-track $num \ ##[set to default track and default position]
---forced-track \ ##[since its required anyways] ?? determine if forcing chapters causes issues with some players
---track-name CHAPTERS-$fileName \ ##[filename inside mkv container of streams]
---chapter-language $language \ ##[this will need some work to figure out if chapters have titles]
---chapter-charset $chaptersCharset \ ##[whatever ffmpeg outputs]
---chapters \
-$inputFilePath/$fileName.xml
+printf $muxChapters
 
 
 echo -e "${colorG}10 of $stepTotal${colorB}............................${colorP}Cleanup${colorD}"
