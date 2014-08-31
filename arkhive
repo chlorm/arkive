@@ -26,41 +26,6 @@
 ##      ## - comments [not to be uncommented]
 ##      # -- commented variables
 
-## IDEAS
-#> Coverart
-#> Remove Logos
-# https://www.ffmpeg.org/ffmpeg-filters.html#removelogo
-# http://superuser.com/questions/683643/how-to-add-my-logo-for-the-first-30-seconds-in-a-video-with-ffmpeg
-#> De-Interlace
-# detect for interlaced content and de-interlace
-#> File Counter x of # of files processed
-
-## Example application
-# https://github.com/macmichael01/ffmpeg-basher/blob/master/ffmpeg.sh
-
-## Bash Portability
-# http://wiki.bash-hackers.org/scripting/nonportable
-
-## cut command
-# http://www.computerhope.com/unix/ucut.htm
-
-## Shelly - Shell scripts in haskell
-# http://www.yesodweb.com/blog/2012/03/shelly-for-shell-scripts
-
-# http://en.wikipedia.org/wiki/ISO_base_media_file_format
-
-## Source
-# https://github.com/z1lt0id/encoder/blob/master/encode-tv
-# a-Bluray
-# b-Bluray-Rip
-# c-HDTV
-# d-DVD
-# e-SDTV
-# f-Cam
-# g-Telesync
-# h-Screener
-# i-Telecine
-
 VERSION=1
 #allowedExtensions=(avi f4v flv m2ts m4v mpeg mkv mov mp4 ts wmv)
 
