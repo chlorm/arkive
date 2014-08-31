@@ -32,8 +32,10 @@ VERSION=1
 ## [colors]
 colorR="\033[1;31m" # Red
 colorG="\033[1;32m" # Green
-colorP="\033[1;35m" # Purple
-colorB="\033[0;36m" # Cyan (light blue)
+colorP="\033[1;37m" # White
+colorL="\033[1;35m" # Purple
+colorB="\033[0;30m" # Gray
+colorC="\033[0;36m" # Cyan (light blue)
 colorY="\033[0;33m" # Yellow
 colorU="\033[0;4m"  # Underline
 colorD="\033[0;0m"  # default
