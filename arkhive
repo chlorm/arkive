@@ -62,26 +62,23 @@
 # i-Telecine
 
 VERSION=1
-allowedExtensions=(avi f4v flv m2ts m4v mpeg mkv mov mp4 ts wmv)
+#allowedExtensions=(avi f4v flv m2ts m4v mpeg mkv mov mp4 ts wmv)
 
-## TODO: only enabled color it terminal supports it
-## [add colors once finished]
+## [colors]
 colorR="\033[1;31m" # Red
 colorG="\033[1;32m" # Green
 colorP="\033[1;35m" # Purple
 colorB="\033[0;36m" # Cyan (light blue)
 colorY="\033[0;33m" # Yellow
-colorU="\033[0;4m" # Yellow
+colorU="\033[0;4m"  # Underline
 colorD="\033[0;0m"  # default
 
-## TODO: update help informaton and fix colors
 function usage {
 	HELP="\n\${colorP}ARKhive version:\${colorG} ${VERSION}
 \${colorP}Automates encoding video to ARK's archive format.
 
 Usage: \${colorD}ARKhive [\${colorU}OPTIONS\$colorD] \${colorU}FILE\$colorD [\${colorU}OPTIONS\$colorD]\$colorD
-       \${colorD}ARKhive [\${colorU}OPTIONS\$colorD] \${colorU}DIR\$colorD  [\${colorU}OPTIONS\$colorD]\$colorD
-         \$colorB-i \${colorU}FILE/DIRECTORY\$colorD   \$colorY*\$colorD - set input file\$colorD
+         \$colorB-i \${colorU}FILE\$colorD             \$colorY*\$colorD - set input file\$colorD
          \$colorB-o \${colorU}DIRECTORY\$colorD          - set output directory (current is \$cP\${DIR}\$colorD)
          \$colorB-t \${colorU}DIRECTORY\$colorD          - set temp directory (current is \$cP\${DIR}\$colorD)
          \$colorB-h\$colorD                    - print this message
@@ -164,63 +161,6 @@ function cpu_detect {
 	echo "            Cores: $cpuCores Threads: $cpuThreads"
 }
 
-## TODO: rewrite to use x265 instead of ffmpeg and rewrite second instance for ffmpeg audio
-## [progress indicator]
-#function example_progress_counter {
-#    START=$(date +%s); frameCounter=0; ETA=0; elapsedTime=0
-#    ## [check to see if ffmpeg is running]
-#    while [ -e /proc/$PID ]; do
-#        sleep 2
-#        ## [parse vstats file]
-#        VSTATS=$(awk '{gsub(/frame=/, "")}/./{line=$1-1} END{print line}' \
-#        	$HOME/vstats)
-#        if [[ $VSTATS -gt $frameCounter ]]; then
-#            frameCounter=$VSTATS
-#            ## [progress-bar calc]
-#            percentageCounter=$(( 100 * frameCounter / totalFrames ))
-#            elapsedTime=$(( $(date +%s) - START )); echo $elapsedTime > $HOME/elapsed.value
-#            ## [etc clac]
-#            ETA=$(date -d @$(awk 'BEGIN{print int(('$elapsedTime' / '$frameCounter') *\
-#            ('$totalFrames' - '$frameCounter'))}') -u +%H:%M:%S)
-#        fi
-#        ## [format for stats output]
-#        echo -ne "\rFrame:$frameCounter of $totalFrames Time:$(date -d @$elapsedTime -u +%H:%M:%S) ETA:$ETA Percent:$percentageCounter"
-#   done
-#}
-
-## [audio encoding progress]
-#function audio_progress {
-#	echo "incomplete"
-#}
-
-## [audio encoding progress]
-function video_progress {
-    START=$(date +%s); frameCounter=0; ETA=0; elapsedTime=0
-    ## [check to see if ffmpeg is running]
-    while [ -e /proc/$PID ]; do
-        sleep 2
-        ## [parse vstats file]
-        #currentFrame=$(awk '{gsub(/\[.\%\]\ /, "")}/./{line=$3-1} END{print line}' \
-        #	$inputFilePath/test.x265)
-        currentFrame=$(awk -F'[^0-9]*' 'NR > 1 {gsub("/[.%] /","", $1);print $1}' FS='/' $inputFilePath/test.x265)
-        #isNum='^[0-9]+$'
-        #if [[ $findFrame =~ $isNum ]]; then
-        #	currentFrame=$findFrame
-        #fi
-        if [[ $currentFrame -gt $frameCounter ]]; then
-            frameCounter=$currentFrame
-            ## [progress-bar calc]
-            percentageCounter=$(( 100 * frameCounter / totalFrames ))
-            elapsedTime=$(( $(date +%s) - START )); echo $elapsedTime > $HOME/elapsed.value
-            ## [etc clac]
-            ETA=$(date -d @$(awk 'BEGIN{print int(('$elapsedTime' / '$frameCounter') *\
-            ('$totalFrames' - '$frameCounter'))}') -u +%H:%M:%S)
-        fi
-        ## [format for stats output]
-        echo -ne "\rFrame:$frameCounter of $totalFrames Time:$(date -d @$elapsedTime -u +%H:%M:%S) ETA:$ETA Percent:$percentageCounter"
-    done
-}
-
 ## [subtitle stream selector]
 ## TODO: case for subtitle without language set
 ## TODO: actually export subtitles to be muxed later
@@ -275,16 +215,6 @@ function chapter_list {
 	fi
 }
 
-## TODO: find if source contains metadata and depending on feild map export to file
-function meta_data {
-	## TODO: set creation date
-	## http://multimedia.cx/eggs/supplying-ffmpeg-with-metadata/
-	## http://jonhall.info/how_to/dump_and_load_metadata_with_ffmpeg
-	## add language to streams
-	## add title to video
-	echo "        metadata doesn't work yet"
-}
-
 ## [audio stream selection and configuration]
 ## TODO: audioEngStream only detects mkv english stream, adapt for other formats (m2ts)
 ## TODO: mkv audio needs to be tested with more possible exceptions (not tested with und audio streams)
@@ -330,9 +260,6 @@ function config_audio {
 	echo "    Stream: $audioEngStream Channels: $audioChannels Bitrate: $audioBitrate"
 }
 
-#function interlace_detect {
-#}
-
 function crop_detect {
 	cpu_detect >/dev/null
 	## [several checks to accurately crop black-bars]
@@ -348,7 +275,7 @@ function crop_detect {
 			-t 1 -vf cropdetect -f null - 2>&1 | \
 			awk -F "=" '/crop/ { print $NF }' | \
 			tail -1)
-		echo "       crop detect $A of 10 complete"
+		echo -ne "\r       crop detect $A of 10 complete"
     done
     B=0
     while [ "$B" -lt "$totalLoops" ] ; do
@@ -384,16 +311,12 @@ echo -e "${colorG}1 of $stepTotal${colorB}.........................${colorP}Pars
 parse_input
 echo -e "${colorG}2 of $stepTotal${colorB}.................................${colorP}CPU${colorD}"
 cpu_detect
-echo -e "${colorG}2 of $stepTotal${colorB}............................${colorP}Chapters${colorD}"
+echo -e "${colorG}3 of $stepTotal${colorB}............................${colorP}Chapters${colorD}"
 chapter_list
-echo -e "${colorG}3 of $stepTotal${colorB}...........................${colorP}Subtitles${colorD}"
+echo -e "${colorG}4 of $stepTotal${colorB}...........................${colorP}Subtitles${colorD}"
 sub_titles
-echo -e "${colorG}4 of $stepTotal${colorB}......................${colorP}TODO: Metadata${colorD}"
-meta_data
 echo -e "${colorG}5 of $stepTotal${colorB}...............................${colorP}Audio${colorD}"
 config_audio
-#echo -e "${colorG}5 of $stepTotal${colorB}........................${colorP}De-Interlace${colorD}"
-#interlace_detect
 echo -e "${colorG}6 of $stepTotal${colorB}................................${colorP}Crop${colorD}"
 echo -e "    ${colorY}WARNING: This step may take a while${colorD}"
 crop_detect
@@ -422,13 +345,11 @@ totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
 if [ -z "$totalFrames" ];then echo -e "${colorR}ERROR: Cound not calculate total frames";exit 0;fi
 
 echo -e "${colorG}8 of $stepTotal${colorB}......................${colorP}Encoding Video${colorD}"
-## TODO: redirect ffmpeg output to a tmp file, name same as other files and remove after finished
+
 ## [number of encoding passes]
 passes="2"
 ## [initial pass number, DO NOT CHANGE VALUE]
 PASS=1
-echo "total $totalFrames"
-touch $inputFilePath/$fileName.stats
 while [ $PASS -le $passes ]; do
 	echo "Encoding Pass: $PASS"
     ffmpeg \
@@ -486,10 +407,6 @@ while [ $PASS -le $passes ]; do
     -f $totalFrames \
     -o "$inputFilePath/$fileName.hvc" - || \
     echo "ERROR: video encoding failed"
-    #2>/dev/null &
-    #PID=$! &&
-    #echo "x265 PID: $PID"
-	#video_progress
 
     ## [finished]
     if [ $PASS == $passes ]; then
