@@ -335,62 +335,62 @@ PASS=1
 while [ $PASS -le $passes ]; do
 	echo -e "${colorC}Encoding Pass: ${colorL}$PASS ${colorC}of ${colorL}$passes${colorD}"
 	## [ffmpeg piped to x265]
-    ffmpeg \
-    -threads $cpuThreads \
-    -i "$userInput" \
-    -vf "crop=$crop,scale=$cropWidth:trunc(ow/a/2)*2" \
-    -r 24000/1001 \
-    -pix_fmt yuv420p \
-    -f yuv4mpegpipe - 2> nul | \
-    x265 \
-    --y4m \
-    --stats=$tempFilePath/$fileName.stats \
-    --threads=$cpuCores \
-    --frame-threads=$cpuCores \
-    --wpp \
-    --ctu=64 \
-    --no-cutree \
-    --tu-intra-depth=4 \
-    --tu-inter-depth=4 \
-    --me=2 \
-    --cbqpoffs=3 \
-    --crqpoffs=3 \
-    --psy-rd=0.15 \
-    --subme=7 \
-    --merange=60 \
-    --ref=4 \
-    --bframes=3 \
-    --b-pyramid \
-    --b-adapt=2 \
-    --bframe-bias=0 \
-    --b-intra \
-    --weightb \
-    --weightp \
-    --bitrate=1024 \
-    --vbv-init=0.9 \
-    --vbv-bufsize=31250 \
-    --vbv-maxrate=31250 \
-    --no-slow-firstpass \
-    --pass=$PASS \
-    --keyint=250 \
-    --min-keyint=23 \
-    --rc-lookahead=60 \
-    --no-constrained-intra \
-    --aq-mode=0 \
-    --lft \
-    --sao-lcu-opt=1 \
-    --cbqpoffs=-3 \
-    --crqpoffs=-3 \
-    --rect \
-    --amp \
-    --max-merge=5 \
-    --no-early-skip \
-    --no-tskip \
-    --hash=2 \
-    -f $totalFrames \
-    -o "$tempFilePath/$fileName.hvc" - | tail -1 || \
-    echo "ERROR: video encoding failed"
-    ## [finished]
+	ffmpeg \
+	-threads $cpuThreads \
+	-i "$userInput" \
+	-vf "crop=$crop,scale=$cropWidth:trunc(ow/a/2)*2" \
+	-r 24000/1001 \
+	-pix_fmt yuv420p \
+	-f yuv4mpegpipe - 2> nul | \
+	x265 \
+	--y4m \
+	--stats=$tempFilePath/$fileName.stats \
+	--threads=$cpuCores \
+	--frame-threads=$cpuCores \
+	--wpp \
+	--ctu=64 \
+	--no-cutree \
+	--tu-intra-depth=4 \
+	--tu-inter-depth=4 \
+	--me=2 \
+	--cbqpoffs=3 \
+	--crqpoffs=3 \
+	--psy-rd=0.15 \
+	--subme=7 \
+	--merange=60 \
+	--ref=4 \
+	--bframes=3 \
+	--b-pyramid \
+	--b-adapt=2 \
+	--bframe-bias=0 \
+	--b-intra \
+	--weightb \
+	--weightp \
+	--bitrate=1024 \
+	--vbv-init=0.9 \
+	--vbv-bufsize=31250 \
+	--vbv-maxrate=31250 \
+	--no-slow-firstpass \
+	--pass=$PASS \
+	--keyint=250 \
+	--min-keyint=23 \
+	--rc-lookahead=60 \
+	--no-constrained-intra \
+	--aq-mode=0 \
+	--lft \
+	--sao-lcu-opt=1 \
+	--cbqpoffs=-3 \
+	--crqpoffs=-3 \
+	--rect \
+	--amp \
+	--max-merge=5 \
+	--no-early-skip \
+	--no-tskip \
+	--hash=2 \
+	-f $totalFrames \
+	-o "$tempFilePath/$fileName.hvc" - | tail -1 || \
+	echo "ERROR: video encoding failed"
+	## [finished]
 	if [ $PASS == $passes ]; then
 		echo
 		echo "Encoding complete"
