@@ -294,15 +294,13 @@ echo -e "${clG}7 of $stepTotal${clGa}......................${clW}Encoding Audio$
     echo "audio complete"
 echo -e "${clG}8 of $stepTotal${clGa}......................${clW}Encoding Video${clD}"
     ## [get duration and fps then calculate total frames]
-    FPS=$(ffprobe -select_streams v -show_streams "$userInput" 2>/dev/null | awk -F "=" '/r_frame_rate/ { print $2 }')
-    FPS=$( bc -l <<< "$FPS" )
+    FPS="23.976023976"
     totalLength=$(ffprobe "$userInput" 2>&1 | sed -n "s/.* Duration: \([^,]*\), .*/\1/p")
     HRS=$(echo $totalLength | cut -d":" -f1)
     MIN=$(echo $totalLength | cut -d":" -f2)
     SEC=$(echo $totalLength | cut -d":" -f3)
     totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
-    echo "$FPS"
-    echo "$totalFrames"
+    echo "Estimated total frames: $totalFrames"
     #if [ -z "$totalFrames" ];then echo -e "${clR}ERROR: Cound not calculate total frames";exit 0;fi
     ## [number of encoding passes]
     passes="2"
@@ -363,7 +361,7 @@ echo -e "${clG}8 of $stepTotal${clGa}......................${clW}Encoding Video$
             --no-early-skip \
             --no-tskip \
             --hash=2 \
-            -f $totalFrames \
+            -f 0 \
             -o "$tempFilePath/$fileName.hvc" - || \
             { echo "ERROR: video encoding failed";exit 0; }
         ## [finished]
