@@ -9,6 +9,8 @@ Finished:
    * Chapter List Handling
    * CPU Detection
    * Crop Detection
+   * Subtitles
+   * Audio Configuration (working, but needs some work with exception handling)
    * Audio Encoding
    * Video Encoding
 
@@ -18,7 +20,6 @@ TODO:
     mkvmerge vs. ffmpeg
 ```
 
-   * Convert VobSub subtitles to simple text SRT subtitles with VobSub2SRT
    * Finish error handling and exception cases for subtitles
    * Add more exception handling for audio tracks
 ```
@@ -52,9 +53,7 @@ TODO:
     if [ -f $exampleTmpFile ]; then rm $exampleTmpFile; fi
 ```
 
-   * Detect if temp file exists before trying to remove
    * Add terminal color support detection
-   * Update HELP information
    * Add multiple ERROR exit codes
 ```
     code 0: ?
@@ -63,14 +62,4 @@ TODO:
 ```
 
    * Improve code portability for shells other than bash
-   * Add support to allow for user defined output directory
-```
-    if [ -z $userOutputPath ]; then $userOutputPath=$userInputPath;
-    elif [ !-d $userOutputPath ]; then echo "ERROR: not a directory";exit 0;fi
-```
-
-   * Add support to allow for user defined tmp directory
-```
-    if [ -z $userTmpPath ]; then $userTmpPath=$userInputPath;
-    elif [ !-d $userTmpPath ]; then echo "ERROR: not a directory";exit 0;fi
-```
+   * Find chapter list language if it is set
