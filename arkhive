@@ -294,7 +294,7 @@ echo -e "${clG}7 of $stepTotal${clGa}......................${clW}Encoding Audio$
     echo "audio complete"
 echo -e "${clG}8 of $stepTotal${clGa}......................${clW}Encoding Video${clD}"
     ## [get duration and fps then calculate total frames]
-    FPS=$(ffprobe -select_streams v -show_streams "/home/jackal/test2.mkv" 2>/dev/null | awk -F "=" '/r_frame_rate/ { print $2 }')
+    FPS=$(ffprobe -select_streams v -show_streams "$userInput" 2>/dev/null | awk -F "=" '/r_frame_rate/ { print $2 }')
     FPS=$( bc -l <<< "$FPS" )
     totalLength=$(ffprobe "$userInput" 2>&1 | sed -n "s/.* Duration: \([^,]*\), .*/\1/p")
     HRS=$(echo $totalLength | cut -d":" -f1)
