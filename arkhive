@@ -44,11 +44,11 @@ function usage {
 \${colorC}Automate video encoding according to Chlorm's ARK specifications.
 
 Usage: \${colorD}arkhive [\${colorU}\${colorL}OPTIONS\$colorD] \${colorU}\${colorL}FILE\$colorD [\${colorU}\${colorL}OPTIONS\$colorD]\$colorD
-    \$colorG-i \${colorU}\${colorL}FILE\$colorD		      \$colorY*\$colorD - set input file\$colorD
-    \$colorG-o \${colorU}\${colorL}DIRECTORY\$colorD		- set output directory\$colorD)
-    \$colorG-t \${colorU}\${colorL}DIRECTORY\$colorD		- set temp directory\$colorD)
-    \$colorG-h\$colorD			- print this message
-    \$colorG-v\$colorD			- print version\n\n"
+    \$colorG-i \${colorU}\${colorL}FILE\$colorD         \$colorY*\$colorD - set input file\$colorD
+    \$colorG-o \${colorU}\${colorL}DIRECTORY\$colorD      - set output directory\$colorD)
+    \$colorG-t \${colorU}\${colorL}DIRECTORY\$colorD      - set temp directory\$colorD)
+    \$colorG-h\$colorD                - print this message
+    \$colorG-v\$colorD                - print version\n\n"
 }
 
 usage
