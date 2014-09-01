@@ -27,7 +27,6 @@
 ##      # -- commented variables
 
 VERSION=1
-#allowedExtensions=(avi f4v flv m2ts m4v mpeg mkv mov mp4 ts wmv)
 
 ## [colors]
 colorR="\033[1;31m" # Red
@@ -41,22 +40,19 @@ colorU="\033[0;4m"  # Underline
 colorD="\033[0;0m"  # default
 
 function usage {
-	HELP="\n\${colorP}ARKhive version:\${colorG} ${VERSION}
-\${colorP}Automates encoding video to ARK's archive format.
+	HELP="\n\${colorC}ARKhive version:\${colorG} ${VERSION}
+\${colorC}Automate video encoding according to Chlorm's ARK specifications.
 
-Usage: \${colorD}ARKhive [\${colorU}OPTIONS\$colorD] \${colorU}FILE\$colorD [\${colorU}OPTIONS\$colorD]\$colorD
-         \$colorB-i \${colorU}FILE\$colorD             \$colorY*\$colorD - set input file\$colorD
-         \$colorB-o \${colorU}DIRECTORY\$colorD          - set output directory (current is \$cP\${DIR}\$colorD)
-         \$colorB-t \${colorU}DIRECTORY\$colorD          - set temp directory (current is \$cP\${DIR}\$colorD)
-         \$colorB-h\$colorD                    - print this message
-         \$colorB-v\$colorD                    - print version\n\n"
+Usage: \${colorD}arkhive [\${colorU}\${colorL}OPTIONS\$colorD] \${colorU}\${colorL}FILE\$colorD [\${colorU}\${colorL}OPTIONS\$colorD]\$colorD
+	\$colorG-i \${colorU}\${colorL}FILE\$colorD		      \$colorY*\$colorD - set input file\$colorD
+	\$colorG-o \${colorU}\${colorL}DIRECTORY\$colorD		- set output directory\$colorD)
+	\$colorG-t \${colorU}\${colorL}DIRECTORY\$colorD		- set temp directory\$colorD)
+	\$colorG-h\$colorD			- print this message
+	\$colorG-v\$colorD			- print version\n\n"
 }
 
-## [function call]
 usage
 
-## TODO: rewrite input to check against allowedExtensions array for reusability instead of explicitly defining
-# http://hacktux.com/bash/arrays
 if [ -z "$1" ];then echo -e "${colorR}ERROR: No arguments provided";exit 0;else
 ## [parse arguments]
 while [ "$1" ]; do
@@ -80,7 +76,7 @@ while [ "$1" ]; do
 			elif [ ! -d "$2" ];then echo -e "${colorR}ERROR: Output is not a directory";exit 0;
 			else userOutput=$2;shift;fi;;
 		-t|--temp)
-			if [ -z "$2" ];then echo -e "${colorR}ERROR: No output provided";exit 0;
+			if [ -z "$2" ];then echo -e "${colorR}ERROR: No temp directory provided";exit 0;
 			elif [ ! -d "$2" ];then echo -e "${colorR}ERROR: Temp is not a directory";exit 0;
 			else userTemp=$2; shift;fi;;
 		-h|--help) eval "printf \"${HELP}\""; exit 0;;
@@ -101,11 +97,23 @@ while [ "$1" ]; do
 	esac
 	shift
 done;fi
+## [make sure user has provided input]
+if [ -z "$userInput" ]; then echo -e "ERROR: no input provided"; exit 0; fi
 
 function parse_input {
 	## [input file directory]
 	cd $(dirname $userInput)
 	inputFilePath=$(pwd)
+	## [output file directory]
+	if [ -z "$userOutput" ];then outputFilePath="$inputFilePath";else
+		cd $userOutput
+		outputFilePath=$(pwd)
+	fi
+	## [temp file directory]
+	if [ -z "$userTemp" ];then tempFilePath="$inputFilePath";else
+		cd $userTemp
+		tempFilePath=$(pwd)
+	fi
 	## [input filename w/ ext]
 	fileName=${userInput##*/}
 	## [input filename w/o ext]
@@ -113,9 +121,11 @@ function parse_input {
 	## [add tag]
 	arkMark="-ARK"
 	fileName=$fileName$arkMark
-	echo "         Filename : $fileName"
-	echo "         Directory: $inputFilePath"
-	echo "         Extension: $inputFileExt"
+	echo -e "         ${colorC}Filename : ${colorL}$fileName"
+	echo -e "         ${colorC}Current Dir: ${colorL}$inputFilePath"
+	echo -e "         ${colorC}Temp Dir: ${colorL}$tempFilePath"
+	echo -e "         ${colorC}Output Dir: ${colorL}$outputFilePath"
+	echo -e "         ${colorC}Extension: ${colorL}$inputFileExt"
 }
 
 function cpu_detect {
@@ -125,15 +135,15 @@ function cpu_detect {
 	## [cpu threads]
 	cpuThreads=$(grep -c ^processor /proc/cpuinfo)
 	if [ -z "$cpuCores" ];then echo -e "${colorR}ERROR: Could not find # of cpu threads";exit 0;fi
-	echo "            Cores: $cpuCores Threads: $cpuThreads"
+	echo -e "            ${colorC}Cores: ${colorL}$cpuCores ${colorC}Threads: ${colorL}$cpuThreads"
 }
 
-## [subtitle stream selector]
 ## TODO: case for subtitle without language set
-## TODO: actually export subtitles to be muxed later
-## TODO: if .sub/.idx covert to .srt with VobSub2SRT
+## TODO: use for loop to find all english subs in file
+##		after finding subs look for plain text subs
+## TODO: parse vobsub2srt output and remove ERROR:... lines
 function sub_titles {
-	## [find subtitles if any]
+	## [find if video has subtitles]
 	hasSubtitles=$(\
 		ffprobe $userInput 2>&1 | \
 		awk '/Subtitle/ { print $2 }')
@@ -154,12 +164,16 @@ function sub_titles {
 			tail -1)
 		if [ -z "subtitleStream" ]; then
 			echo "no english subtitles found"
+			hasSubtitles="0"
 		fi
-		mkvextract tracks $userInput $subtitleStream:$fileName
-		#subtitleType=$(mkvextract tracks $userInput $subtitleStream:$fileName | \
-		#awk '/$fileName/{print $0}')
-		# >/dev/null
-		echo "    Found English Subtitles, Stream: $subtitleStream Format: $subtitleType"
+		mkvextract -q tracks $userInput $subtitleStream:$tempFilePath/$fileName 2>/dev/null
+		echo -e "       ${colorC}Found English Subs, Stream: ${colorL}$subtitleStream"
+		## [check for and convert VobSub to SRT]
+		if [ -f "$tempFilePath/$fileName.idx" ]; then
+			echo "         Converting VobSub to SRT"
+			vobsub2srt $tempFilePath/$fileName &>/dev/null || \
+			{ echo "WARNING: failed to convert vobsub to srt";hasSubtitles="0"; }
+		fi
 	fi
 }
 
@@ -172,13 +186,13 @@ function chapter_list {
 	if [ -z "$hasChapters" ]; then
 		## [set $hasChapters for muxing]
 		hasChapters="0"
-		echo "             No Chapters Found"
+		echo -e "             ${colorC}No Chapters Found"
 	## [chapters were found]
 	else
 		## [set $hasChapters for muxing]
 		hasChapters="1"
-		mkvextract chapters --simple $userInput --redirect-output $inputFilePath/$fileName.xml
-		echo "exported chapters"
+		mkvextract chapters --simple $userInput --redirect-output $tempFilePath/$fileName.xml
+		echo "${colorC}exported chapters"
 	fi
 }
 
@@ -187,6 +201,7 @@ function chapter_list {
 ## TODO: mkv audio needs to be tested with more possible exceptions (not tested with und audio streams)
 ## TODO: this section (and subtitles) should contain the most logic to find
 ## 		 correct streams consistently, should account for all allowed container formats
+## TODO: Move audioChannels out of if statments for code reuse
 function config_audio {
 	## Contaier Formats: avi flv/f4v m2ts mpeg mkv mov mp4/m4v ts wmv
 	## [find audio stream to use]
@@ -224,7 +239,7 @@ function config_audio {
 	audioBitrate=$(($audioChannels * 48))
 	audioBitrateUnit="k"
 	audioBitrate="$audioBitrate$audioBitrateUnit"
-	echo "    Stream: $audioEngStream Channels: $audioChannels Bitrate: $audioBitrate"
+	echo -e "    ${colorC}Stream: ${colorL}$audioEngStream ${colorC}Channels: ${colorL}$audioChannels ${colorC}Bitrate: ${colorL}$audioBitrate"
 }
 
 function crop_detect {
@@ -242,7 +257,7 @@ function crop_detect {
 			-t 1 -vf cropdetect -f null - 2>&1 | \
 			awk -F "=" '/crop/ { print $NF }' | \
 			tail -1)
-		echo -ne "\r       crop detect $A of 10 complete"
+		echo -ne "\r       ${colorC}crop detect ${colorL}$A ${colorC}of ${colorL}10 ${colorC}complete"
     done
     B=0
     while [ "$B" -lt "$totalLoops" ] ; do
@@ -269,7 +284,7 @@ function crop_detect {
     crop="${crop[$greatest]}"
 	## [frame width from final crop value]
     cropWidth=$(echo $crop | awk -F ":" '{print $1}')
-    echo "        Crop: $crop"
+    echo -e "\n             Crop: ${colorL}$crop"
 }
 
 ## [function calls]
@@ -298,7 +313,7 @@ echo "encoding audio"
 	-vbr on \
 	-ar 48000 \
 	-compression_level 10 \
-	-y $inputFilePath/$fileName.opus || \
+	-y $tempFilePath/$fileName.opus 2>/dev/null || \
 	{ echo -e "${colorR}ERROR: audio failed to encode"; exit 0; }
 echo "audio complete"
 
@@ -318,7 +333,8 @@ passes="2"
 ## [initial pass number, DO NOT CHANGE VALUE]
 PASS=1
 while [ $PASS -le $passes ]; do
-	echo "Encoding Pass: $PASS"
+	echo -e "${colorC}Encoding Pass: ${colorL}$PASS ${colorC}of ${colorL}$passes${colorD}"
+	## [ffmpeg piped to x265]
     ffmpeg \
     -threads $cpuThreads \
     -i "$userInput" \
@@ -328,7 +344,7 @@ while [ $PASS -le $passes ]; do
     -f yuv4mpegpipe - 2> nul | \
     x265 \
     --y4m \
-    --stats=$inputFilePath/$fileName.stats \
+    --stats=$tempFilePath/$fileName.stats \
     --threads=$cpuCores \
     --frame-threads=$cpuCores \
     --wpp \
@@ -372,9 +388,8 @@ while [ $PASS -le $passes ]; do
     --no-tskip \
     --hash=2 \
     -f $totalFrames \
-    -o "$inputFilePath/$fileName.hvc" - || \
+    -o "$tempFilePath/$fileName.hvc" - || \
     echo "ERROR: video encoding failed"
-
     ## [finished]
     if [ $PASS == $passes ]; then
     	echo
@@ -383,101 +398,83 @@ while [ $PASS -le $passes ]; do
     else
     	echo
     fi
-
 	## [increment pass count]
 	PASS="$(( $PASS + 1 ))"
 done
 
 echo -e "${colorG}9 of $stepTotal${colorB}.........................${colorP}Mux Streams${colorD}"
-echo -e "  ${colorY}WARNING: You are about to cross the streams${colorD}"
-echo "         This section does nothing"
-## TODO: decide between ffmpeg and mkvtoolniv [mkvmerge] for muxing finished files
-## http://cfc.kizzx2.com/index.php/muxing-audio-and-video-with-ffmpeg/
-## metadata if any to be added here
-#	ffmpeg \
-#	-i ## video \
-#	-i ## audio \
-#	-i ## subtitles (if any) \
-#	-i ## chapter list (if any) \
-#	-vcodec copy
-#	-acodec copy
-## TODO: account for possible change in fps that may offset audio, always set for 23.976 (24000/1001)
-## TODO: make subtitles toggleable incase none exist
 
-#? --title [metadata title]
-#? --default-language [default everything to be labeled as english]
-#? --chapters $fileName [read chapters from file]
-## NOTE: since multiple audio or subtitle tracks aren't allowed set all streams except subtitle to default
 if [ $hasChapters == 1 ]; then
-	muxChapters="
-		--default-track $num \ ##[set to default track and default position]
-		--forced-track \ ##[since its required anyways] ?? determine if forcing chapters causes issues with some players
-		--track-name CHAPTERS-$fileName \ ##[filename inside mkv container of streams]
-		--chapter-language $language \ ##[this will need some work to figure out if chapters have titles]
-		--chapter-charset $chaptersCharset \ ##[whatever ffmpeg outputs]
+	muxChapters="\\
+		--default-track 3:1 \\
+		--forced-track 3:1 \\
+		--track-name CHAPTERS-$fileName \\
+		--chapter-language $chaptersLanguage \\
+		--chapter-charset UTF-8 \\
 		--chapters \
-		$inputFilePath/$fileName.xml"
+		$tempFilePath/$fileName.xml \\"
 elif [ $hasChapters == 0 ]; then
 	muxChapters="\\"
 else
-	echo "ERROR: muxing chapters"
+	echo -e "${colorR}ERROR: muxing chapters"
 fi
 if [ $hasSubtitles == 1 ]; then
-	muxSubtitles="
-		--track-name SUBTITLES-$fileName \\ ##[filename inside mkv container of streams]
-		--language $language \\ ##[if eng set to english; else error] ONLY ALLOW ENGLISH
-		--sub-charset \\
+	muxSubtitles="\\
+		--default-track 4:1 \\
+		--track-name SUBTITLES-$fileName \\
+		--language eng \\
+		--sub-charset UTF-8 \\
 		--subtitle-tracks \\
-		$inputFilePath/$fileName.srt \\"
+		$tempFilePath/$fileName.srt \\"
 elif [ $hasSubtitles == 0 ]; then
 	muxSubtitles="\\"
 else
-	echo "ERROR: muxing subtitles"
+	echo -e "${colorR}ERROR: muxing subtitles"
 fi
-mkvmerge \
-## GLOBAL
--o $inputFilePath/$fileName \
+## {IDEA: add item as attachment to file}
+## TODO: for METADATA, --tags 1:$fileName - can import from xml file
+## TODO: find audio language and set videolanguage to audiolanguage
+printf "mkvmerge \
+-o $outputFilePath/$fileName \
+--title $filename \
 --output-charset UTF-8 \
---ui-language eng \ ##[always set to english to force default]
-## VIDEO
---default-track $num \ ##[set to default track and default position]
---forced-track \ ##[since its required anyways]
---track-name VIDEO-$fileName \ ##[filename inside mkv container of streams]
---language $language \ ##[if eng set to english; elif no eng set to lang provided; elif und > error]
---default-duration 1:24000/1001fps \ ##[nTrack ID:fps (prevents audio sync issues)]
---video-tracks \
-$inputFilePath/$fileName.hvc \
-## AUDIO
---default-track $num \ ##[set to default track and default position]
---forced-track \ ##[since its required anyways]
---track-name AUDIO-$fileName \ ##[filename inside mkv container of streams]
---language $language \ ##[if eng set to english; elif no eng set to lang provided; elif und > error]
---audio-tracks \
-$inputFilePath/$fileName.opus \
-## SUBTITLES
+--ui-language eng \
 printf $muxSubtitles
-## CHAPTERS
 printf $muxChapters
+--default-track 0:1 \
+--forced-track 0:1 \
+--track-name VIDEO-$fileName \
+--language $videoLanguage \
+--default-duration 1:24000/1001fps \
+--video-tracks \
+$tempFilePath/$fileName.hvc \
+--default-track 1:1 \
+--forced-track 1:1 \
+--track-name AUDIO-$fileName \
+--language $audioLanguage \
+--audio-tracks \
+$tempFilePath/$fileName.opus"
 
 
 echo -e "${colorG}10 of $stepTotal${colorB}............................${colorP}Cleanup${colorD}"
-## CLEANUP
-## TODO: remove multipass logs
-# $workDir/$outFile.ffpass $workDir/$outFile.xpass
+## [cleanup temp files]
+## currently this is set to not delete files because $PASS=3
+## TODO: add echo statements, deleted $fileName.ext
 if [ "$PASS" == "2" ] ; then
 	echo "remove stats.file"
-	## x265 stats file [outputFile.stats]
 	## ffmpeg redirected output [nul]
-	## hvc tmp video [outputFile.hvc]
-	## opus tmp audio [oputFile.opus]
-	## srt tmp subtitles [outputFiel.srt]
-	## xml tmp chapterlist [outputFile.xml]
-	rm $inputFilePath/$fileName.hvc
-	rm $inputFilePath/$fileName.stats
-	rm $inputFilePath/$fileName.opus
-	# $fileName.nul
-	# $fileName.xml
-	# $fileName.srt
+	## [delete video]
+	if [ -f "$tempFilePath/$fileName.hvc" ];then rm $tempFilePath/$fileName.hvc;fi
+	## [delete x265 multi-pass log]
+	if [ -f "$tempFilePath/$fileName.stats" ];then rm $tempFilePath/$fileName.stats;fi
+	## [delete audio]
+	if [ -f "$tempFilePath/$fileName.opus" ];then rm $tempFilePath/$fileName.opus;fi
+	## [delete subtitles]
+	if [ -f "$tempFilePath/$fileName.sub" ];then rm $tempFilePath/$fileName.sub;fi
+	if [ -f "$tempFilePath/$fileName.idx" ];then rm $tempFilePath/$fileName.idx;fi
+	if [ -f "$tempFilePath/$fileName.srt" ];then rm $tempFilePath/$fileName.srt;fi
+	## [delete chapter list]
+	if [ -f "$tempFilePath/$fileName.xml" ];then rm $tempFilePath/$fileName.xml;fi
 else
 	echo "do nothing"
 fi
