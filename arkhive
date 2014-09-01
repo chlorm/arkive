@@ -55,11 +55,11 @@ usage
 
 if [ -z "$1" ];then echo -e "${colorR}ERROR: No arguments provided";exit 0;else
 ## [parse arguments]
-while [ "$1" ]; do
+while [ "$1" ];do
     case "$1" in
         -i|--input)
-            if [ -z "$2" ];then echo -e "${colorR}ERROR: No input provided"; exit 0;
-            elif [ -f "$2" ]; then
+            if [ -z "$2" ];then echo -e "${colorR}ERROR: No input provided";exit 0;
+            elif [ -f "$2" ];then
                 inputFileExt=${2##*.}
                 case "$inputFileExt" in
                     avi|f4v|flv|m2ts|m4v|mkv|mp4|mpeg|mpg|mov|ts|wmv)
@@ -78,17 +78,17 @@ while [ "$1" ]; do
         -t|--temp)
             if [ -z "$2" ];then echo -e "${colorR}ERROR: No temp directory provided";exit 0;
             elif [ ! -d "$2" ];then echo -e "${colorR}ERROR: Temp is not a directory";exit 0;
-            else userTemp=$2; shift;fi;;
-        -h|--help) eval "printf \"${HELP}\""; exit 0;;
+            else userTemp=$2;shift;fi;;
+        -h|--help) eval "printf \"${HELP}\"";exit 0;;
         -v|--version)
             printf "ARKhive version: ${VERSION}\n\n";exit 0;;
-        -*) eval "printf \"${HELP}\""; printf "\nERROR: Unknown option $1\n"; exit 1;;
+        -*) eval "printf \"${HELP}\"";printf "\nERROR: Unknown option $1\n";exit 1;;
         *)
-            if [ -n "${INPATH}" ]; then
+            if [ -n "${INPATH}" ];then
                 eval "printf \"${HELP}\""
                 printf "\nERROR: Unknown option $1\n"
                 exit 1
-            elif [ ! -r "$1" ]; then
+            elif [ ! -r "$1" ];then
                 printf "ERROR: Unable to read $1\n"
                 exit 2
             else
@@ -98,7 +98,7 @@ while [ "$1" ]; do
     shift
 done;fi
 ## [make sure user has provided input]
-if [ -z "$userInput" ]; then echo -e "ERROR: no input provided"; exit 0; fi
+if [ -z "$userInput" ];then echo -e "ERROR: no input provided";exit 0;fi
 
 function parse_input {
     ## [input file directory]
@@ -148,7 +148,7 @@ function sub_titles {
         ffprobe $userInput 2>&1 | \
         awk '/Subtitle/ { print $2 }')
     ## [no subtitles were found]
-    if [ -z "$hasSubtitles" ]; then
+    if [ -z "$hasSubtitles" ];then
         ## [set $hasChapters for muxing]
         hasSubtitles="0"
         echo "           input has no subtitles"
@@ -162,14 +162,14 @@ function sub_titles {
             grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | \
             awk -F ":" '{print $2}' | \
             tail -1)
-        if [ -z "subtitleStream" ]; then
+        if [ -z "subtitleStream" ];then
             echo "no english subtitles found"
             hasSubtitles="0"
         fi
         mkvextract -q tracks $userInput $subtitleStream:$tempFilePath/$fileName 2>/dev/null
         echo -e "       ${colorC}Found English Subs, Stream: ${colorL}$subtitleStream"
         ## [check for and convert VobSub to SRT]
-        if [ -f "$tempFilePath/$fileName.idx" ]; then
+        if [ -f "$tempFilePath/$fileName.idx" ];then
             echo "         Converting VobSub to SRT"
             vobsub2srt $tempFilePath/$fileName &>/dev/null || \
             { echo "WARNING: failed to convert vobsub to srt";hasSubtitles="0"; }
@@ -183,7 +183,7 @@ function chapter_list {
         ffprobe $userInput 2>&1 | \
         awk '/Chapter/ { print $2 }')
     ## [no chapters were found]
-    if [ -z "$hasChapters" ]; then
+    if [ -z "$hasChapters" ];then
         ## [set $hasChapters for muxing]
         hasChapters="0"
         echo -e "             ${colorC}No Chapters Found"
@@ -205,8 +205,8 @@ function chapter_list {
 function config_audio {
     ## Contaier Formats: avi flv/f4v m2ts mpeg mkv mov mp4/m4v ts wmv
     ## [find audio stream to use]
-    if [ -z "$inputFileExt" ]; then echo "ERROR: could not find file extension";exit 0;
-    elif [ $inputFileExt == "mkv" ]; then
+    if [ -z "$inputFileExt" ];then echo "ERROR: could not find file extension";exit 0;
+    elif [ $inputFileExt == "mkv" ];then
         ## [finds first english audio stream]
         audioEngStream=$(\
             ffmpeg -i $userInput -f null - 2>&1 | \
@@ -249,7 +249,7 @@ function crop_detect {
     totalLoops="10"
     ## [gather crop values]
     A=0
-    while [ "$A" -lt "$totalLoops" ] ; do
+    while [ "$A" -lt "$totalLoops" ];do
         A="$(( $A + 1 ))"
         skipSecs="$(( 120 * $A ))"
         crop[$A]=$(\
@@ -260,12 +260,12 @@ function crop_detect {
         echo -ne "\r       ${colorC}crop detect ${colorL}$A ${colorC}of ${colorL}10 ${colorC}complete"
     done
     B=0
-    while [ "$B" -lt "$totalLoops" ] ; do
+    while [ "$B" -lt "$totalLoops" ];do
         B="$(( $B + 1 ))"
         C=0
-        while [ "$C" -lt "$totalLoops" ] ; do
+        while [ "$C" -lt "$totalLoops" ];do
             C="$(( $C + 1 ))"
-            if [ "${crop[$B]}" == "${crop[$C]}" ] ; then
+            if [ "${crop[$B]}" == "${crop[$C]}" ];then
                 countCrop[$B]="$(( ${countCrop[$B]} + 1 ))"
             fi
         done
@@ -273,9 +273,9 @@ function crop_detect {
     ## [find greatest crop]
     highestCount=0
     D=0
-    while [ "$D" -lt "$totalLoops" ] ; do
+    while [ "$D" -lt "$totalLoops" ];do
         D="$(( $D + 1 ))"
-        if [ "${countCrop[$D]}" -gt "$highestCount" ] ; then
+        if [ "${countCrop[$D]}" -gt "$highestCount" ];then
             highestCount="${countCrop[$D]}"
             greatest="$D"
         fi
@@ -314,7 +314,7 @@ echo "encoding audio"
     -ar 48000 \
     -compression_level 10 \
     -y $tempFilePath/$fileName.opus 2>/dev/null || \
-    { echo -e "${colorR}ERROR: audio failed to encode"; exit 0; }
+    { echo -e "${colorR}ERROR: audio failed to encode";exit 0; }
 echo "audio complete"
 
 ## [get duration and fps then calculate total frames]
@@ -332,7 +332,7 @@ echo -e "${colorG}8 of $stepTotal${colorB}......................${colorP}Encodin
 passes="2"
 ## [initial pass number, DO NOT CHANGE VALUE]
 PASS=1
-while [ $PASS -le $passes ]; do
+while [ $PASS -le $passes ];do
     echo -e "${colorC}Encoding Pass: ${colorL}$PASS ${colorC}of ${colorL}$passes${colorD}"
     ## [ffmpeg piped to x265]
     ffmpeg \
@@ -391,53 +391,44 @@ while [ $PASS -le $passes ]; do
     -o "$tempFilePath/$fileName.hvc" - | tail -1 || \
     echo "ERROR: video encoding failed"
     ## [finished]
-    if [ $PASS == $passes ]; then
-        echo
-        echo "Encoding complete"
+    if [ $PASS == $passes ];then echo;echo "Encoding complete";
     ## [not finised]
-    else
-        echo
-    fi
+    else echo;fi
     ## [increment pass count]
     PASS="$(( $PASS + 1 ))"
 done
 
 echo -e "${colorG}9 of $stepTotal${colorB}.........................${colorP}Mux Streams${colorD}"
-if [ $hasChapters == 1 ]; then
+if [ $hasChapters == 1 ];then
     muxChapters="$tempFilePath/$fileName.xml"
 else muxChapters="";fi
-if [ $hasSubtitles == 1 ]; then
+if [ $hasSubtitles == 1 ];then
     muxSubtitles="$tempFilePath/$fileName.srt"
 else muxSubtitles="";fi
 ## TODO: find audio language and set videolanguage to audiolanguage
 mkvmerge \
--o $outputFilePath/$fileName \
+-o $outputFilePath/$fileName.mkv \
 --title $filename \
+-A $tempFilePath/$fileName.hvc \
 $muxSubtitles \
 $muxChapters \
---default-duration 0:24000/1001fps \
-$tempFilePath/$fileName.hvc \
 $tempFilePath/$fileName.opus
 
 echo -e "${colorG}10 of $stepTotal${colorB}............................${colorP}Cleanup${colorD}"
 ## [cleanup temp files]
 ## currently this is set to not delete files because $PASS=3
 ## TODO: add echo statements, deleted $fileName.ext
-if [ "$PASS" == "2" ] ; then
-    echo "remove stats.file"
-    ## ffmpeg redirected output [nul]
-    ## [delete video]
-    if [ -f "$tempFilePath/$fileName.hvc" ];then rm $tempFilePath/$fileName.hvc;fi
-    ## [delete x265 multi-pass log]
-    if [ -f "$tempFilePath/$fileName.stats" ];then rm $tempFilePath/$fileName.stats;fi
-    ## [delete audio]
-    if [ -f "$tempFilePath/$fileName.opus" ];then rm $tempFilePath/$fileName.opus;fi
-    ## [delete subtitles]
-    if [ -f "$tempFilePath/$fileName.sub" ];then rm $tempFilePath/$fileName.sub;fi
-    if [ -f "$tempFilePath/$fileName.idx" ];then rm $tempFilePath/$fileName.idx;fi
-    if [ -f "$tempFilePath/$fileName.srt" ];then rm $tempFilePath/$fileName.srt;fi
-    ## [delete chapter list]
-    if [ -f "$tempFilePath/$fileName.xml" ];then rm $tempFilePath/$fileName.xml;fi
-else
-    echo "do nothing"
-fi
+echo "remove stats.file"
+## ffmpeg redirected output [nul]
+## [delete video]
+if [ -f "$tempFilePath/$fileName.hvc" ];then rm $tempFilePath/$fileName.hvc;fi
+## [delete x265 multi-pass log]
+if [ -f "$tempFilePath/$fileName.stats" ];then rm $tempFilePath/$fileName.stats;fi
+## [delete audio]
+if [ -f "$tempFilePath/$fileName.opus" ];then rm $tempFilePath/$fileName.opus;fi
+## [delete subtitles]
+if [ -f "$tempFilePath/$fileName.sub" ];then rm $tempFilePath/$fileName.sub;fi
+if [ -f "$tempFilePath/$fileName.idx" ];then rm $tempFilePath/$fileName.idx;fi
+if [ -f "$tempFilePath/$fileName.srt" ];then rm $tempFilePath/$fileName.srt;fi
+## [delete chapter list]
+if [ -f "$tempFilePath/$fileName.xml" ];then rm $tempFilePath/$fileName.xml;fi
