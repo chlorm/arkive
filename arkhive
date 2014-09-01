@@ -192,7 +192,7 @@ function chapter_list {
 		## [set $hasChapters for muxing]
 		hasChapters="1"
 		mkvextract chapters --simple $userInput --redirect-output $tempFilePath/$fileName.xml
-		echo "${colorC}exported chapters"
+		echo -e "${colorC}exported chapters"
 	fi
 }
 
@@ -388,7 +388,7 @@ while [ $PASS -le $passes ]; do
     --no-tskip \
     --hash=2 \
     -f $totalFrames \
-    -o "$tempFilePath/$fileName.hvc" - || \
+    -o "$tempFilePath/$fileName.h265" - | tail -1 || \
     echo "ERROR: video encoding failed"
     ## [finished]
     if [ $PASS == $passes ]; then
@@ -403,58 +403,21 @@ while [ $PASS -le $passes ]; do
 done
 
 echo -e "${colorG}9 of $stepTotal${colorB}.........................${colorP}Mux Streams${colorD}"
-
 if [ $hasChapters == 1 ]; then
-	muxChapters="\\
-		--default-track 3:1 \\
-		--forced-track 3:1 \\
-		--track-name CHAPTERS-$fileName \\
-		--chapter-language $chaptersLanguage \\
-		--chapter-charset UTF-8 \\
-		--chapters \
-		$tempFilePath/$fileName.xml \\"
-elif [ $hasChapters == 0 ]; then
-	muxChapters="\\"
-else
-	echo -e "${colorR}ERROR: muxing chapters"
-fi
+	muxChapters="$tempFilePath/$fileName.xml"
+else muxChapters="";fi
 if [ $hasSubtitles == 1 ]; then
-	muxSubtitles="\\
-		--default-track 4:1 \\
-		--track-name SUBTITLES-$fileName \\
-		--language eng \\
-		--sub-charset UTF-8 \\
-		--subtitle-tracks \\
-		$tempFilePath/$fileName.srt \\"
-elif [ $hasSubtitles == 0 ]; then
-	muxSubtitles="\\"
-else
-	echo -e "${colorR}ERROR: muxing subtitles"
-fi
-## {IDEA: add item as attachment to file}
-## TODO: for METADATA, --tags 1:$fileName - can import from xml file
+	muxSubtitles="$tempFilePath/$fileName.srt"
+else muxSubtitles="";fi
 ## TODO: find audio language and set videolanguage to audiolanguage
-printf "mkvmerge \
+mkvmerge \
 -o $outputFilePath/$fileName \
 --title $filename \
---output-charset UTF-8 \
---ui-language eng \
-printf $muxSubtitles
-printf $muxChapters
---default-track 0:1 \
---forced-track 0:1 \
---track-name VIDEO-$fileName \
---language $videoLanguage \
---default-duration 1:24000/1001fps \
---video-tracks \
-$tempFilePath/$fileName.hvc \
---default-track 1:1 \
---forced-track 1:1 \
---track-name AUDIO-$fileName \
---language $audioLanguage \
---audio-tracks \
-$tempFilePath/$fileName.opus"
-
+$muxSubtitles \
+$muxChapters \
+--default-duration 0:24000/1001fps \
+$tempFilePath/$fileName.h265 \
+$tempFilePath/$fileName.opus
 
 echo -e "${colorG}10 of $stepTotal${colorB}............................${colorP}Cleanup${colorD}"
 ## [cleanup temp files]
@@ -464,7 +427,7 @@ if [ "$PASS" == "2" ] ; then
 	echo "remove stats.file"
 	## ffmpeg redirected output [nul]
 	## [delete video]
-	if [ -f "$tempFilePath/$fileName.hvc" ];then rm $tempFilePath/$fileName.hvc;fi
+	if [ -f "$tempFilePath/$fileName.h265" ];then rm $tempFilePath/$fileName.hvc;fi
 	## [delete x265 multi-pass log]
 	if [ -f "$tempFilePath/$fileName.stats" ];then rm $tempFilePath/$fileName.stats;fi
 	## [delete audio]
