@@ -40,15 +40,15 @@ colorU="\033[0;4m"  # Underline
 colorD="\033[0;0m"  # default
 
 function usage {
-	HELP="\n\${colorC}ARKhive version:\${colorG} ${VERSION}
+    HELP="\n\${colorC}ARKhive version:\${colorG} ${VERSION}
 \${colorC}Automate video encoding according to Chlorm's ARK specifications.
 
 Usage: \${colorD}arkhive [\${colorU}\${colorL}OPTIONS\$colorD] \${colorU}\${colorL}FILE\$colorD [\${colorU}\${colorL}OPTIONS\$colorD]\$colorD
-	\$colorG-i \${colorU}\${colorL}FILE\$colorD		      \$colorY*\$colorD - set input file\$colorD
-	\$colorG-o \${colorU}\${colorL}DIRECTORY\$colorD		- set output directory\$colorD)
-	\$colorG-t \${colorU}\${colorL}DIRECTORY\$colorD		- set temp directory\$colorD)
-	\$colorG-h\$colorD			- print this message
-	\$colorG-v\$colorD			- print version\n\n"
+    \$colorG-i \${colorU}\${colorL}FILE\$colorD		      \$colorY*\$colorD - set input file\$colorD
+    \$colorG-o \${colorU}\${colorL}DIRECTORY\$colorD		- set output directory\$colorD)
+    \$colorG-t \${colorU}\${colorL}DIRECTORY\$colorD		- set temp directory\$colorD)
+    \$colorG-h\$colorD			- print this message
+    \$colorG-v\$colorD			- print version\n\n"
 }
 
 usage
@@ -56,86 +56,86 @@ usage
 if [ -z "$1" ];then echo -e "${colorR}ERROR: No arguments provided";exit 0;else
 ## [parse arguments]
 while [ "$1" ]; do
-	case "$1" in
-		-i|--input)
-			if [ -z "$2" ];then echo -e "${colorR}ERROR: No input provided"; exit 0;
-			elif [ -f "$2" ]; then
-				inputFileExt=${2##*.}
-				case "$inputFileExt" in
-					avi|f4v|flv|m2ts|m4v|mkv|mp4|mpeg|mpg|mov|ts|wmv)
-						userInput=$2;shift;;
-					*)
-						echo "ERROR: Selected file's extension is not an allowed type!";
-						echo "Allowed file types are: avi,f4v,flv,m2ts,m4v,mkv,mp4,mpeg,mpg,mov,ts,wmv";
-						exit 0;;
-				esac
-				shift
-			else echo "ERROR: Input is not a file";exit 0;fi;;
-		-o|--output)
-			if [ -z "$2" ];then echo -e "${colorR}ERROR: No output directory provided";exit 0;
-			elif [ ! -d "$2" ];then echo -e "${colorR}ERROR: Output is not a directory";exit 0;
-			else userOutput=$2;shift;fi;;
-		-t|--temp)
-			if [ -z "$2" ];then echo -e "${colorR}ERROR: No temp directory provided";exit 0;
-			elif [ ! -d "$2" ];then echo -e "${colorR}ERROR: Temp is not a directory";exit 0;
-			else userTemp=$2; shift;fi;;
-		-h|--help) eval "printf \"${HELP}\""; exit 0;;
-		-v|--version)
-			printf "ARKhive version: ${VERSION}\n\n";exit 0;;
-		-*) eval "printf \"${HELP}\""; printf "\nERROR: Unknown option $1\n"; exit 1;;
-		*)
-			if [ -n "${INPATH}" ]; then
-				eval "printf \"${HELP}\""
-				printf "\nERROR: Unknown option $1\n"
-				exit 1
-			elif [ ! -r "$1" ]; then
-				printf "ERROR: Unable to read $1\n"
-				exit 2
-			else
-				INPATH="$1"
-			fi;;
-	esac
-	shift
+    case "$1" in
+        -i|--input)
+            if [ -z "$2" ];then echo -e "${colorR}ERROR: No input provided"; exit 0;
+            elif [ -f "$2" ]; then
+                inputFileExt=${2##*.}
+                case "$inputFileExt" in
+                    avi|f4v|flv|m2ts|m4v|mkv|mp4|mpeg|mpg|mov|ts|wmv)
+                        userInput=$2;shift;;
+                    *)
+                        echo "ERROR: Selected file's extension is not an allowed type!";
+                        echo "Allowed file types are: avi,f4v,flv,m2ts,m4v,mkv,mp4,mpeg,mpg,mov,ts,wmv";
+                        exit 0;;
+                esac
+                shift
+            else echo "ERROR: Input is not a file";exit 0;fi;;
+        -o|--output)
+            if [ -z "$2" ];then echo -e "${colorR}ERROR: No output directory provided";exit 0;
+            elif [ ! -d "$2" ];then echo -e "${colorR}ERROR: Output is not a directory";exit 0;
+            else userOutput=$2;shift;fi;;
+        -t|--temp)
+            if [ -z "$2" ];then echo -e "${colorR}ERROR: No temp directory provided";exit 0;
+            elif [ ! -d "$2" ];then echo -e "${colorR}ERROR: Temp is not a directory";exit 0;
+            else userTemp=$2; shift;fi;;
+        -h|--help) eval "printf \"${HELP}\""; exit 0;;
+        -v|--version)
+            printf "ARKhive version: ${VERSION}\n\n";exit 0;;
+        -*) eval "printf \"${HELP}\""; printf "\nERROR: Unknown option $1\n"; exit 1;;
+        *)
+            if [ -n "${INPATH}" ]; then
+                eval "printf \"${HELP}\""
+                printf "\nERROR: Unknown option $1\n"
+                exit 1
+            elif [ ! -r "$1" ]; then
+                printf "ERROR: Unable to read $1\n"
+                exit 2
+            else
+                INPATH="$1"
+            fi;;
+    esac
+    shift
 done;fi
 ## [make sure user has provided input]
 if [ -z "$userInput" ]; then echo -e "ERROR: no input provided"; exit 0; fi
 
 function parse_input {
-	## [input file directory]
-	cd $(dirname $userInput)
-	inputFilePath=$(pwd)
-	## [output file directory]
-	if [ -z "$userOutput" ];then outputFilePath="$inputFilePath";else
-		cd $userOutput
-		outputFilePath=$(pwd)
-	fi
-	## [temp file directory]
-	if [ -z "$userTemp" ];then tempFilePath="$inputFilePath";else
-		cd $userTemp
-		tempFilePath=$(pwd)
-	fi
-	## [input filename w/ ext]
-	fileName=${userInput##*/}
-	## [input filename w/o ext]
-	fileName=${fileName%%.*}
-	## [add tag]
-	arkMark="-ARK"
-	fileName=$fileName$arkMark
-	echo -e "         ${colorC}Filename : ${colorL}$fileName"
-	echo -e "         ${colorC}Current Dir: ${colorL}$inputFilePath"
-	echo -e "         ${colorC}Temp Dir: ${colorL}$tempFilePath"
-	echo -e "         ${colorC}Output Dir: ${colorL}$outputFilePath"
-	echo -e "         ${colorC}Extension: ${colorL}$inputFileExt"
+    ## [input file directory]
+    cd $(dirname $userInput)
+    inputFilePath=$(pwd)
+    ## [output file directory]
+    if [ -z "$userOutput" ];then outputFilePath="$inputFilePath";else
+        cd $userOutput
+        outputFilePath=$(pwd)
+    fi
+    ## [temp file directory]
+    if [ -z "$userTemp" ];then tempFilePath="$inputFilePath";else
+        cd $userTemp
+        tempFilePath=$(pwd)
+    fi
+    ## [input filename w/ ext]
+    fileName=${userInput##*/}
+    ## [input filename w/o ext]
+    fileName=${fileName%%.*}
+    ## [add tag]
+    arkMark="-ARK"
+    fileName=$fileName$arkMark
+    echo -e "         ${colorC}Filename : ${colorL}$fileName"
+    echo -e "         ${colorC}Current Dir: ${colorL}$inputFilePath"
+    echo -e "         ${colorC}Temp Dir: ${colorL}$tempFilePath"
+    echo -e "         ${colorC}Output Dir: ${colorL}$outputFilePath"
+    echo -e "         ${colorC}Extension: ${colorL}$inputFileExt"
 }
 
 function cpu_detect {
-	## [cpu cores]
-	cpuCores=$(awk '/^cpu\ cores/{print $4;exit}' /proc/cpuinfo)
-	if [ -z "$cpuCores" ];then echo -e "${colorR}ERROR: Could not find # of cpu cores";exit 0;fi
-	## [cpu threads]
-	cpuThreads=$(grep -c ^processor /proc/cpuinfo)
-	if [ -z "$cpuCores" ];then echo -e "${colorR}ERROR: Could not find # of cpu threads";exit 0;fi
-	echo -e "            ${colorC}Cores: ${colorL}$cpuCores ${colorC}Threads: ${colorL}$cpuThreads"
+    ## [cpu cores]
+    cpuCores=$(awk '/^cpu\ cores/{print $4;exit}' /proc/cpuinfo)
+    if [ -z "$cpuCores" ];then echo -e "${colorR}ERROR: Could not find # of cpu cores";exit 0;fi
+    ## [cpu threads]
+    cpuThreads=$(grep -c ^processor /proc/cpuinfo)
+    if [ -z "$cpuCores" ];then echo -e "${colorR}ERROR: Could not find # of cpu threads";exit 0;fi
+    echo -e "            ${colorC}Cores: ${colorL}$cpuCores ${colorC}Threads: ${colorL}$cpuThreads"
 }
 
 ## TODO: case for subtitle without language set
@@ -143,57 +143,57 @@ function cpu_detect {
 ##		after finding subs look for plain text subs
 ## TODO: parse vobsub2srt output and remove ERROR:... lines
 function sub_titles {
-	## [find if video has subtitles]
-	hasSubtitles=$(\
-		ffprobe $userInput 2>&1 | \
-		awk '/Subtitle/ { print $2 }')
-	## [no subtitles were found]
-	if [ -z "$hasSubtitles" ]; then
-		## [set $hasChapters for muxing]
-		hasSubtitles="0"
-		echo "           input has no subtitles"
-	## [subtitles were found]
-	else
-		## [set $hasChapters for muxing]
-		hasSubtitles="1"
-		## [finds first english subtitle stream]
-		subtitleStream=$(\
-			ffmpeg -i $userInput -f null - 2>&1 | \
-			grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | \
-			awk -F ":" '{print $2}' | \
-			tail -1)
-		if [ -z "subtitleStream" ]; then
-			echo "no english subtitles found"
-			hasSubtitles="0"
-		fi
-		mkvextract -q tracks $userInput $subtitleStream:$tempFilePath/$fileName 2>/dev/null
-		echo -e "       ${colorC}Found English Subs, Stream: ${colorL}$subtitleStream"
-		## [check for and convert VobSub to SRT]
-		if [ -f "$tempFilePath/$fileName.idx" ]; then
-			echo "         Converting VobSub to SRT"
-			vobsub2srt $tempFilePath/$fileName &>/dev/null || \
-			{ echo "WARNING: failed to convert vobsub to srt";hasSubtitles="0"; }
-		fi
-	fi
+    ## [find if video has subtitles]
+    hasSubtitles=$(\
+        ffprobe $userInput 2>&1 | \
+        awk '/Subtitle/ { print $2 }')
+    ## [no subtitles were found]
+    if [ -z "$hasSubtitles" ]; then
+        ## [set $hasChapters for muxing]
+        hasSubtitles="0"
+        echo "           input has no subtitles"
+    ## [subtitles were found]
+    else
+        ## [set $hasChapters for muxing]
+        hasSubtitles="1"
+        ## [finds first english subtitle stream]
+        subtitleStream=$(\
+            ffmpeg -i $userInput -f null - 2>&1 | \
+            grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | \
+            awk -F ":" '{print $2}' | \
+            tail -1)
+        if [ -z "subtitleStream" ]; then
+            echo "no english subtitles found"
+            hasSubtitles="0"
+        fi
+        mkvextract -q tracks $userInput $subtitleStream:$tempFilePath/$fileName 2>/dev/null
+        echo -e "       ${colorC}Found English Subs, Stream: ${colorL}$subtitleStream"
+        ## [check for and convert VobSub to SRT]
+        if [ -f "$tempFilePath/$fileName.idx" ]; then
+            echo "         Converting VobSub to SRT"
+            vobsub2srt $tempFilePath/$fileName &>/dev/null || \
+            { echo "WARNING: failed to convert vobsub to srt";hasSubtitles="0"; }
+        fi
+    fi
 }
 
 function chapter_list {
-	## [find chapters if any]
-	hasChapters=$(\
-		ffprobe $userInput 2>&1 | \
-		awk '/Chapter/ { print $2 }')
-	## [no chapters were found]
-	if [ -z "$hasChapters" ]; then
-		## [set $hasChapters for muxing]
-		hasChapters="0"
-		echo -e "             ${colorC}No Chapters Found"
-	## [chapters were found]
-	else
-		## [set $hasChapters for muxing]
-		hasChapters="1"
-		mkvextract chapters --simple $userInput --redirect-output $tempFilePath/$fileName.xml
-		echo -e "${colorC}exported chapters"
-	fi
+    ## [find chapters if any]
+    hasChapters=$(\
+        ffprobe $userInput 2>&1 | \
+        awk '/Chapter/ { print $2 }')
+    ## [no chapters were found]
+    if [ -z "$hasChapters" ]; then
+        ## [set $hasChapters for muxing]
+        hasChapters="0"
+        echo -e "             ${colorC}No Chapters Found"
+    ## [chapters were found]
+    else
+        ## [set $hasChapters for muxing]
+        hasChapters="1"
+        mkvextract chapters --simple $userInput --redirect-output $tempFilePath/$fileName.xml
+        echo -e "${colorC}exported chapters"
+    fi
 }
 
 ## [audio stream selection and configuration]
@@ -203,88 +203,88 @@ function chapter_list {
 ## 		 correct streams consistently, should account for all allowed container formats
 ## TODO: Move audioChannels out of if statments for code reuse
 function config_audio {
-	## Contaier Formats: avi flv/f4v m2ts mpeg mkv mov mp4/m4v ts wmv
-	## [find audio stream to use]
-	if [ -z "$inputFileExt" ]; then echo "ERROR: could not find file extension";exit 0;
-	elif [ $inputFileExt == "mkv" ]; then
-		## [finds first english audio stream]
-		audioEngStream=$(\
-			ffmpeg -i $userInput -f null - 2>&1 | \
-			grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Audio)' | \
-			awk -F ":" '{print $2}' | \
-			tail -1)
-		## [if no english audio then assume stream number 1 is audio]
-		## TODO: this needs some work, may cause error with non-english videos by assuming there is always audio in stream 1
-		if [ -z "$audioEngStream" ];then $audioEngStream="2";fi
-		## [offset audio stream by one for ffprobe because it counts from zero]
-		audioChnStream=$(( $audioEngStream - 1 ))
-		## [find number of audio channels]
-		audioChannels=$(\
-			ffprobe $userInput -show_streams -select_streams a:$audioChnStream 2>&1 | \
-			awk -F "=" '/channels/ { print $2 }' | \
-			tail -1)
-		if [ -z "$audioChannels" ];then echo -e "${colorR}ERROR: Could not find # of audio channels";exit 0;fi
-	else
-		## [assume audio stream number is 1]
-		audioEngStream="1"
-		## [find number of audio channels]
-		## <select_stream does not seem to work with mp4 container>
-		audioChannels=$(\
-			ffprobe $userInput -show_streams 2>&1 | \
-			awk -F "=" '/channels/ { print $2 }' | \
-			tail -1)
-		if [ -z "$audioChannels" ];then echo -e "${colorR}ERROR: Could not find # of audio channels";exit 0;fi
-	fi
-	## [set to 48kbps per channel]
-	audioBitrate=$(($audioChannels * 48))
-	audioBitrateUnit="k"
-	audioBitrate="$audioBitrate$audioBitrateUnit"
-	echo -e "    ${colorC}Stream: ${colorL}$audioEngStream ${colorC}Channels: ${colorL}$audioChannels ${colorC}Bitrate: ${colorL}$audioBitrate"
+    ## Contaier Formats: avi flv/f4v m2ts mpeg mkv mov mp4/m4v ts wmv
+    ## [find audio stream to use]
+    if [ -z "$inputFileExt" ]; then echo "ERROR: could not find file extension";exit 0;
+    elif [ $inputFileExt == "mkv" ]; then
+        ## [finds first english audio stream]
+        audioEngStream=$(\
+            ffmpeg -i $userInput -f null - 2>&1 | \
+            grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Audio)' | \
+            awk -F ":" '{print $2}' | \
+            tail -1)
+        ## [if no english audio then assume stream number 1 is audio]
+        ## TODO: this needs some work, may cause error with non-english videos by assuming there is always audio in stream 1
+        if [ -z "$audioEngStream" ];then $audioEngStream="2";fi
+        ## [offset audio stream by one for ffprobe because it counts from zero]
+        audioChnStream=$(( $audioEngStream - 1 ))
+        ## [find number of audio channels]
+        audioChannels=$(\
+            ffprobe $userInput -show_streams -select_streams a:$audioChnStream 2>&1 | \
+            awk -F "=" '/channels/ { print $2 }' | \
+            tail -1)
+        if [ -z "$audioChannels" ];then echo -e "${colorR}ERROR: Could not find # of audio channels";exit 0;fi
+    else
+        ## [assume audio stream number is 1]
+        audioEngStream="1"
+        ## [find number of audio channels]
+        ## <select_stream does not seem to work with mp4 container>
+        audioChannels=$(\
+            ffprobe $userInput -show_streams 2>&1 | \
+            awk -F "=" '/channels/ { print $2 }' | \
+            tail -1)
+        if [ -z "$audioChannels" ];then echo -e "${colorR}ERROR: Could not find # of audio channels";exit 0;fi
+    fi
+    ## [set to 48kbps per channel]
+    audioBitrate=$(($audioChannels * 48))
+    audioBitrateUnit="k"
+    audioBitrate="$audioBitrate$audioBitrateUnit"
+    echo -e "    ${colorC}Stream: ${colorL}$audioEngStream ${colorC}Channels: ${colorL}$audioChannels ${colorC}Bitrate: ${colorL}$audioBitrate"
 }
 
 function crop_detect {
-	cpu_detect >/dev/null
-	## [several checks to accurately crop black-bars]
-	crop="1"
-	totalLoops="10"
-	## [gather crop values]
-	A=0
-	while [ "$A" -lt "$totalLoops" ] ; do
-		A="$(( $A + 1 ))"
-		skipSecs="$(( 120 * $A ))"
-		crop[$A]=$(\
-			ffmpeg -threads $cpuCores -i $userInput -ss $skipSecs \
-			-t 1 -vf cropdetect -f null - 2>&1 | \
-			awk -F "=" '/crop/ { print $NF }' | \
-			tail -1)
-		echo -ne "\r       ${colorC}crop detect ${colorL}$A ${colorC}of ${colorL}10 ${colorC}complete"
-	done
-	B=0
-	while [ "$B" -lt "$totalLoops" ] ; do
-		B="$(( $B + 1 ))"
-		C=0
-		while [ "$C" -lt "$totalLoops" ] ; do
-			C="$(( $C + 1 ))"
-			if [ "${crop[$B]}" == "${crop[$C]}" ] ; then
-				countCrop[$B]="$(( ${countCrop[$B]} + 1 ))"
-			fi
-		done
-	done
-	## [find greatest crop]
-	highestCount=0
-	D=0
-	while [ "$D" -lt "$totalLoops" ] ; do
-		D="$(( $D + 1 ))"
-		if [ "${countCrop[$D]}" -gt "$highestCount" ] ; then
-			highestCount="${countCrop[$D]}"
-			greatest="$D"
-		fi
-	done
-	## [final crop value]
-	crop="${crop[$greatest]}"
-	## [frame width from final crop value]
-	cropWidth=$(echo $crop | awk -F ":" '{print $1}')
-	echo -e "\n             Crop: ${colorL}$crop"
+    cpu_detect >/dev/null
+    ## [several checks to accurately crop black-bars]
+    crop="1"
+    totalLoops="10"
+    ## [gather crop values]
+    A=0
+    while [ "$A" -lt "$totalLoops" ] ; do
+        A="$(( $A + 1 ))"
+        skipSecs="$(( 120 * $A ))"
+        crop[$A]=$(\
+            ffmpeg -threads $cpuCores -i $userInput -ss $skipSecs \
+            -t 1 -vf cropdetect -f null - 2>&1 | \
+            awk -F "=" '/crop/ { print $NF }' | \
+            tail -1)
+        echo -ne "\r       ${colorC}crop detect ${colorL}$A ${colorC}of ${colorL}10 ${colorC}complete"
+    done
+    B=0
+    while [ "$B" -lt "$totalLoops" ] ; do
+        B="$(( $B + 1 ))"
+        C=0
+        while [ "$C" -lt "$totalLoops" ] ; do
+            C="$(( $C + 1 ))"
+            if [ "${crop[$B]}" == "${crop[$C]}" ] ; then
+                countCrop[$B]="$(( ${countCrop[$B]} + 1 ))"
+            fi
+        done
+    done
+    ## [find greatest crop]
+    highestCount=0
+    D=0
+    while [ "$D" -lt "$totalLoops" ] ; do
+        D="$(( $D + 1 ))"
+        if [ "${countCrop[$D]}" -gt "$highestCount" ] ; then
+            highestCount="${countCrop[$D]}"
+            greatest="$D"
+        fi
+    done
+    ## [final crop value]
+    crop="${crop[$greatest]}"
+    ## [frame width from final crop value]
+    cropWidth=$(echo $crop | awk -F ":" '{print $1}')
+    echo -e "\n             Crop: ${colorL}$crop"
 }
 
 ## [function calls]
@@ -304,17 +304,17 @@ echo -e "    ${colorY}WARNING: This step may take a while${colorD}"
 crop_detect
 echo -e "${colorG}7 of $stepTotal${colorB}......................${colorP}Encoding Audio${colorD}"
 echo "encoding audio"
-	ffmpeg \
-	-i "$userInput" \
-	-c:a libopus \
-	-map 0:$audioEngStream \
-	-ac $audioChannels \
-	-b:a $audioBitrate \
-	-vbr on \
-	-ar 48000 \
-	-compression_level 10 \
-	-y $tempFilePath/$fileName.opus 2>/dev/null || \
-	{ echo -e "${colorR}ERROR: audio failed to encode"; exit 0; }
+    ffmpeg \
+    -i "$userInput" \
+    -c:a libopus \
+    -map 0:$audioEngStream \
+    -ac $audioChannels \
+    -b:a $audioBitrate \
+    -vbr on \
+    -ar 48000 \
+    -compression_level 10 \
+    -y $tempFilePath/$fileName.opus 2>/dev/null || \
+    { echo -e "${colorR}ERROR: audio failed to encode"; exit 0; }
 echo "audio complete"
 
 ## [get duration and fps then calculate total frames]
@@ -333,81 +333,81 @@ passes="2"
 ## [initial pass number, DO NOT CHANGE VALUE]
 PASS=1
 while [ $PASS -le $passes ]; do
-	echo -e "${colorC}Encoding Pass: ${colorL}$PASS ${colorC}of ${colorL}$passes${colorD}"
-	## [ffmpeg piped to x265]
-	ffmpeg \
-	-threads $cpuThreads \
-	-i "$userInput" \
-	-vf "crop=$crop,scale=$cropWidth:trunc(ow/a/2)*2" \
-	-r 24000/1001 \
-	-pix_fmt yuv420p \
-	-f yuv4mpegpipe - 2> nul | \
-	x265 \
-	--y4m \
-	--stats=$tempFilePath/$fileName.stats \
-	--threads=$cpuCores \
-	--frame-threads=$cpuCores \
-	--wpp \
-	--ctu=64 \
-	--no-cutree \
-	--tu-intra-depth=4 \
-	--tu-inter-depth=4 \
-	--me=2 \
-	--cbqpoffs=3 \
-	--crqpoffs=3 \
-	--psy-rd=0.15 \
-	--subme=7 \
-	--merange=60 \
-	--ref=4 \
-	--bframes=3 \
-	--b-pyramid \
-	--b-adapt=2 \
-	--bframe-bias=0 \
-	--b-intra \
-	--weightb \
-	--weightp \
-	--bitrate=1024 \
-	--vbv-init=0.9 \
-	--vbv-bufsize=31250 \
-	--vbv-maxrate=31250 \
-	--no-slow-firstpass \
-	--pass=$PASS \
-	--keyint=250 \
-	--min-keyint=23 \
-	--rc-lookahead=60 \
-	--no-constrained-intra \
-	--aq-mode=0 \
-	--lft \
-	--sao-lcu-opt=1 \
-	--cbqpoffs=-3 \
-	--crqpoffs=-3 \
-	--rect \
-	--amp \
-	--max-merge=5 \
-	--no-early-skip \
-	--no-tskip \
-	--hash=2 \
-	-f $totalFrames \
-	-o "$tempFilePath/$fileName.hvc" - | tail -1 || \
-	echo "ERROR: video encoding failed"
-	## [finished]
-	if [ $PASS == $passes ]; then
-		echo
-		echo "Encoding complete"
-	## [not finised]
-	else
-		echo
-	fi
-	## [increment pass count]
-	PASS="$(( $PASS + 1 ))"
+    echo -e "${colorC}Encoding Pass: ${colorL}$PASS ${colorC}of ${colorL}$passes${colorD}"
+    ## [ffmpeg piped to x265]
+    ffmpeg \
+    -threads $cpuThreads \
+    -i "$userInput" \
+    -vf "crop=$crop,scale=$cropWidth:trunc(ow/a/2)*2" \
+    -r 24000/1001 \
+    -pix_fmt yuv420p \
+    -f yuv4mpegpipe - 2> nul | \
+    x265 \
+    --y4m \
+    --stats=$tempFilePath/$fileName.stats \
+    --threads=$cpuCores \
+    --frame-threads=$cpuCores \
+    --wpp \
+    --ctu=64 \
+    --no-cutree \
+    --tu-intra-depth=4 \
+    --tu-inter-depth=4 \
+    --me=2 \
+    --cbqpoffs=3 \
+    --crqpoffs=3 \
+    --psy-rd=0.15 \
+    --subme=7 \
+    --merange=60 \
+    --ref=4 \
+    --bframes=3 \
+    --b-pyramid \
+    --b-adapt=2 \
+    --bframe-bias=0 \
+    --b-intra \
+    --weightb \
+    --weightp \
+    --bitrate=1024 \
+    --vbv-init=0.9 \
+    --vbv-bufsize=31250 \
+    --vbv-maxrate=31250 \
+    --no-slow-firstpass \
+    --pass=$PASS \
+    --keyint=250 \
+    --min-keyint=23 \
+    --rc-lookahead=60 \
+    --no-constrained-intra \
+    --aq-mode=0 \
+    --lft \
+    --sao-lcu-opt=1 \
+    --cbqpoffs=-3 \
+    --crqpoffs=-3 \
+    --rect \
+    --amp \
+    --max-merge=5 \
+    --no-early-skip \
+    --no-tskip \
+    --hash=2 \
+    -f $totalFrames \
+    -o "$tempFilePath/$fileName.hvc" - | tail -1 || \
+    echo "ERROR: video encoding failed"
+    ## [finished]
+    if [ $PASS == $passes ]; then
+        echo
+        echo "Encoding complete"
+    ## [not finised]
+    else
+        echo
+    fi
+    ## [increment pass count]
+    PASS="$(( $PASS + 1 ))"
 done
 
 echo -e "${colorG}9 of $stepTotal${colorB}.........................${colorP}Mux Streams${colorD}"
 if [ $hasChapters == 1 ]; then
-	muxChapters="$tempFilePath/$fileName.xml"
+    muxChapters="$tempFilePath/$fileName.xml"
 else muxChapters="";fi
 if [ $hasSubtitles == 1 ]; then
-	muxSubtitles="$tempFilePath/$fileName.srt"
+    muxSubtitles="$tempFilePath/$fileName.srt"
 else muxSubtitles="";fi
 ## TODO: find audio language and set videolanguage to audiolanguage
 mkvmerge \
@@ -424,20 +424,20 @@ echo -e "${colorG}10 of $stepTotal${colorB}............................${colorP}
 ## currently this is set to not delete files because $PASS=3
 ## TODO: add echo statements, deleted $fileName.ext
 if [ "$PASS" == "2" ] ; then
-	echo "remove stats.file"
-	## ffmpeg redirected output [nul]
-	## [delete video]
-	if [ -f "$tempFilePath/$fileName.hvc" ];then rm $tempFilePath/$fileName.hvc;fi
-	## [delete x265 multi-pass log]
-	if [ -f "$tempFilePath/$fileName.stats" ];then rm $tempFilePath/$fileName.stats;fi
-	## [delete audio]
-	if [ -f "$tempFilePath/$fileName.opus" ];then rm $tempFilePath/$fileName.opus;fi
-	## [delete subtitles]
-	if [ -f "$tempFilePath/$fileName.sub" ];then rm $tempFilePath/$fileName.sub;fi
-	if [ -f "$tempFilePath/$fileName.idx" ];then rm $tempFilePath/$fileName.idx;fi
-	if [ -f "$tempFilePath/$fileName.srt" ];then rm $tempFilePath/$fileName.srt;fi
-	## [delete chapter list]
-	if [ -f "$tempFilePath/$fileName.xml" ];then rm $tempFilePath/$fileName.xml;fi
+    echo "remove stats.file"
+    ## ffmpeg redirected output [nul]
+    ## [delete video]
+    if [ -f "$tempFilePath/$fileName.hvc" ];then rm $tempFilePath/$fileName.hvc;fi
+    ## [delete x265 multi-pass log]
+    if [ -f "$tempFilePath/$fileName.stats" ];then rm $tempFilePath/$fileName.stats;fi
+    ## [delete audio]
+    if [ -f "$tempFilePath/$fileName.opus" ];then rm $tempFilePath/$fileName.opus;fi
+    ## [delete subtitles]
+    if [ -f "$tempFilePath/$fileName.sub" ];then rm $tempFilePath/$fileName.sub;fi
+    if [ -f "$tempFilePath/$fileName.idx" ];then rm $tempFilePath/$fileName.idx;fi
+    if [ -f "$tempFilePath/$fileName.srt" ];then rm $tempFilePath/$fileName.srt;fi
+    ## [delete chapter list]
+    if [ -f "$tempFilePath/$fileName.xml" ];then rm $tempFilePath/$fileName.xml;fi
 else
-	echo "do nothing"
+    echo "do nothing"
 fi
