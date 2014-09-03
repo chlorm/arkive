@@ -301,7 +301,6 @@ echo -e "${clG}8 of $stepTotal${clGa}......................${clW}Encoding Video$
     SEC=$(echo $totalLength | cut -d":" -f3)
     totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
     echo "Estimated total frames: $totalFrames"
-    #if [ -z "$totalFrames" ];then echo -e "${clR}ERROR: Cound not calculate total frames";exit 0;fi
     ## [number of encoding passes]
     passes="2"
     ## [initial pass number, DO NOT CHANGE VALUE]
@@ -309,6 +308,8 @@ echo -e "${clG}8 of $stepTotal${clGa}......................${clW}Encoding Video$
     while [ $PASS -le $passes ];do
         echo -e "${clC}Encoding Pass: ${clP}$PASS ${clC}of ${clP}$passes${clD}"
         ## [ffmpeg piped to x265]
+        ## TODO: determine if crop height or width are odd numbers and if so
+        ##        enable ffmpeg scaling otherwise disable
         ffmpeg \
             -threads $cpuThreads \
             -i "$userInput" \
@@ -373,7 +374,7 @@ echo -e "${clG}8 of $stepTotal${clGa}......................${clW}Encoding Video$
     done
 
 echo -e "${clG}9 of $stepTotal${clGa}.........................${clW}Mux Streams${clD}"
-    if [ $hasChapters == 1 ];then muxChapters="$tempFilePath/$fileName.xml";
+    if [ $hasChapters == 1 ];then muxChapters="--chapters $tempFilePath/$fileName.xml";
     else muxChapters="";fi
     if [ $hasSubtitles == 1 ];then muxSubtitles="$tempFilePath/$fileName.srt";
     else muxSubtitles="";fi
@@ -382,8 +383,8 @@ echo -e "${clG}9 of $stepTotal${clGa}.........................${clW}Mux Streams$
         -o $outputFilePath/$fileName.mkv \
         --title $filename \
         -A $tempFilePath/$fileName.hvc \
-        $muxSubtitles \
         $muxChapters \
+        $muxSubtitles \
         $tempFilePath/$fileName.opus
 
 echo -e "${clG}10 of $stepTotal${clGa}............................${clW}Cleanup${clD}"
