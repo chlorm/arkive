@@ -13,13 +13,9 @@ Finished:
    * Audio Configuration (working, but needs some work with exception handling)
    * Audio Encoding
    * Video Encoding
+   * Muxing (currently only mkv is supported)
 
 TODO:
-   * Mux audio, video, subtitles, and chapters
-```
-    mkvmerge vs. ffmpeg
-```
-
    * Finish error handling and exception cases for subtitles
    * Add more exception handling for audio tracks
 ```
@@ -61,5 +57,5 @@ TODO:
     code 2: ?
 ```
 
-   * Improve code portability for shells other than bash
+   * Improve code portability for shells other than bash (continuous)
    * Find chapter list language if it is set
