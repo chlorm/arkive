@@ -14,7 +14,7 @@
 ## License: The MIT License - http://opensource.org/licenses/MIT
 ## Comments:
 ##    Dependencies:
-##      ffmpeg[encode,ffprobe,libass,libx265,opus,threads]
+##      ffmpeg[encode,ffprobe,opus,threads]
 ##      mkvtoolnix[mkvextract,mkvmerge]
 ##      opus
 ##      VobSub2SRT
@@ -110,9 +110,9 @@ function parse_input {
     if [ -z "$userTemp" ];then tempFilePath="$inputFilePath";else
         cd $userTemp;tempFilePath=$(pwd);fi
     ## [input filename w/ ext]
-    fileName=${userInput##*/}
+    fileName=$(basename "$userInput")
     ## [input filename w/o ext]
-    fileName=${fileName%%.*}
+    fileName=$(echo "$fileName" | sed -r 's/\.[[:alnum:]]+$//')
     ## [add tag]
     arkMark="-ARK"
     fileName=$fileName$arkMark
@@ -139,6 +139,8 @@ function cpu_detect {
 ## TODO: use for loop to find all english subs in file
 ##		after finding subs look for plain text subs
 ## TODO: parse vobsub2srt output and remove ERROR:... lines
+## TODO: add support for PGS subtitles
+##      if pgs use bdsup2sub to covert to sub/idx and then vobsub2srt
 function sub_titles {
     ## [find if video has subtitles]
     hasSubtitles=$(\
