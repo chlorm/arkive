@@ -46,11 +46,11 @@ function usage {
 \${clC}Automate video encoding according to Chlorm's ARK specifications.
 
 Usage: \${clD}arkhive [\${clU}\${clP}OPTIONS\$clD] \${clU}\${clP}FILE\$clD [\${clU}\${clP}OPTIONS\$clD]\$clD
-    \$clG-i \${clU}\${clP}FILE\$clD         \$clY*\$clD - set input file\$clD
-    \$clG-o \${clU}\${clP}DIRECTORY\$clD      - set output directory\$clD)
-    \$clG-t \${clU}\${clP}DIRECTORY\$clD      - set temp directory\$clD)
-    \$clG-h\$clD                - print this message
-    \$clG-v\$clD                - print version\n\n"
+    \$clG-i|--input  \${clU}\${clP}FILE\$clD          \$clY*\$clD - set input file\$clD
+    \$clG-o|--output \${clU}\${clP}DIRECTORY\$clD       - set output directory\$clD)
+    \$clG-t|--temp   \${clU}\${clP}DIRECTORY\$clD       - set temp directory\$clD)
+    \$clG-h|--help\$clD                   - print this message
+    \$clG-v|--version\$clD                - print version\n\n"
 }
 
 usage
@@ -67,11 +67,11 @@ while [ "$1" ];do
                     avi|f4v|flv|m2ts|m4v|mkv|mp4|mpeg|mpg|mov|ts|wmv)
                         userInput=$2;shift;;
                     *)
-                        echo "ERROR: Selected file's extension is not an allowed type!";
-                        echo "Allowed: avi,f4v,flv,m2ts,m4v,mkv,mp4,mpeg,mpg,mov,ts,wmv";
+                        printf "${clR}ERROR: Selected file's extension is not a supported type!\n";
+                        printf "${clY}Supportes: avi,f4v,flv,m2ts,m4v,mkv,mp4,mpeg,mpg,mov,ts,wmv\n";
                         exit 0;;
                 esac
-            else echo "ERROR: Input is not a file";exit 0;fi;;
+            else printf "${clR}ERROR: Input file does not exist\n";exit 0;fi;;
         -o|--output)
             if [ -z "$2" ];then echo -e "${clR}ERROR: No output directory provided";exit 0;
             elif [ ! -d "$2" ];then echo -e "${clR}ERROR: Output is not a directory";exit 0;
@@ -83,13 +83,13 @@ while [ "$1" ];do
         -h|--help) eval "printf \"${HELP}\"";exit 0;;
         -v|--version)
             printf "ARKhive version: ${VERSION}\n\n";exit 0;;
-        -*) eval "printf \"${HELP}\"";printf "\nERROR: Unknown option $1\n";exit 1;;
+        -*) eval "printf \"${HELP}\"";printf "\n${clR}ERROR: Unknown option $1\n";exit 0;;
         *)
             if [ -n "${INPATH}" ];then
                 eval "printf \"${HELP}\""
-                printf "\nERROR: Unknown option $1\n";exit 1
+                printf "\n${clR}ERROR: Unknown option $1\n";exit 0
             elif [ ! -r "$1" ];then
-                printf "ERROR: Unable to read $1\n";exit 2
+                printf "${clR}ERROR: Unable to read $1\n";exit 0
             else
                 INPATH="$1";fi;;
     esac
@@ -97,7 +97,8 @@ while [ "$1" ];do
 done;fi
 
 ## [make sure user has provided input]
-if [ -z "$userInput" ];then echo -e "ERROR: no input provided";exit 0;fi
+if [ -z "$userInput" ];then
+    eval "printf \"${HELP}\"";echo -e "${clR}ERROR: no input provided";exit 0;fi
 
 function parse_input {
     ## [input file directory]
@@ -312,6 +313,7 @@ echo -e "${clG}8 of $stepTotal${clGa}......................${clW}Encoding Video$
         ## [ffmpeg piped to x265]
         ## TODO: determine if crop height or width are odd numbers and if so
         ##        enable ffmpeg scaling otherwise disable
+        ## TODO: make ffmpeg output to $fileName.ffmpeg
         ffmpeg \
             -threads $cpuThreads \
             -i "$userInput" \
