@@ -28,7 +28,7 @@
 ##      ## - comments [not to be uncommented]
 ##      # -- commented variables
 
-VERSION=1
+VERSION=2
 
 ## [colors]
 clR="\033[1;31m"  # Red
