@@ -185,9 +185,9 @@ function chapter_list {
 
 ## TODO: Test for und (undetermined language) and for alternatelanguages if eng not found
 ## TODO: account for alternate container formats (m2ts)
+## Contaier Formats: avi flv/f4v m2ts mpeg mkv mov mp4/m4v ts wmv
 ## TODO: Move audioChannels out of if statments for code reuse
 function config_audio {
-    ## Contaier Formats: avi flv/f4v m2ts mpeg mkv mov mp4/m4v ts wmv
     ## [find audio stream to use]
     if [ -z "$inputFileExt" ];then echo "ERROR: could not find file extension";exit 0;
     elif [ $inputFileExt == "mkv" ];then
@@ -237,8 +237,7 @@ function crop_detect {
         crop[$A]=$(\
             ffmpeg -threads $cpuCores -i $userInput -ss $skipSecs \
             -t 1 -vf cropdetect -f null - 2>&1 | \
-            awk -F "=" '/crop/ { print $NF }' | \
-            tail -1)
+            awk -F "=" '/crop/ { print $NF }' | tail -1)
         echo -ne "\r       ${clC}crop detect ${clP}$A ${clC}of ${clP}10 ${clC}complete"
     done
     B=0
@@ -285,14 +284,12 @@ echo -e "${clG}7 of $stepTotal${clGa}......................${clW}Encoding Audio$
     echo "encoding audio"
         ffmpeg \
         -i "$userInput" \
-        -c:a libopus \
+        -c:a libfdk_aac \
         -map 0:$audioEngStream \
         -ac $audioChannels \
         -b:a $audioBitrate \
-        -vbr on \
         -ar 48000 \
-        -compression_level 10 \
-        -y $tempFilePath/$fileName.opus 2>/dev/null || \
+        -y $tempFilePath/$fileName.aac 2>/dev/null || \
         { echo -e "${clR}ERROR: audio failed to encode";exit 0; }
     echo "audio complete"
 echo -e "${clG}8 of $stepTotal${clGa}......................${clW}Encoding Video${clD}"
@@ -389,7 +386,7 @@ echo -e "${clG}9 of $stepTotal${clGa}.........................${clW}Mux Streams$
         -A $tempFilePath/$fileName.hvc \
         $muxChapters \
         $muxSubtitles \
-        $tempFilePath/$fileName.opus
+        $tempFilePath/$fileName.aac
 
 echo -e "${clG}10 of $stepTotal${clGa}............................${clW}Cleanup${clD}"
     ## TODO: add echo statements, deleted $fileName.ext
@@ -399,7 +396,7 @@ echo -e "${clG}10 of $stepTotal${clGa}............................${clW}Cleanup$
     ## [delete x265 multi-pass log]
     if [ -f "$tempFilePath/$fileName.stats" ];then rm $tempFilePath/$fileName.stats;fi
     ## [delete audio]
-    if [ -f "$tempFilePath/$fileName.opus" ];then rm $tempFilePath/$fileName.opus;fi
+    if [ -f "$tempFilePath/$fileName.opus" ];then rm $tempFilePath/$fileName.aac;fi
     ## [delete subtitles]
     if [ -f "$tempFilePath/$fileName.sub" ];then rm $tempFilePath/$fileName.sub;fi
     if [ -f "$tempFilePath/$fileName.idx" ];then rm $tempFilePath/$fileName.idx;fi
