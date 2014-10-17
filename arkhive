@@ -15,11 +15,12 @@
 ## Comments:
 ##    Dependencies:
 ##      fdkaac
-##      ffmpeg[encode,ffprobe,fdkaac,threads]
+##      ffmpeg[encode,ffprobe,fdkaac,threads] >=2.3.x
 ##      mkvtoolnix[mkvextract,mkvmerge]
 ##      opus
 ##      VobSub2SRT
 ##      x264
+##      x265 >=1.3.x
 ##      Obviously: awk, bash, cat, grep, pwd, tail, rm
 ##    Assumed Directory & File Structure:
 ##      /usr/bin?
@@ -49,6 +50,9 @@ VERSION=3
 # 0 = Success
 # 1 = Input Error
 # 2 = Could Not Find Value Error
+
+# ERROR: something went wrong and program will exit
+# WARNING: something went wrong, but program will continue
 
 ## [colors]
 clR="\033[1;31m"  # Red
@@ -252,37 +256,46 @@ subtitles () {
 }
 
 chapters () {
-  ## [find chapters if any]
-  hasChapters=$(ffprobe $userInput 2>&1 | awk '/Chapter/ { print $2 }')
+  # Find chapters if any exist
+  hasChapters=$(ffprobe -i $userInput 2>&1 | awk '/Chapter/ { print $2 }')
 
-  ## [no chapters were found]
+  # Videos has no chapters
   if [ -z "$hasChapters" ]; then
     echo "Video has no chapters"
-  ## [chapters were found]
+  # Video has chapters
   else
     mkvextract \
       chapters \
       --simple $userInput \
-      --redirect-output $(temp_directory)/$(filename).xml
+      --redirect-output $(temp_directory)/$(filename).xml || \
+      { echo "WARNING: Failed to extract chapters from source";\
+        return 1; }
   fi
 }
 
-## TODO: Test for und (undetermined language) and for alternatelanguages if eng not found
-## TODO: account for alternate container formats (m2ts)
-## Contaier Formats: avi flv/f4v m2ts mpeg mkv mov mp4/m4v ts wm
-## TODO: Move audioChannels out of if statements for code reuse
+## UNSUPPORTED: avi with multiple audio streams
+## CONTAINERS WITH NO LANGUAGE CODES: avi,m2ts,ts
 audio_input_stream () {
-  # Add all streams with audio to an array
-  audioStreamArray=($(ffprobe -i test4.mp4 2>&1 | \
+  # Add all streams with audio into an array
+  # <There is a lot or trickery required to get the stream
+  #  number that is container specific, so 'or' statements were
+  #  added to work around this>
+  audioStreamArray=($(\
+    ffprobe -i test4.mp4 2>&1 | \
     grep "Audio:" | \
     awk '/Stream\ #0:/ { print $2 }' | \
-    grep -o -P '(?<=\#0\:).*(?=\([a-zA-Z]+)'))
+    grep -o -P '(?<=\#0\:)[0-9](?=\([a-z]+\)|\[[0-9]+x[0-9]+\]|\:)'))
 
-  # Find total number of audio streams
-  $audioStreamCount=$($audioStreamArray[@])
+  # Find total number of audio streams in the container
+  audioStreamCount=$(${#audioStreamArray[@]})
 
-  if [ "$audioStreamCount" = "1" ]; then
-    #set to stream number and call it a day
+  if [ -z "$audioStreamCount" ]; then echo "WARNING: No audio streams found"
+  elif [ "$audioStreamCount" = "1" ]; then
+    # Set stream number to the only one found
+    audioPrefferedStream=$($audioStreamArray[1])
+
+  # Containers with: mkv,mp4
+  # MP4 has two audio lines, only one with a stream section
   elif [ "$audioStreamCount" -gt "1" ]; then
     # get pounded in the ass
 
@@ -295,8 +308,9 @@ audio_input_stream () {
     # Pulls first part of line containing language
     awk '/Stream\ #0:1/ { print $2 }' | \
     # Pulls the three digit language code
-    grep -m 1 -o -P '(?<=\#0\:1\().*(?=\):)'
-
+    # ISO 639-2/B
+    grep -m 1 -o -P '(?<=\#0\:1\().*(?=\):)
+'
   # 3 
   #  if only one audio stream take it
   #  if not, see if any audio streams contain english
