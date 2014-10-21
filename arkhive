@@ -7,7 +7,7 @@
 ##  /  /_____  /  /  / / /  / /  /_/ / /  /     /  /\    /\  \
 ## /________/ /__/  /_/ /__/ /______/ /__/     /__/  \__/  \__\ TM
 ##
-## Title: ARKhive h.264
+## Title: ARKhive
 ## Author: Cody Opel
 ## E-mail: codyopel(at)gmail.com
 ## Copyright (c) 2014 All Rights Reserved, http://www.chlorm.net
@@ -34,7 +34,7 @@
 VERSION=3
 
 ## [audio]
-#audioBitrate
+#audioChannelBitrate
 #audioSampleRate
 #audioLanguage
 
@@ -83,7 +83,6 @@ if [ -z "$1" ]; then
     echo -e "${clR}ERROR: No arguments provided"
     exit 1
 else
-  ## [parse arguments]
   # Parse Arguments
   while [ "$1" ]; do
     case "$1" in
@@ -155,7 +154,6 @@ else
     shift
   done
 fi
-
 # Make sure user has provided input
 if [ -z "$userInput" ]; then
   eval "printf \"${HELP}\""
@@ -338,11 +336,13 @@ audio_input_sample_rate () {
 
 ## TODO: add support to automatically remap surround-sound channels in a consistent manner
 audio_input_channels () {
+  # Find channel layout
   findChannels=$(ffprobe -i $userInput 2>&1 | \
-    # TODO: input audio stream to grep
     grep -m 1 "Stream #0:$primaryAudioStream" | \
-    # TODO: input audio_input_sample_rate functio to awk
     awk -F ", " '/44100\ Hz/ { print $3 }')
+
+  # Determine channel layout for later use
+  # https://github.com/FFmpeg/FFmpeg/blob/master/libavutil/channel_layout.c
   if [ -z $findChannels ]; then
     echo "ERROR: could not detect audio channel layout"
     exit 1
@@ -437,7 +437,8 @@ audio_input_channels () {
 }
 
 audio () {
-  ## [set to 48kbps per channel]
+  audio_input_channels
+  # Bitrate per channel (set to 48kbps)
   audioBitrate=$(($audioChannels * 48))
   audioBitrateUnit="k"
   audioBitrate="$audioBitrate$audioBitrateUnit"
