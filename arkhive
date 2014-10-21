@@ -343,56 +343,96 @@ audio_input_channels () {
     grep -m 1 "Stream #0:$primaryAudioStream" | \
     # TODO: input audio_input_sample_rate functio to awk
     awk -F ", " '/44100\ Hz/ { print $3 }')
-  if [ $findChannels = "mono" ]; then
+  if [ -z $findChannels ]; then
+    echo "ERROR: could not detect audio channel layout"
+    exit 1
+    # AV_CH_LAYOUT_MONO
+  elif [ $findChannels = "mono" ]; then
     audioChannels="1"
+    # AV_CH_LAYOUT_MONO
   elif [ $findChannels = "stereo" ]; then
     audioChannels="2"
+    # AV_CH_LAYOUT_STEREO
   elif [ $findChannels = "2.1" ]; then
-    audioChannels="2"
+    audioChannels="3"
+    # AV_CH_LAYOUT_2POINT1
   elif [ $findChannels = "3.0" ]; then
-    audioChannels="2"
+    audioChannels="3"
+    # AV_CH_LAYOUT_SURROUND
   elif [ $findChannels = "3.0(back)" ]; then
-    audioChannels="2"
+    audioChannels="3"
+    # AV_CH_LAYOUT_2_1
   elif [ $findChannels = "4.0" ]; then
-    audioChannels="2"
+    audioChannels="4"
+    # AV_CH_LAYOUT_4POINT0
   elif [ $findChannels = "quad" ]; then
-    audioChannels="2"
+    audioChannels="4"
+    # AV_CH_LAYOUT_QUAD
   elif [ $findChannels = "quad(side)" ]; then
     audioChannels="2"
+    # AV_CH_LAYOUT_2_2
   elif [ $findChannels = "3.1" ]; then
-    audioChannels="2"
+    audioChannels="4"
+    # AV_CH_LAYOUT_3POINT1
   elif [ $findChannels = "4.1" ]; then
-    audioChannels="2"
+    audioChannels="5"
+    # AV_CH_LAYOUT_4POINT1
+  elif [ $findChannels = "5.0" ]; then
+    audioChannels="5"
+    # AV_CH_LAYOUT_5POINT0_BACK
+  elif [ $findChannels = "5.0(side)" ]; then
+    audioChannels="5"
+    # AV_CH_LAYOUT_5POINT0
   elif [ $findChannels = "5.1" ]; then
-    audioChannels="2"
+    audioChannels="6"
+    # AV_CH_LAYOUT_5POINT1_BACK
   elif [ $findChannels = "5.1(side)" ]; then
-    audioChannels="2"
+    audioChannels="6"
+    # AV_CH_LAYOUT_5POINT1
   elif [ $findChannels = "6.0" ]; then
-    audioChannels="2"
+    audioChannels="6"
+    # AV_CH_LAYOUT_6POINT0
   elif [ $findChannels = "6.0(front)" ]; then
-    audioChannels="2"
+    audioChannels="6"
+    # AV_CH_LAYOUT_6POINT0_FRONT
   elif [ $findChannels = "hexagonal" ]; then
-    audioChannels="2"
+    audioChannels="6"
+    # AV_CH_LAYOUT_HEXAGONAL
   elif [ $findChannels = "6.1" ]; then
-    audioChannels="2"
+    audioChannels="7"
+    # AV_CH_LAYOUT_6POINT1
+  elif [ $findChannels = "6.1(back)" ]; then
+    audioChannels="7"
+    ## TODO: fix upstream
+    # actually 6.1, not 6.1(back), upstream typo
+    # AV_CH_LAYOUT_6POINT1_BACK
   elif [ $findChannels = "6.1(front)" ]; then
-    audioChannels="2"
+    audioChannels="7"
+    # AV_CH_LAYOUT_6POINT1_FRONT
   elif [ $findChannels = "7.0" ]; then
-    audioChannels="2"
+    audioChannels="7"
+    # AV_CH_LAYOUT_7POINT0
   elif [ $findChannels = "7.0(front)" ]; then
-    audioChannels="2"
+    audioChannels="7"
+    # AV_CH_LAYOUT_7POINT0_FRONT
   elif [ $findChannels = "7.1" ]; then
-    audioChannels="2"
+    audioChannels="8"
+    # AV_CH_LAYOUT_7POINT1
   elif [ $findChannels = "7.1(wide)" ]; then
-    audioChannels="2"
+    audioChannels="8"
+    # AV_CH_LAYOUT_7POINT1_WIDE_BACK
   elif [ $findChannels = "7.1(wide-side)" ]; then
-    audioChannels="2"
+    audioChannels="8"
+    # AV_CH_LAYOUT_7POINT1_WIDE
   elif [ $findChannels = "octagonal" ]; then
-    audioChannels="2"
+    audioChannels="8"
+    # AV_CH_LAYOUT_OCTAGONAL
   elif [ $findChannels = "downmix" ]; then
     audioChannels="2"
+    # AV_CH_LAYOUT_STEREO_DOWNMIX
   else
-    echo "ERROR: nigga stole your audio channels, cus we couldn't detect any"
+    echo "ERROR: Unsupported channel layout"
+    exit 1
   fi
 }
 
