@@ -309,8 +309,7 @@ audio_input_stream () {
     awk '/Stream\ #0:1/ { print $2 }' | \
     # Pulls the three digit language code
     # ISO 639-2/B
-    grep -m 1 -o -P '(?<=\#0\:1\().*(?=\):)
-'
+    grep -m 1 -o -P '(?<=\#0\:1\().*(?=\):)'
   # 3 
   #  if only one audio stream take it
   #  if not, see if any audio streams contain english
@@ -337,6 +336,7 @@ audio_input_sample_rate () {
     awk -F ", " '/Hz/ { print $2 }'
 }
 
+## TODO: add support to automatically remap surround-sound channels in a consistent manner
 audio_input_channels () {
   findChannels=$(ffprobe -i $userInput 2>&1 | \
     # TODO: input audio stream to grep
@@ -344,23 +344,55 @@ audio_input_channels () {
     # TODO: input audio_input_sample_rate functio to awk
     awk -F ", " '/44100\ Hz/ { print $3 }')
   if [ $findChannels = "mono" ]; then
-    echo
-  elif [ $findChannels = "mono" ]; then
-    echo
+    audioChannels="1"
+  elif [ $findChannels = "stereo" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "2.1" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "3.0" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "3.0(back)" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "4.0" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "quad" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "quad(side)" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "3.1" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "4.1" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "5.1" ]; then
+    audioChannels="2"
   elif [ $findChannels = "5.1(side)" ]; then
-    echo
-  elif [ $findChannels = "mono" ]; then
-    echo
-  elif [ $findChannels = "mono" ]; then
-    echo
-  elif [ $findChannels = "mono" ]; then
-    echo
-  elif [ $findChannels = "mono" ]; then
-    echo
-  elif [ $findChannels = "mono" ]; then
-    echo
+    audioChannels="2"
+  elif [ $findChannels = "6.0" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "6.0(front)" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "hexagonal" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "6.1" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "6.1(front)" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "7.0" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "7.0(front)" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "7.1" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "7.1(wide)" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "7.1(wide-side)" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "octagonal" ]; then
+    audioChannels="2"
+  elif [ $findChannels = "downmix" ]; then
+    audioChannels="2"
   else
-    echo "ERROR: somethin broke nigga"
+    echo "ERROR: nigga stole your audio channels, cus we couldn't detect any"
   fi
 }
 
