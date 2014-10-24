@@ -51,6 +51,8 @@ VERSION=3
 # 1 = Input Error
 # 2 = Could Not Find Value Error
 
+# TODO: 
+
 # ERROR: something went wrong and program will exit
 # WARNING: something went wrong, but program will continue
 
@@ -323,113 +325,165 @@ audio_input_stream () {
 
   # 4 Fuck Bitches
 }
-
+    
 audio_input_sample_rate () {
-  ## [offset audio stream by one for ffprobe because it counts from zero]
-  #audioChnStream=$(( $audioEngStream - 1 ))
-
   ffprobe -i $userInput 2>&1 | \
-    # TODO: input audio stream to grep
     grep -m 1 "Stream #0:$primaryAudioStream" | \
     awk -F ", " '/Hz/ { print $2 }'
 }
 
 ## TODO: add support to automatically remap surround-sound channels in a consistent manner
-audio_input_channels () {
-  # Find channel layout
-  findChannels=$(ffprobe -i $userInput 2>&1 | \
+## get rid of 5.1(side)  it is annoying on a 7.1 setup even if it is technically extended stereo
+audio_channel_layout () {
+  # Finds channel layout
+  findChannelLayout=$(ffprobe -i $userInput 2>&1 | \
     grep -m 1 "Stream #0:$primaryAudioStream" | \
     awk -F ", " '/44100\ Hz/ { print $3 }')
 
   # Determine channel layout for later use
   # https://github.com/FFmpeg/FFmpeg/blob/master/libavutil/channel_layout.c
-  if [ -z $findChannels ]; then
+  # https://github.com/FFmpeg/FFmpeg/blob/master/doc/utils.texi
+
+  # 0 = FL - Front Left
+  # 1 = FR - Front Right
+  # 2 = FC - Front Center
+  # 3 = LFE - Low Frequency
+  # 4 = BL - Back Left
+  # 5 = BR - Back Fight
+  # 6 = FLC - Front Left-of-Center
+  # 7 = FRC - Front Right-of-Center
+  # 8 = BC - Back Center
+  # 9 = SL - Side Left
+  # 10 = SR - Side Right
+  # 11 = TC - Top Center
+  # 12 = TFL - Top Front Left
+  # 13 = TFC - Top Front Center
+  # 14 = TFR - Top Front Right
+  # 15 = TBL - Top Back Left
+  # 16 = TBC - Top Back Center
+  # 17 = TBR - Top Back Right
+  # 29 = DL - Downmix Left
+  # 30 = DR - Downmix Right
+  # 31 = WL - Wide Left
+  # 32 = WR - Wide Right
+  # 33 = SDL - Surround Direct Right
+  # 34 = SDR - Surround Direct Left
+  # 35 = LFE2 - Low Frequency 2
+
+  if [ -z $findChannelLayout ]; then
     echo "ERROR: could not detect audio channel layout"
     exit 1
     # AV_CH_LAYOUT_MONO
-  elif [ $findChannels = "mono" ]; then
+  elif [ $findChannelLayout = "mono" ]; then
     audioChannels="1"
     # AV_CH_LAYOUT_MONO
-  elif [ $findChannels = "stereo" ]; then
+    # FC
+  elif [ $findChannelLayout = "stereo" ]; then
     audioChannels="2"
     # AV_CH_LAYOUT_STEREO
-  elif [ $findChannels = "2.1" ]; then
+    # FL+FR
+  elif [ $findChannelLayout = "2.1" ]; then
     audioChannels="3"
     # AV_CH_LAYOUT_2POINT1
-  elif [ $findChannels = "3.0" ]; then
+    # FL+FR+LFE
+  elif [ $findChannelLayout = "3.0" ]; then
     audioChannels="3"
     # AV_CH_LAYOUT_SURROUND
-  elif [ $findChannels = "3.0(back)" ]; then
+    # FL+FR+FC
+  elif [ $findChannelLayout = "3.0(back)" ]; then
     audioChannels="3"
     # AV_CH_LAYOUT_2_1
-  elif [ $findChannels = "4.0" ]; then
+    # FL+FR+BC
+  elif [ $findChannelLayout = "4.0" ]; then
     audioChannels="4"
     # AV_CH_LAYOUT_4POINT0
-  elif [ $findChannels = "quad" ]; then
+    # FL+FR+FC+BC
+  elif [ $findChannelLayout = "quad" ]; then
     audioChannels="4"
     # AV_CH_LAYOUT_QUAD
-  elif [ $findChannels = "quad(side)" ]; then
+    # FL+FR+BL+BR
+  elif [ $findChannelLayout = "quad(side)" ]; then
     audioChannels="2"
     # AV_CH_LAYOUT_2_2
-  elif [ $findChannels = "3.1" ]; then
+    # FL+FR+SL+SR
+  elif [ $findChannelLayout = "3.1" ]; then
     audioChannels="4"
     # AV_CH_LAYOUT_3POINT1
-  elif [ $findChannels = "4.1" ]; then
+    # FL+FR+FC+LFE
+  elif [ $findChannelLayout = "4.1" ]; then
     audioChannels="5"
     # AV_CH_LAYOUT_4POINT1
-  elif [ $findChannels = "5.0" ]; then
+    # FL+FR+FC+LFE+BC
+  elif [ $findChannelLayout = "5.0" ]; then
     audioChannels="5"
     # AV_CH_LAYOUT_5POINT0_BACK
-  elif [ $findChannels = "5.0(side)" ]; then
+    # FL+FR+FC+BL+BR
+  elif [ $findChannelLayout = "5.0(side)" ]; then
     audioChannels="5"
     # AV_CH_LAYOUT_5POINT0
-  elif [ $findChannels = "5.1" ]; then
+    # FL+FR+FC+SL+SR
+  elif [ $findChannelLayout = "5.1" ]; then
     audioChannels="6"
     # AV_CH_LAYOUT_5POINT1_BACK
-  elif [ $findChannels = "5.1(side)" ]; then
+    # FL+FR+FC+LFE+BL+BR
+  elif [ $findChannelLayout = "5.1(side)" ]; then
     audioChannels="6"
     # AV_CH_LAYOUT_5POINT1
-  elif [ $findChannels = "6.0" ]; then
+    # FL+FR+FC+LFE+SL+SR
+  elif [ $findChannelLayout = "6.0" ]; then
     audioChannels="6"
     # AV_CH_LAYOUT_6POINT0
-  elif [ $findChannels = "6.0(front)" ]; then
+    # FL+FR+FC+BC+SL+SR
+  elif [ $findChannelLayout = "6.0(front)" ]; then
     audioChannels="6"
     # AV_CH_LAYOUT_6POINT0_FRONT
-  elif [ $findChannels = "hexagonal" ]; then
+    # FL+FR+FLC+FRC+SL+SR
+  elif [ $findChannelLayout = "hexagonal" ]; then
     audioChannels="6"
     # AV_CH_LAYOUT_HEXAGONAL
-  elif [ $findChannels = "6.1" ]; then
+    # FL+FR+FC+BL+BR+BC
+  elif [ $findChannelLayout = "6.1" ]; then
     audioChannels="7"
     # AV_CH_LAYOUT_6POINT1
-  elif [ $findChannels = "6.1(back)" ]; then
+    # FL+FR+FC+LFE+BC+SL+SR
+  elif [ $findChannelLayout = "6.1(back)" ]; then
     audioChannels="7"
     ## TODO: fix upstream
     # actually 6.1, not 6.1(back), upstream typo
     # AV_CH_LAYOUT_6POINT1_BACK
-  elif [ $findChannels = "6.1(front)" ]; then
+    # FL+FR+FC+LFE+BL+BR+BC
+  elif [ $findChannelLayout = "6.1(front)" ]; then
     audioChannels="7"
     # AV_CH_LAYOUT_6POINT1_FRONT
-  elif [ $findChannels = "7.0" ]; then
+    # FL+FR+LFE+FLC+FRC+SL+SR
+  elif [ $findChannelLayout = "7.0" ]; then
     audioChannels="7"
     # AV_CH_LAYOUT_7POINT0
-  elif [ $findChannels = "7.0(front)" ]; then
+    # FL+FR+FC+BL+BR+SL+SR
+  elif [ $findChannelLayout = "7.0(front)" ]; then
     audioChannels="7"
     # AV_CH_LAYOUT_7POINT0_FRONT
-  elif [ $findChannels = "7.1" ]; then
+    # FL+FR+FC+FLC+FRC+SL+SR
+  elif [ $findChannelLayout = "7.1" ]; then
     audioChannels="8"
     # AV_CH_LAYOUT_7POINT1
-  elif [ $findChannels = "7.1(wide)" ]; then
+    # FL+FR+FC+LFE+BL+BR+SL+SR
+  elif [ $findChannelLayout = "7.1(wide)" ]; then
     audioChannels="8"
     # AV_CH_LAYOUT_7POINT1_WIDE_BACK
-  elif [ $findChannels = "7.1(wide-side)" ]; then
+    # FL+FR+FC+LFE+BL+BR+FLC+FRC
+  elif [ $findChannelLayout = "7.1(wide-side)" ]; then
     audioChannels="8"
     # AV_CH_LAYOUT_7POINT1_WIDE
-  elif [ $findChannels = "octagonal" ]; then
+    # FL+FR+FC+LFE+FLC+FRC+SL+SR
+  elif [ $findChannelLayout = "octagonal" ]; then
     audioChannels="8"
     # AV_CH_LAYOUT_OCTAGONAL
-  elif [ $findChannels = "downmix" ]; then
+    # FL+FR+FC+BL+BR+BC+SL+SR
+  elif [ $findChannelLayout = "downmix" ]; then
     audioChannels="2"
     # AV_CH_LAYOUT_STEREO_DOWNMIX
+    # DL+DR
   else
     echo "ERROR: Unsupported channel layout"
     exit 1
@@ -437,7 +491,7 @@ audio_input_channels () {
 }
 
 audio () {
-  audio_input_channels
+  audio_channel_layout
   # Bitrate per channel (set to 48kbps)
   audioBitrate=$(($audioChannels * 48))
   audioBitrateUnit="k"
@@ -486,6 +540,12 @@ crop_detect () {
   cropWidth=$(echo $crop | awk -F ":" '{print $1}')
   echo -e "\n             Crop: ${clP}$crop"
 }
+
+# Deinterlace video
+#
+#
+# TODO
+#
 
 # Call Functions
 chapters
