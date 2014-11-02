@@ -289,7 +289,8 @@ audio_input_stream () {
   # Find total number of audio streams in the container
   audioStreamCount=$(${#audioStreamArray[@]})
 
-  if [ -z "$audioStreamCount" ]; then echo "WARNING: No audio streams found"
+  if [ -z "$audioStreamCount" ]; then
+    echo "WARNING: No audio streams found"
   elif [ "$audioStreamCount" = "1" ]; then
     # Set stream number to the only one found
     audioPrefferedStream=$($audioStreamArray[1])
@@ -336,6 +337,7 @@ audio_input_sample_rate () {
 ## get rid of 5.1(side)  it is annoying on a 7.1 setup even if it is technically extended stereo
 audio_channel_layout () {
   # Finds channel layout
+  # TODO: add $(audio_input_samplerate) function
   findChannelLayout=$(ffprobe -i $userInput 2>&1 | \
     grep -m 1 "Stream #0:$primaryAudioStream" | \
     awk -F ", " '/44100\ Hz/ { print $3 }')
@@ -369,6 +371,9 @@ audio_channel_layout () {
   # 33 = SDL - Surround Direct Right
   # 34 = SDR - Surround Direct Left
   # 35 = LFE2 - Low Frequency 2
+
+  # TODO: for 5.1 and others re-map 5.1(side) to 5.1(rear)
+  # TODO: 
 
   if [ -z $findChannelLayout ]; then
     echo "ERROR: could not detect audio channel layout"
