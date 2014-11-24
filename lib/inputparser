@@ -1,0 +1,81 @@
+#!/usr/bin/env sh
+
+arkhive () {
+  if [ -z "$1" ]; then
+      echo -e "${clR}ERROR: No arguments provided"
+      exit 1
+  else
+    # Parse Arguments
+    while [ "$1" ]; do
+      case "$1" in
+        -i|--input)
+          if [ -z "$2" ]; then
+            echo -e "${clR}ERROR: No input provided"
+            exit 1
+          elif [ -f "$2" ]; then
+            inputFileExt=${2##*.}
+            case "$inputFileExt" in
+              avi|f4v|flv|m2ts|m4v|mkv|mp4|mpeg|mpg|mov|ts|wmv)
+                userInput="$2"
+                shift
+                ;;
+              *)
+                printf "${clR}ERROR: Selected file is not a supported format!\n";
+                printf "${clY}Supported: avi,f4v,flv,m2ts,m4v,mkv,mp4,mpeg,mpg,mov,ts,wmv\n";
+                exit 1
+                ;;
+            esac
+          else
+            printf "${clR}ERROR: Input file does not exist\n"
+            exit 1
+          fi
+          ;;
+        -o|--output)
+          if [ -z "$2" ]; then
+            echo -e "${clR}ERROR: No output directory provided"
+            exit 1
+          elif [ ! -d "$2" ]; then
+            echo -e "${clR}ERROR: Output is not a directory"
+            exit 1
+          else
+            userOutput=$2
+            shift
+          fi
+          ;;
+        -t|--temp)
+          if [ -z "$2" ]; then
+            echo -e "${clR}ERROR: No temp directory provided"
+            exit 1
+          elif [ ! -d "$2" ]; then
+            echo -e "${clR}ERROR: Temp is not a directory"
+            exit 1
+          else
+            userTemp="$2"
+            shift
+          fi
+          ;;
+        -h|--help) eval "printf \"${HELP}\"";exit 1;;
+        -v|--version)
+          printf "ARKhive version: ${VERSION}\n\n";exit 1;;
+        -*) eval "printf \"${HELP}\"";printf "\n${clR}ERROR: Unknown option $1\n";exit 1;;
+        *)
+          if [ -n "${INPATH}" ]; then
+            eval "printf \"${HELP}\""
+            printf "\n${clR}ERROR: Unknown option $1\n";exit 1
+          elif [ ! -r "$1" ]; then
+            printf "${clR}ERROR: Unable to read $1\n";exit 1
+          else
+            INPATH="$1"
+          fi
+          ;;
+      esac
+      shift
+    done
+  fi
+  # Make sure user has provided input
+  if [ -z "$userInput" ]; then
+    eval "printf \"${HELP}\""
+    echo -e "${clR}ERROR: no input provided"
+    exit 1
+  fi
+}

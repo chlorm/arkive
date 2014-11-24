@@ -1,0 +1,54 @@
+#!/usr/bin/env sh
+
+## TODO: case for subtitle without language set
+## TODO: use for loop to find all english subs in file
+##      after finding subs look for plain text subs
+## TODO: parse vobsub2srt output and remove ERROR:... lines
+## TODO: add support for PGS subtitles
+##      if pgs use bdsup2sub to covert to sub/idx and then vobsub2srt
+
+subtitle_stream_selector () {
+
+  echo "TODO"
+
+}
+
+subtitle_stream_extractor () {
+
+  ## [find if video has subtitles]
+  hasSubtitles=$(\
+    ffprobe $userInput 2>&1 | \
+    awk '/Subtitle/ { print $2 }')
+
+  # No subtitles were found
+  if [ -f "$(input_directory)/$orginalFilename.srt" ]; then
+    cp "$(input_directory)/$orginalFilename.srt" "$(temp_directory)/$(filename).srt"}
+  elif [ -z "$hasSubtitles" ]; then
+    return 3
+  # Subtitles were found
+  else
+    # Finds first english subtitle stream]
+    subtitleStream=$(\
+      ffmpeg -i $userInput -f null - 2>&1 | \
+      grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | \
+      awk -F ":" '{print $2}' | tail -1)
+
+    if [ -z "subtitleStream" ]; then echo "no english subtitles found"; fi
+
+    mkvextract -q tracks $userInput $subtitleStream:temp_directory/filename 2>/dev/null
+    echo -e "       ${clC}Found English Subs, Stream: ${clP}$subtitleStream"
+
+    ## [check for and convert VobSub to SRT]
+    if [ -f "$tempFilePath/$fileName.idx" ]; then
+      echo "         Converting VobSub to SRT"
+      vobsub2srt $(temp_directory)/$(filename) &>/dev/null || \
+      { echo "WARNING: failed to convert vobsub to srt"; }; fi
+  fi
+
+}
+
+subtitle_srt_converter () {
+
+  echo "TODO"
+
+}
