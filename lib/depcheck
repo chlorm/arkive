@@ -1,1 +1,14 @@
 #!/usr/bin/env sh
+
+##[tests to see if a binary exists in the path]
+# Bash
+path_hasbin () {
+  [ "$#" -ne "1" ] && return 2
+  type $1 >/dev/null 2>&1
+}
+
+# ZSH
+path_hasbin () {
+  [ "$#" -ne "1" ] && return 2
+  whence -p $1 >/dev/null 2>&1
+}

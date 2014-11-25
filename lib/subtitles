@@ -33,7 +33,9 @@ subtitle_stream_extractor () {
       grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | \
       awk -F ":" '{print $2}' | tail -1)
 
-    if [ -z "subtitleStream" ]; then echo "no english subtitles found"; fi
+    if [ -z "subtitleStream" ]; then
+      echo "no english subtitles found"
+    fi
 
     mkvextract -q tracks $userInput $subtitleStream:temp_directory/filename 2>/dev/null
     echo -e "       ${clC}Found English Subs, Stream: ${clP}$subtitleStream"
@@ -42,7 +44,8 @@ subtitle_stream_extractor () {
     if [ -f "$tempFilePath/$fileName.idx" ]; then
       echo "         Converting VobSub to SRT"
       vobsub2srt $(temp_directory)/$(filename) &>/dev/null || \
-      { echo "WARNING: failed to convert vobsub to srt"; }; fi
+      { echo "WARNING: failed to convert vobsub to srt"; }
+    fi
   fi
 
 }

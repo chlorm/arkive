@@ -102,124 +102,124 @@ audio_channel_mapper () {
   # TODO: for 5.1 and others re-map 5.1(side) to 5.1(rear)
   # TODO: 
 
-  if [ -z $findChannelLayout ]; then
-    echo "ERROR: could not detect audio channel layout"
-    exit 1
-    # AV_CH_LAYOUT_MONO
-  elif [ $findChannelLayout = "mono" ]; then
-    audioChannels="1"
-    # AV_CH_LAYOUT_MONO
-    # FC
-  elif [ $findChannelLayout = "stereo" ]; then
-    audioChannels="2"
-    # AV_CH_LAYOUT_STEREO
-    # FL+FR
-  elif [ $findChannelLayout = "2.1" ]; then
-    audioChannels="3"
-    # AV_CH_LAYOUT_2POINT1
-    # FL+FR+LFE
-  elif [ $findChannelLayout = "3.0" ]; then
-    audioChannels="3"
-    # AV_CH_LAYOUT_SURROUND
-    # FL+FR+FC
-  elif [ $findChannelLayout = "3.0(back)" ]; then
-    audioChannels="3"
-    # AV_CH_LAYOUT_2_1
-    # FL+FR+BC
-  elif [ $findChannelLayout = "4.0" ]; then
-    audioChannels="4"
-    # AV_CH_LAYOUT_4POINT0
-    # FL+FR+FC+BC
-  elif [ $findChannelLayout = "quad" ]; then
-    audioChannels="4"
-    # AV_CH_LAYOUT_QUAD
-    # FL+FR+BL+BR
-  elif [ $findChannelLayout = "quad(side)" ]; then
-    audioChannels="2"
-    # AV_CH_LAYOUT_2_2
-    # FL+FR+SL+SR
-  elif [ $findChannelLayout = "3.1" ]; then
-    audioChannels="4"
-    # AV_CH_LAYOUT_3POINT1
-    # FL+FR+FC+LFE
-  elif [ $findChannelLayout = "4.1" ]; then
-    audioChannels="5"
-    # AV_CH_LAYOUT_4POINT1
-    # FL+FR+FC+LFE+BC
-  elif [ $findChannelLayout = "5.0" ]; then
-    audioChannels="5"
-    # AV_CH_LAYOUT_5POINT0_BACK
-    # FL+FR+FC+BL+BR
-  elif [ $findChannelLayout = "5.0(side)" ]; then
-    audioChannels="5"
-    # AV_CH_LAYOUT_5POINT0
-    # FL+FR+FC+SL+SR
-  elif [ $findChannelLayout = "5.1" ]; then
-    audioChannels="6"
-    # AV_CH_LAYOUT_5POINT1_BACK
-    # FL+FR+FC+LFE+BL+BR
-  elif [ $findChannelLayout = "5.1(side)" ]; then
-    audioChannels="6"
-    # AV_CH_LAYOUT_5POINT1
-    # FL+FR+FC+LFE+SL+SR
-  elif [ $findChannelLayout = "6.0" ]; then
-    audioChannels="6"
-    # AV_CH_LAYOUT_6POINT0
-    # FL+FR+FC+BC+SL+SR
-  elif [ $findChannelLayout = "6.0(front)" ]; then
-    audioChannels="6"
-    # AV_CH_LAYOUT_6POINT0_FRONT
-    # FL+FR+FLC+FRC+SL+SR
-  elif [ $findChannelLayout = "hexagonal" ]; then
-    audioChannels="6"
-    # AV_CH_LAYOUT_HEXAGONAL
-    # FL+FR+FC+BL+BR+BC
-  elif [ $findChannelLayout = "6.1" ]; then
-    audioChannels="7"
-    # AV_CH_LAYOUT_6POINT1
-    # FL+FR+FC+LFE+BC+SL+SR
-  elif [ $findChannelLayout = "6.1(back)" ]; then
-    audioChannels="7"
-    ## TODO: fix upstream
-    # actually 6.1, not 6.1(back), upstream typo
-    # AV_CH_LAYOUT_6POINT1_BACK
-    # FL+FR+FC+LFE+BL+BR+BC
-  elif [ $findChannelLayout = "6.1(front)" ]; then
-    audioChannels="7"
-    # AV_CH_LAYOUT_6POINT1_FRONT
-    # FL+FR+LFE+FLC+FRC+SL+SR
-  elif [ $findChannelLayout = "7.0" ]; then
-    audioChannels="7"
-    # AV_CH_LAYOUT_7POINT0
-    # FL+FR+FC+BL+BR+SL+SR
-  elif [ $findChannelLayout = "7.0(front)" ]; then
-    audioChannels="7"
-    # AV_CH_LAYOUT_7POINT0_FRONT
-    # FL+FR+FC+FLC+FRC+SL+SR
-  elif [ $findChannelLayout = "7.1" ]; then
-    audioChannels="8"
-    # AV_CH_LAYOUT_7POINT1
-    # FL+FR+FC+LFE+BL+BR+SL+SR
-  elif [ $findChannelLayout = "7.1(wide)" ]; then
-    audioChannels="8"
-    # AV_CH_LAYOUT_7POINT1_WIDE_BACK
-    # FL+FR+FC+LFE+BL+BR+FLC+FRC
-  elif [ $findChannelLayout = "7.1(wide-side)" ]; then
-    audioChannels="8"
-    # AV_CH_LAYOUT_7POINT1_WIDE
-    # FL+FR+FC+LFE+FLC+FRC+SL+SR
-  elif [ $findChannelLayout = "octagonal" ]; then
-    audioChannels="8"
-    # AV_CH_LAYOUT_OCTAGONAL
-    # FL+FR+FC+BL+BR+BC+SL+SR
-  elif [ $findChannelLayout = "downmix" ]; then
-    audioChannels="2"
-    # AV_CH_LAYOUT_STEREO_DOWNMIX
-    # DL+DR
-  else
-    echo "ERROR: Unsupported channel layout"
-    exit 1
-  fi
+  case "$findChannelLayout" in
+    '')
+      echo "ERROR: could not detect audio channel layout"
+      exit 1
+    'mono')
+      audioChannels="1"
+      # AV_CH_LAYOUT_MONO
+      # FC
+    'stereo')
+      audioChannels="2"
+      # AV_CH_LAYOUT_STEREO
+      # FL+FR
+    '2.1')
+      audioChannels="3"
+      # AV_CH_LAYOUT_2POINT1
+      # FL+FR+LFE
+    '3.0')
+      audioChannels="3"
+      # AV_CH_LAYOUT_SURROUND
+      # FL+FR+FC
+    '3.0(back)'
+      audioChannels="3"
+      # AV_CH_LAYOUT_2_1
+      # FL+FR+BC
+    '4.0')
+      audioChannels="4"
+      # AV_CH_LAYOUT_4POINT0
+      # FL+FR+FC+BC
+    'quad')
+      audioChannels="4"
+      # AV_CH_LAYOUT_QUAD
+      # FL+FR+BL+BR
+    'quad(side)')
+      audioChannels="2"
+      # AV_CH_LAYOUT_2_2
+      # FL+FR+SL+SR
+    '3.1')
+      audioChannels="4"
+      # AV_CH_LAYOUT_3POINT1
+      # FL+FR+FC+LFE
+    '4.1')
+      audioChannels="5"
+      # AV_CH_LAYOUT_4POINT1
+      # FL+FR+FC+LFE+BC
+    '5.0')
+      audioChannels="5"
+      # AV_CH_LAYOUT_5POINT0_BACK
+      # FL+FR+FC+BL+BR
+    '5.0(side)')
+      audioChannels="5"
+      # AV_CH_LAYOUT_5POINT0
+      # FL+FR+FC+SL+SR
+    '5.1')
+      audioChannels="6"
+      # AV_CH_LAYOUT_5POINT1_BACK
+      # FL+FR+FC+LFE+BL+BR
+    '5.1(side)')
+      audioChannels="6"
+      # AV_CH_LAYOUT_5POINT1
+      # FL+FR+FC+LFE+SL+SR
+    '6.0')
+      audioChannels="6"
+      # AV_CH_LAYOUT_6POINT0
+      # FL+FR+FC+BC+SL+SR
+    '6.0(front)')
+      audioChannels="6"
+      # AV_CH_LAYOUT_6POINT0_FRONT
+      # FL+FR+FLC+FRC+SL+SR
+    'hexagonal')
+      audioChannels="6"
+      # AV_CH_LAYOUT_HEXAGONAL
+      # FL+FR+FC+BL+BR+BC
+    '6.1')
+      audioChannels="7"
+      # AV_CH_LAYOUT_6POINT1
+      # FL+FR+FC+LFE+BC+SL+SR
+    '6.1(back)')
+      audioChannels="7"
+      ## TODO: fix upstream
+      # actually 6.1, not 6.1(back), upstream typo
+      # AV_CH_LAYOUT_6POINT1_BACK
+      # FL+FR+FC+LFE+BL+BR+BC
+    '6.1(front)')
+      audioChannels="7"
+      # AV_CH_LAYOUT_6POINT1_FRONT
+      # FL+FR+LFE+FLC+FRC+SL+SR
+    '7.0')
+      audioChannels="7"
+      # AV_CH_LAYOUT_7POINT0
+      # FL+FR+FC+BL+BR+SL+SR
+    '7.0(front)')
+      audioChannels="7"
+      # AV_CH_LAYOUT_7POINT0_FRONT
+      # FL+FR+FC+FLC+FRC+SL+SR
+    '7.1')
+      audioChannels="8"
+      # AV_CH_LAYOUT_7POINT1
+      # FL+FR+FC+LFE+BL+BR+SL+SR
+    '7.1(wide)')
+      audioChannels="8"
+      # AV_CH_LAYOUT_7POINT1_WIDE_BACK
+      # FL+FR+FC+LFE+BL+BR+FLC+FRC
+    '7.1(wide-side)')
+      audioChannels="8"
+      # AV_CH_LAYOUT_7POINT1_WIDE
+      # FL+FR+FC+LFE+FLC+FRC+SL+SR
+    'octagonal')
+      audioChannels="8"
+      # AV_CH_LAYOUT_OCTAGONAL
+      # FL+FR+FC+BL+BR+BC+SL+SR
+    'downmix')
+      audioChannels="2"
+      # AV_CH_LAYOUT_STEREO_DOWNMIX
+      # DL+DR
+    *)
+      echo "ERROR: Unsupported channel layout"
+      exit 1
+  esac
 }
 
 audio () {
