@@ -1,0 +1,43 @@
+#!/usr/bin/env sh
+
+
+#### FILENAME REGEX
+
+
+input_directory () {
+  # Input file directory
+  cd $(dirname $userInput)
+  pwd
+}
+
+output_directory () {
+  # Output directory
+  if [ -z "$userOutput" ]; then
+    input_directory
+  else
+    cd $userOutput
+    pwd
+  fi
+}
+
+temp_directory () {
+  # Temp directory
+  if [ -z "$userTemp" ]; then
+    input_directory
+  else
+    cd $userTemp
+    pwd
+  fi
+}
+
+filename () {
+  # Input filename w/ ext
+  fileName=$(basename "$userInput")
+
+  # Input filename w/o ext
+  fileName=$(echo "$fileName" | sed -r 's/\.[[:alnum:]]+$//')
+
+  # Add tag
+  arkMark="-ARK"
+  echo "$fileName$arkMark"
+}

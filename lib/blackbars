@@ -1,0 +1,44 @@
+#!/usr/bin/env sh
+
+black_bar_crop_detection () {
+  ## [several checks to accurately crop black-bars]
+  crop="1"
+  totalLoops="10"
+  ## [gather crop values]
+  A=0
+  while [ "$A" -lt "$totalLoops" ]; do
+    A="$(( $A + 1 ))"
+    skipSecs="$(( 120 * $A ))"
+    crop[$A]=$(\
+      ffmpeg -threads $(cpu_cores) -i $userInput -ss $skipSecs \
+      -t 1 -vf cropdetect -f null - 2>&1 | \
+      awk -F "=" '/crop/ { print $NF }' | tail -1)
+    echo -ne "\r       ${clC}crop detect ${clP}$A ${clC}of ${clP}10 ${clC}complete"
+  done
+  B=0
+  while [ "$B" -lt "$totalLoops" ]; do
+    B="$(( $B + 1 ))"
+    C=0
+    while [ "$C" -lt "$totalLoops" ]; do
+      C="$(( $C + 1 ))"
+      if [ "${crop[$B]}" == "${crop[$C]}" ]; then
+        countCrop[$B]="$(( ${countCrop[$B]} + 1 ))"
+      fi
+    done
+  done
+  ## [find greatest crop]
+  highestCount=0
+  D=0
+  while [ "$D" -lt "$totalLoops" ]; do
+    D="$(( $D + 1 ))"
+    if [ "${countCrop[$D]}" -gt "$highestCount" ]; then
+      highestCount="${countCrop[$D]}"
+      greatest="$D"
+    fi
+  done
+  ## [final crop value]
+  crop="${crop[$greatest]}"
+  ## [frame width from final crop value]
+  cropWidth=$(echo $crop | awk -F ":" '{print $1}')
+  echo -e "\n             Crop: ${clP}$crop"
+}

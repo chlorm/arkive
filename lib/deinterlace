@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+
+video_interlace_detection () {
+	echo "Not implemented yet"
+}

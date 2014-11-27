@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+
+cpu_cores () {
+  ## [cpu cores]
+  local cpuCores=$(awk '/^cpu\ cores/{print $4;exit}' /proc/cpuinfo)
+  if [ -z "$cpuCores" ]; then
+    echo -e "${clR}ERROR: Could not find # of cpu cores"
+    return 2
+  fi
+  echo "$cpuCores"
+}
+
+cpu_threads () {
+  ## [cpu threads]
+  local cpuThreads=$(grep -c ^processor /proc/cpuinfo)
+  if [ -z "$cpuCores" ]; then
+    echo -e "${clR}ERROR: Could not find # of cpu threads"
+    return 2
+  fi
+  echo "$cupThreads"
+}

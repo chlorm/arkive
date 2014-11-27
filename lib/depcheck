@@ -1,0 +1,38 @@
+#!/usr/bin/env sh
+
+##[tests to see if a binary exists in the path]
+# Bash
+path_hasbin () {
+  [ "$#" -ne "1" ] && return 2
+  type $1 >/dev/null 2>&1
+}
+
+dependency_check () {
+  # Optional dependencies
+    # Audio Codecs
+    if [ "$audioCodec" = "aac" ]; then
+      path_hasbin fdk-aac ???
+    fi
+    if [ "$audioCodec" = "ogg" ]; then
+      path_hasbin ogg ???
+    fi
+    if [ "$audioCodec" = "opus" ]; then
+      path_hasbin opus ???
+    fi
+    # Subtitle Conversion
+    if [ "$subtitlesConvertToSrt" = "auto" ]; then
+      path_hasbin vobsub2srt ???
+    fi
+  # Required dependencies
+    path_hasbin awk
+    path_hasbin cat
+    path_hasbin dirname
+    path_hasbin ffmpeg
+    path_hasbin grep
+    path_hasbin mkvextract
+    path_hasbin mkvmerge
+    path_hasbin pwd
+    path_hasbin rm
+    path_hasbin tail
+    path_hasbin x265
+}
