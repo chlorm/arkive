@@ -107,6 +107,7 @@ VERSION="3"
   #########
 
     arkhive_usage () {
+
       eval "printf \"\n\${clC}ARKhive version:\${clG} ${VERSION}
     \${clC}Automated video encoding according to Chlorm's ARK specifications.
 
@@ -116,6 +117,7 @@ VERSION="3"
         \$clG-t|--temp   \${clU}\${clP}DIRECTORY\$clD       - set temp directory\$clD
         \$clG-h|--help\$clD                   - print this message
         \$clG-v|--version\$clD                - print version\n\n\""
+
     }
 
   ################
@@ -124,71 +126,82 @@ VERSION="3"
 
     # Tests to see if a binary exists in the path
     path_hasbin () {
+
       [ "$#" -ne "1" ] && return 2
       type $1 >/dev/null 2>&1
+
     }
 
     # Optional dependencies
       # Audio codecs
       if [ "$audioCodec" = "aac" ]; then
-        path_hasbin fdk-aac ??? || { echo "ERROR: 'fdk-aac' is not installed"; exit 1; }
+        path_hasbin fdk-aac ??? || { echo "ERROR: 'fdk-aac' is not installed" ; exit 1 ; }
       fi
       if [ "$audioCodec" = "ogg" ]; then
-        path_hasbin ogg ??? || { echo "ERROR: 'ogg' is not installed"; exit 1; }
+        path_hasbin ogg ??? || { echo "ERROR: 'ogg' is not installed" ; exit 1 ; }
       fi
       if [ "$audioCodec" = "opus" ]; then
-        path_hasbin opus ??? || { echo "ERROR: 'opus' is not installed"; exit 1; }
+        path_hasbin opus ??? || { echo "ERROR: 'opus' is not installed" ; exit 1 ; }
       fi
       # Subtitle conversion
       if [ "$subtitlesConvertToSrt" = "auto" ]; then
-        path_hasbin vobsub2srt ??? || { echo "ERROR: 'vobsub2srt' is not installed"; exit 1; }
+        path_hasbin vobsub2srt ??? || { echo "ERROR: 'vobsub2srt' is not installed" ; exit 1 ; }
       fi
     # Required dependencies
-      path_hasbin awk || { echo "ERROR: 'awk' is not installed"; exit 1; }
-      path_hasbin cat || { echo "ERROR: 'cat' is not installed"; exit 1; }
-      path_hasbin dirname || { echo "ERROR: 'dirname' is not installed"; exit 1; }
-      path_hasbin ffmpeg || { echo "ERROR: 'ffmpeg' is not installed"; exit 1; }
-      path_hasbin grep || { echo "ERROR: 'grep' is not installed"; exit 1; }
-      path_hasbin mkvextract || { echo "ERROR: 'mkvextract' is not installed"; exit 1; }
-      path_hasbin mkvmerge || { echo "ERROR: 'mkvmerge' is not installed"; exit 1; }
-      path_hasbin pwd || { echo "ERROR: 'pwd' is not installed"; exit 1; }
-      path_hasbin rm || { echo "ERROR: 'rm' is not installed"; exit 1; }
-      path_hasbin tail || { echo "ERROR: 'tail' is not installed"; exit 1; }
-      path_hasbin x265 || { echo "ERROR: 'x265' is not installed"; exit 1; }
+      path_hasbin awk || { echo "ERROR: 'awk' is not installed" ; exit 1 ; }
+      path_hasbin cat || { echo "ERROR: 'cat' is not installed" ; exit 1 ; }
+      path_hasbin dirname || { echo "ERROR: 'dirname' is not installed" ; exit 1 ; }
+      path_hasbin ffmpeg || { echo "ERROR: 'ffmpeg' is not installed" ; exit 1 ; }
+      path_hasbin grep || { echo "ERROR: 'grep' is not installed" ; exit 1 ; }
+      path_hasbin mkvextract || { echo "ERROR: 'mkvextract' is not installed" ; exit 1 ; }
+      path_hasbin mkvmerge || { echo "ERROR: 'mkvmerge' is not installed" ; exit 1 ; }
+      path_hasbin pwd || { echo "ERROR: 'pwd' is not installed" ; exit 1 ; }
+      path_hasbin rm || { echo "ERROR: 'rm' is not installed" ; exit 1 ; }
+      path_hasbin tail || { echo "ERROR: 'tail' is not installed" ; exit 1 ; }
+      path_hasbin x265 || { echo "ERROR: 'x265' is not installed" ; exit 1 ; }
 
   ###############
   # PARSE INPUT #
   ###############
 
     if [ -z "$1" ]; then
-        echo -e "${clR}ERROR: No arguments provided"
-        exit 1
+      echo -e "${clR}ERROR: No arguments provided"
+      exit 1
     else
       # Parse Arguments
       while [ "$1" ]; do
+
         case "$1" in
+
           '-i'|'--input')
             if [ -z "$2" ]; then
               echo -e "${clR}ERROR: No input provided"
               exit 1
             elif [ -f "$2" ]; then
+
               inputFileExt=${2##*.}
+
               case "$inputFileExt" in
+
                 'avi'|'f4v'|'flv'|'m2ts'|'m4v'|'mkv'|'mp4'|'mpeg'|'mpg'|'mov'|'ts'|'wmv')
                   userInput="$2"
                   shift
                   ;;
+
                 *)
                   printf "${clR}ERROR: Selected file is not a supported format!\n";
                   printf "${clY}Supported: avi,f4v,flv,m2ts,m4v,mkv,mp4,mpeg,mpg,mov,ts,wmv\n";
                   exit 1
                   ;;
+
               esac
+
             else
               printf "${clR}ERROR: Input file does not exist\n"
               exit 1
             fi
             ;;
+
           '-o'|'--output')
             if [ -z "$2" ]; then
               echo -e "${clR}ERROR: No output directory provided"
@@ -201,6 +214,7 @@ VERSION="3"
               shift
             fi
             ;;
+
           '-t'|'--temp')
             if [ -z "$2" ]; then
               echo -e "${clR}ERROR: No temp directory provided"
@@ -213,10 +227,23 @@ VERSION="3"
               shift
             fi
             ;;
-          '-h'|'--help') eval "printf \"${HELP}\"";exit 1;;
+
+          '-h'|'--help')
+            eval "printf \"${HELP}\""
+            exit 1
+            ;;
+
           '-v'|'--version')
-            printf "ARKhive version: ${VERSION}\n\n";exit 1;;
-          -*) eval "printf \"${HELP}\"";printf "\n${clR}ERROR: Unknown option $1\n";exit 1;;
+            printf "ARKhive version: ${VERSION}\n\n"
+            exit 1
+            ;;
+
+          -*)
+            eval "printf \"${HELP}\""
+            printf "\n${clR}ERROR: Unknown option $1\n"
+            exit 1
+            ;;
+
           *)
             if [ -n "${INPATH}" ]; then
               eval "printf \"${HELP}\""
@@ -227,10 +254,13 @@ VERSION="3"
               INPATH="$1"
             fi
             ;;
+
         esac
         shift
+
       done
     fi
+
     # Confirm user has provided input
     if [ -z "$userInput" ]; then
       eval "printf \"${HELP}\""
@@ -258,7 +288,7 @@ VERSION="3"
 
       cpuThreads=$(grep -c ^processor /proc/cpuinfo)
 
-      if [ -z "$cpuCores" ]; then
+      if [ -z "$cpuThreads" ]; then
         cpuThreads="1"
       fi
 
@@ -271,32 +301,36 @@ VERSION="3"
   #################
 
     input_directory () {
-      # Input file directory
+
       cd $(dirname $userInput)
       pwd
+
     }
 
     output_directory () {
-      # Output directory
+
       if [ -z "$userOutput" ]; then
         input_directory
       else
         cd $userOutput
         pwd
       fi
+
     }
 
     temp_directory () {
-      # Temp directory
+
       if [ -z "$userTemp" ]; then
         input_directory
       else
         cd $userTemp
         pwd
       fi
+
     }
 
     filename () {
+
       # Input filename w/ ext
       fileName=$(basename "$userInput")
 
@@ -306,6 +340,7 @@ VERSION="3"
       # Add tag
       arkMark="-ARK"
       echo "$fileName$arkMark"
+
     }
 
   ############################
@@ -313,8 +348,10 @@ VERSION="3"
   ############################
 
     if [ "$hasChapters" = "true" ] && [ "$chaptersInclude" = "auto" ]; then
+
       chapter_stream_extractor () {
-        # Find chapters if any exist
+
+        # Determine if a chapter stream exists
         hasChapters=$(ffprobe -i $userInput 2>&1 | awk '/Chapter/ { print $2 }')
 
         # Videos has no chapters
@@ -329,7 +366,9 @@ VERSION="3"
             { echo "WARNING: Failed to extract chapters from source";\
               return 1; }
         fi
+
       }
+
     fi
 
   #############
@@ -337,6 +376,7 @@ VERSION="3"
   #############
 
     if [ "$hasSubtitles" = "true" ] && [ "$subtitlesInclude" ]; then
+
       ## TODO: case for subtitle without language set
       ## TODO: use for loop to find all english subs in file
       ##      after finding subs look for plain text subs
@@ -346,24 +386,15 @@ VERSION="3"
 
       subtitle_stream_selector () {
 
-        echo "TODO"
-
-      }
-
-      subtitle_stream_extractor () {
-
-        ## [find if video has subtitles]
+        # Determine if input has subtitles
         hasSubtitles=$(\
           ffprobe $userInput 2>&1 | \
           awk '/Subtitle/ { print $2 }')
 
-        # No subtitles were found
+        # Look for seperate subtitle file
         if [ -f "$(input_directory)/$orginalFilename.srt" ]; then
           cp "$(input_directory)/$orginalFilename.srt" "$(temp_directory)/$(filename).srt"}
-        elif [ -z "$hasSubtitles" ]; then
-          return 3
-        # Subtitles were found
-        else
+        elif [ -n "$hasSubtitles" ]; then
           # Finds first english subtitle stream]
           subtitleStream=$(\
             ffmpeg -i $userInput -f null - 2>&1 | \
@@ -371,21 +402,21 @@ VERSION="3"
             awk -F ":" '{print $2}' | tail -1)
 
           if [ -z "subtitleStream" ]; then
-            echo "no english subtitles found"
+            echo "No english subtitles found"
           fi
+        else
+          echo "No subtitles found"
+        fi
+
+      }
+
+      subtitle_stream_extractor () {
 
           mkvextract -q tracks $userInput $subtitleStream:temp_directory/filename 2>/dev/null
           echo -e "       ${clC}Found English Subs, Stream: ${clP}$subtitleStream"
 
-          ## [check for and convert VobSub to SRT]
-          if [ -f "$tempFilePath/$fileName.idx" ]; then
-            echo "         Converting VobSub to SRT"
-            vobsub2srt $(temp_directory)/$(filename) &>/dev/null || \
-            { echo "WARNING: failed to convert vobsub to srt"; }
-          fi
-        fi
-
       }
+
     fi
 
   ##############################
@@ -396,7 +427,12 @@ VERSION="3"
 
         subtitle_srt_converter () {
 
-          echo "TODO"
+          ## [check for and convert VobSub to SRT]
+          if [ -f "$tempFilePath/$fileName.idx" ]; then
+            echo "         Converting VobSub to SRT"
+            vobsub2srt $(temp_directory)/$(filename) &>/dev/null || \
+            { echo "WARNING: failed to convert vobsub to srt"; }
+          fi
 
         }
 
@@ -406,13 +442,13 @@ VERSION="3"
   # AUDIO STREAM SELECTOR #
   #########################
 
-    ## UNSUPPORTED: avi with multiple audio streams
-    ## CONTAINERS WITH NO LANGUAGE CODES: avi,m2ts,ts
+    # CONTAINERS WITH NO LANGUAGE CODES: avi,m2ts,ts
     audio_stream_selector () {
+
       # Add all streams with audio into an array
       # <There is a lot or trickery required to get the stream
-      #  number that is container specific, so 'or' statements were
-      #  added to work around this>
+      #  number that is container specific, so 'or' statements
+      #  were added to grep to work around this>
       audioStreamArray=($(\
         ffprobe -i test4.mp4 2>&1 | \
         grep "Audio:" | \
@@ -426,7 +462,7 @@ VERSION="3"
         echo "WARNING: No audio streams found"
       elif [ "$audioStreamCount" = "1" ]; then
         # Set stream number to the only one found
-        audioPrefferedStream=$($audioStreamArray[1])
+        audioPreferedStream=$($audioStreamArray[1])
 
       # Containers with: mkv,mp4
       # MP4 has two audio lines, only one with a stream section
@@ -458,26 +494,28 @@ VERSION="3"
       fi
 
       # 4 Fuck Bitches
+
     }
         
     audio_input_sample_rate () {
-      ffprobe -i $userInput 2>&1 | \
-        grep -m 1 "Stream #0:$primaryAudioStream" | \
+
+      ffprobe -i ${userInput} 2>&1 | \
+        grep -m 1 "Stream #0:${primaryAudioStream}" | \
         awk -F ", " '/Hz/ { print $2 }'
+
     }
 
   ########################
   # AUDIO CHANNEL MAPPER #
   ########################
 
-    ## TODO: add support to automatically remap surround-sound channels in a consistent manner
-    ## get rid of 5.1(side)  it is annoying on a 7.1 setup even if it is technically extended stereo
     audio_channel_mapper () {
+
       # Finds channel layout
       # TODO: add $(audio_input_samplerate) function
       findChannelLayout=$(ffprobe -i $userInput 2>&1 | \
         grep -m 1 "Stream #0:$primaryAudioStream" | \
-        awk -F ", " '/44100\ Hz/ { print $3 }')
+        awk -F ", " "/  $(audio_input_samplerate)\ Hz/ { print $3 }")
 
       # Determine channel layout for later use
       # https://github.com/FFmpeg/FFmpeg/blob/master/libavutil/channel_layout.c
@@ -510,126 +548,158 @@ VERSION="3"
       # 35 = LFE2 - Low Frequency 2
 
       # TODO: for 5.1 and others re-map 5.1(side) to 5.1(rear)
-      # TODO: 
+      # TODO: remap 7.1 -> 5.1
+    ## TODO: add support to automatically remap surround-sound channels in a consistent manner
+    ## get rid of 5.1(side)  it is annoying on a 7.1 setup even if it is technically extended stereo
 
       case "$findChannelLayout" in
         '')
-          echo "ERROR: could not detect audio channel layout"
+          echo "ERROR: could not detect input file's audio channel layout"
           exit 1
+          ;;
         'mono')
           audioChannels="1"
           # AV_CH_LAYOUT_MONO
           # FC
+          ;;
         'stereo')
           audioChannels="2"
           # AV_CH_LAYOUT_STEREO
           # FL+FR
+          ;;
         '2.1')
           audioChannels="3"
           # AV_CH_LAYOUT_2POINT1
           # FL+FR+LFE
+          ;;
         '3.0')
           audioChannels="3"
           # AV_CH_LAYOUT_SURROUND
           # FL+FR+FC
-        '3.0(back)'
+          ;;
+        '3.0(back)')
           audioChannels="3"
           # AV_CH_LAYOUT_2_1
           # FL+FR+BC
+          ;;
         '4.0')
           audioChannels="4"
           # AV_CH_LAYOUT_4POINT0
           # FL+FR+FC+BC
+          ;;
         'quad')
           audioChannels="4"
           # AV_CH_LAYOUT_QUAD
           # FL+FR+BL+BR
+          ;;
         'quad(side)')
           audioChannels="2"
           # AV_CH_LAYOUT_2_2
           # FL+FR+SL+SR
+          ;;
         '3.1')
           audioChannels="4"
           # AV_CH_LAYOUT_3POINT1
           # FL+FR+FC+LFE
+          ;;
         '4.1')
           audioChannels="5"
           # AV_CH_LAYOUT_4POINT1
           # FL+FR+FC+LFE+BC
+          ;;
         '5.0')
           audioChannels="5"
           # AV_CH_LAYOUT_5POINT0_BACK
           # FL+FR+FC+BL+BR
+          ;;
         '5.0(side)')
           audioChannels="5"
           # AV_CH_LAYOUT_5POINT0
           # FL+FR+FC+SL+SR
+          ;;
         '5.1')
           audioChannels="6"
           # AV_CH_LAYOUT_5POINT1_BACK
           # FL+FR+FC+LFE+BL+BR
+          ;;
         '5.1(side)')
           audioChannels="6"
           # AV_CH_LAYOUT_5POINT1
           # FL+FR+FC+LFE+SL+SR
+          ;;
         '6.0')
           audioChannels="6"
           # AV_CH_LAYOUT_6POINT0
           # FL+FR+FC+BC+SL+SR
+          ;;
         '6.0(front)')
           audioChannels="6"
           # AV_CH_LAYOUT_6POINT0_FRONT
           # FL+FR+FLC+FRC+SL+SR
+          ;;
         'hexagonal')
           audioChannels="6"
           # AV_CH_LAYOUT_HEXAGONAL
           # FL+FR+FC+BL+BR+BC
+          ;;
         '6.1')
           audioChannels="7"
           # AV_CH_LAYOUT_6POINT1
           # FL+FR+FC+LFE+BC+SL+SR
+          ;;
         '6.1(back)')
           audioChannels="7"
           ## TODO: fix upstream
           # actually 6.1, not 6.1(back), upstream typo
           # AV_CH_LAYOUT_6POINT1_BACK
           # FL+FR+FC+LFE+BL+BR+BC
+          ;;
         '6.1(front)')
           audioChannels="7"
           # AV_CH_LAYOUT_6POINT1_FRONT
           # FL+FR+LFE+FLC+FRC+SL+SR
+          ;;
         '7.0')
           audioChannels="7"
           # AV_CH_LAYOUT_7POINT0
           # FL+FR+FC+BL+BR+SL+SR
+          ;;
         '7.0(front)')
           audioChannels="7"
           # AV_CH_LAYOUT_7POINT0_FRONT
           # FL+FR+FC+FLC+FRC+SL+SR
+          ;;
         '7.1')
           audioChannels="8"
           # AV_CH_LAYOUT_7POINT1
           # FL+FR+FC+LFE+BL+BR+SL+SR
+          ;;
         '7.1(wide)')
           audioChannels="8"
           # AV_CH_LAYOUT_7POINT1_WIDE_BACK
           # FL+FR+FC+LFE+BL+BR+FLC+FRC
+          ;;
         '7.1(wide-side)')
           audioChannels="8"
           # AV_CH_LAYOUT_7POINT1_WIDE
           # FL+FR+FC+LFE+FLC+FRC+SL+SR
+          ;;
         'octagonal')
           audioChannels="8"
           # AV_CH_LAYOUT_OCTAGONAL
           # FL+FR+FC+BL+BR+BC+SL+SR
+          ;;
         'downmix')
           audioChannels="2"
           # AV_CH_LAYOUT_STEREO_DOWNMIX
           # DL+DR
+          ;;
         *)
           echo "ERROR: Unsupported channel layout"
           exit 1
+          ;;
       esac
+
     }
 
   #################
@@ -637,13 +707,17 @@ VERSION="3"
   #################
 
     audio () {
+
       audio_channel_layout
       # Bitrate per channel (set to 48kbps)
       audioBitrate=$(($audioChannels * 48))
       audioBitrateUnit="k"
       audioBitrate="$audioBitrate$audioBitrateUnit"
+
     }
+
     audio_encoder () {
+
       # Encode Audio
       ffmpeg \
       -i "$userInput" \
@@ -654,6 +728,7 @@ VERSION="3"
       -ar 48000 \
       -y $(temp_directory)/$(filename).aac || \
       { echo -e "${clR}ERROR: audio failed to encode" ; exit 0 ; }
+
     }
 
   ############################
@@ -661,7 +736,9 @@ VERSION="3"
   ############################
 
     if [ "$videoCropBlackbars" = "true" ]; then
+
       black_bar_crop_detection () {
+
         ## [several checks to accurately crop black-bars]
         crop="1"
         totalLoops="10"
@@ -702,7 +779,9 @@ VERSION="3"
         ## [frame width from final crop value]
         cropWidth=$(echo $crop | awk -F ":" '{print $1}')
         echo -e "\n             Crop: ${clP}$crop"
+
       }
+
     fi
 
   #############################
@@ -710,9 +789,13 @@ VERSION="3"
   #############################
 
     if [ "$videoDeinterlace" = "auto" ]; then
+
       video_interlace_detection () {
+
         echo "Not implemented yet"
+
       }
+
     fi
 
   #################
@@ -720,6 +803,7 @@ VERSION="3"
   #################
 
     video_encoder () {
+
       # Frames Per Second
       FPS="23.976023976"
       # Get Duration
@@ -812,7 +896,9 @@ VERSION="3"
 
         # Increment pass count
         PASS="$(( $PASS + 1 ))"
+
       done
+
     }
 
   #########
@@ -820,6 +906,7 @@ VERSION="3"
   #########
 
     muxer () {
+
       # mkvmerge
       # -o "$rar_variable-s.mkv"
       # "--default-track" "0:yes"
@@ -837,7 +924,7 @@ VERSION="3"
       # "--no-chapters" "(" "$rlsname_variable.mkv" ")"
       # "--track-order" "0:0,0:1,0:2" "--split" "parts:00:01:30-00:02:30"
 
-      ## [check for chaper file]
+      ## [check for chapter file]
       if [ -f "$(temp_directory)/$(filename).xml" ]; then
         muxChapters="--chapters $(temp_directory)/$(filename).xml"
       else
@@ -853,12 +940,13 @@ VERSION="3"
 
       ## TODO: find audio language and set videolanguage to audiolanguage
       mkvmerge \
-          -o $(output_directory)/$(filename).mkv \
-          --title $(filename) \
-          -A $(temp_directory)/$(filename).hvc \
-          $muxChapters \
-          $muxSubtitles \
-          $(temp_directory)/$(filename).aac
+        -o $(output_directory)/$(filename).mkv \
+        --title $(filename) \
+        -A $(temp_directory)/$(filename).hvc \
+        $muxChapters \
+        $muxSubtitles \
+        $(temp_directory)/$(filename).aac
+
     }
 
   ######################
@@ -867,25 +955,25 @@ VERSION="3"
 
     ## ffmpeg redirected output [nul]
 
-    ## [delete video]
+    # Delete temp video
     if [ -f "$(temp_directory)/$(filename).hvc" ]; then
       rm $(temp_directory)/$(filename).hvc
       echo "Removed $(filename).hvc"
     fi
 
-    ## [delete x265 multi-pass log]
+    # Delete temp x265 multi-pass log
     if [ -f "$(temp_directory)/$(filename).stats" ]; then
       rm $(temp_directory)/$(filename).stats
       echo "Removed $(filename).stats"
     fi
 
-    ## [delete audio]
+    # Delete temp audio file
     if [ -f "$(temp_directory)/$(filename).opus" ]; then
       rm $(temp_directory)/$(filename).aac
       echo "Removed $(filename).aac"
     fi
 
-    ## [delete subtitles]
+    # Delete temp audio file
     if [ -f "$(temp_directory)/$(filename).sub" ]; then
       rm $(temp_directory)/$(filename).sub
       echo "Removed $(filename).sub"
@@ -899,7 +987,7 @@ VERSION="3"
       echo "Removed $(filename).srt"
     fi
 
-    ## [delete chapter list]
+    # Delete temp chapter list
     if [ -f "$(temp_directory)/$(filename).xml" ]; then
       rm $(temp_directory)/$(filename).xml
       echo "Removed $(filename).xml"
