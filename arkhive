@@ -41,6 +41,15 @@ VERSION="3"
 
 # SUPPORTED INPUT CONTAINERS: avi,f4v,flv,m2ts,m4v,mkv,mov,mp4,mpeg,ts,wmv
 
+################################################################################
+############################# AUTO SETTING DETAILS #############################
+################################################################################
+
+# audioSampleRate
+#   uses 44100 khz for stereo and 48000 khz for 5.1 surround
+
+# audioChannelMaping
+#   remaps audio to stereo or 5.1 surround depending on input
 
 ################################################################################
 ################################### SETTINGS ###################################
@@ -59,7 +68,7 @@ VERSION="3"
     audioChannelBitrate="48" #kbps
     audioSampleRate="auto" #(44100,48000,82000,96000,192000,auto)
     audioBitsPerSample="16" #(8,16,24)
-    audioChannelMaping="2.0" #(2.0,4.0,5.1-rear,7.1,auto)
+    audioChannelMaping="auto" #(2.0,4.0,5.1-rear,7.1,auto)
 
   ############
   # CHAPTERS #
@@ -191,8 +200,8 @@ VERSION="3"
                   ;;
 
                 *)
-                  printf "${clR}ERROR: Selected file is not a supported format!\n";
-                  printf "${clY}Supported: avi,f4v,flv,m2ts,m4v,mkv,mp4,mpeg,mpg,mov,ts,wmv\n";
+                  printf "${clR}ERROR: Selected file is not a supported format!\n"
+                  printf "${clY}Supported: avi,f4v,flv,m2ts,m4v,mkv,mp4,mpeg,mpg,mov,ts,wmv\n"
                   exit 1
                   ;;
 
@@ -249,9 +258,11 @@ VERSION="3"
           *)
             if [ -n "${INPATH}" ]; then
               eval "printf \"${HELP}\""
-              printf "\n${clR}ERROR: Unknown option $1\n";exit 1
+              printf "\n${clR}ERROR: Unknown option $1\n"
+              exit 1
             elif [ ! -r "$1" ]; then
-              printf "${clR}ERROR: Unable to read $1\n";exit 1
+              printf "${clR}ERROR: Unable to read $1\n"
+              exit 1
             else
               INPATH="$1"
             fi
@@ -365,8 +376,7 @@ VERSION="3"
             chapters \
             --simple $userInput \
             --redirect-output $(temp_directory)/$(filename).xml || \
-            { echo "WARNING: Failed to extract chapters from source";\
-              return 1; }
+            { echo "WARNING: Failed to extract chapter stream" ; return 1 ; }
         fi
 
       }
@@ -555,151 +565,231 @@ VERSION="3"
     ## get rid of 5.1(side)  it is annoying on a 7.1 setup even if it is technically extended stereo
 
       case "$findChannelLayout" in
+
         '')
           echo "ERROR: could not detect input file's audio channel layout"
           exit 1
           ;;
+
         'mono')
-          audioChannels="1"
+          audioSourceChannels="1"
+          audioOutputChannels="2"
           # AV_CH_LAYOUT_MONO
           # FC
+          audioFilterComplex="[0:a][0:a]amerge[aout]"
+          audioMap="[aout]"
           ;;
+
         'stereo')
-          audioChannels="2"
+          audioSourceChannels="2"
+          audioOutputChannels="2"
           # AV_CH_LAYOUT_STEREO
           # FL+FR
+          audioMap="FL+FR -> FL+FR"
           ;;
+
         '2.1')
           audioChannels="3"
+          audioOutputChannels="2"
           # AV_CH_LAYOUT_2POINT1
           # FL+FR+LFE
+          audioMap="FL"
           ;;
+
         '3.0')
           audioChannels="3"
+          audioOutputChannels="2"
           # AV_CH_LAYOUT_SURROUND
           # FL+FR+FC
           ;;
+
         '3.0(back)')
+          # Remap to 5.1
           audioChannels="3"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_2_1
           # FL+FR+BC
           ;;
+
         '4.0')
           audioChannels="4"
+          audioOutputChannels="2"
           # AV_CH_LAYOUT_4POINT0
           # FL+FR+FC+BC
           ;;
+
         'quad')
+          # Remap to 5.1
           audioChannels="4"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_QUAD
           # FL+FR+BL+BR
           ;;
+
         'quad(side)')
           audioChannels="2"
+          audioOutputChannels="2"
           # AV_CH_LAYOUT_2_2
           # FL+FR+SL+SR
           ;;
+
         '3.1')
           audioChannels="4"
+          audioOutputChannels="2"
           # AV_CH_LAYOUT_3POINT1
           # FL+FR+FC+LFE
           ;;
+
         '4.1')
+          # Remap to 5.1
           audioChannels="5"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_4POINT1
           # FL+FR+FC+LFE+BC
           ;;
+
         '5.0')
+          # Remap to 5.1
           audioChannels="5"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_5POINT0_BACK
           # FL+FR+FC+BL+BR
           ;;
+
         '5.0(side)')
+          # Remap to 5.1
           audioChannels="5"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_5POINT0
           # FL+FR+FC+SL+SR
           ;;
+
         '5.1')
+          # Remap to 5.1
           audioChannels="6"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_5POINT1_BACK
           # FL+FR+FC+LFE+BL+BR
           ;;
+
         '5.1(side)')
+          # Remap to 5.1
           audioChannels="6"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_5POINT1
           # FL+FR+FC+LFE+SL+SR
           ;;
+
         '6.0')
+          # Remap to 5.1
           audioChannels="6"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_6POINT0
           # FL+FR+FC+BC+SL+SR
           ;;
+
         '6.0(front)')
+          # Remap to 5.1
           audioChannels="6"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_6POINT0_FRONT
           # FL+FR+FLC+FRC+SL+SR
           ;;
+
         'hexagonal')
+          # Remap to 5.1
           audioChannels="6"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_HEXAGONAL
           # FL+FR+FC+BL+BR+BC
           ;;
+
         '6.1')
+          # Remap to 5.1
           audioChannels="7"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_6POINT1
           # FL+FR+FC+LFE+BC+SL+SR
           ;;
+
         '6.1(back)')
+          # Remap to 5.1
           audioChannels="7"
+          audioOutputChannels="6"
           ## TODO: fix upstream
           # actually 6.1, not 6.1(back), upstream typo
           # AV_CH_LAYOUT_6POINT1_BACK
           # FL+FR+FC+LFE+BL+BR+BC
           ;;
+
         '6.1(front)')
+          # Remap to 5.1
           audioChannels="7"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_6POINT1_FRONT
           # FL+FR+LFE+FLC+FRC+SL+SR
           ;;
+
         '7.0')
+          # Remap to 5.1
           audioChannels="7"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_7POINT0
           # FL+FR+FC+BL+BR+SL+SR
           ;;
+
         '7.0(front)')
+          # Remap to 5.1
           audioChannels="7"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_7POINT0_FRONT
           # FL+FR+FC+FLC+FRC+SL+SR
           ;;
+
         '7.1')
+          # Remap to 5.1
           audioChannels="8"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_7POINT1
           # FL+FR+FC+LFE+BL+BR+SL+SR
           ;;
+
         '7.1(wide)')
+          # Remap to 5.1
           audioChannels="8"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_7POINT1_WIDE_BACK
           # FL+FR+FC+LFE+BL+BR+FLC+FRC
           ;;
+
         '7.1(wide-side)')
+          # Remap to 5.1
           audioChannels="8"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_7POINT1_WIDE
           # FL+FR+FC+LFE+FLC+FRC+SL+SR
           ;;
+
         'octagonal')
+          # Remap to 5.1
           audioChannels="8"
+          audioOutputChannels="6"
           # AV_CH_LAYOUT_OCTAGONAL
           # FL+FR+FC+BL+BR+BC+SL+SR
           ;;
+
         'downmix')
           audioChannels="2"
+          audioOutputChannels="2" # ???
           # AV_CH_LAYOUT_STEREO_DOWNMIX
           # DL+DR
           ;;
+
         *)
           echo "ERROR: Unsupported channel layout"
           exit 1
           ;;
+
       esac
 
     }
@@ -711,8 +801,7 @@ VERSION="3"
     audio () {
 
       audio_channel_layout
-      # Bitrate per channel (set to 48kbps)
-      audioBitrate=$(($audioChannels * 48))
+      audioBitrate=$(($audioChannels * $audioChannelBitrate))
       audioBitrateUnit="k"
       audioBitrate="$audioBitrate$audioBitrateUnit"
 
@@ -729,7 +818,7 @@ VERSION="3"
       -b:a $audioBitrate \
       -ar 48000 \
       -y $(temp_directory)/$(filename).aac || \
-      { echo -e "${clR}ERROR: audio failed to encode" ; exit 0 ; }
+      { echo -e "${clR}ERROR: audio failed to encode" ; exit 1 ; }
 
     }
 
@@ -885,7 +974,7 @@ VERSION="3"
           --hash=2 \
           -f 0 \
           -o "$(temp_directory)/$(filename).hvc" - || \
-          { echo "ERROR: video encoding failed";exit 0; }
+          { echo "ERROR: video encoding failed" ; exit 0 ; }
 
         # Finished encoding
         if [ $PASS == $passes ]; then
