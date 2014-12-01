@@ -42,7 +42,7 @@ VERSION="3"
 # SUPPORTED INPUT CONTAINERS: avi,f4v,flv,m2ts,m4v,mkv,mov,mp4,mpg,mpeg,ts,webm,wmv
 
 ################################################################################
-############################# AUTO SETTING DETAILS #####################################################################
+############################# AUTO SETTING DETAILS #############################
 ################################################################################
 
 # audioSampleRate
@@ -1049,44 +1049,44 @@ VERSION="3"
       fi
     }
 
+  #####################
+  # EXECUTE FUNCTIONS #
+  #####################
 
+  run_arkhive () {
 
+    if [ "$hasSubtitles" = "true" ] && [ "$subtitlesInclude" ]; then
+      subtitle_stream_selector
+      subtitle_stream_extractor
+    fi
 
+    if [ "subtitlesNotSrt" = "true" ] && [ "$subtitlesConvertToSrt" = "auto" ]; then
+      subtitle_srt_converter
+    fi
 
-run_arkhive () {
+    if [ "$hasChapters" = "true" ] && [ "$chaptersInclude" = "auto" ]; then
+      $(chapter_stream_extractor)
+    fi
 
-  if [ "$hasSubtitles" = "true" ] && [ "$subtitlesInclude" ]; then
-    subtitle_stream_selector
-    subtitle_stream_extractor
-  fi
+    $(audio_encode)
 
-  if [ "subtitlesNotSrt" = "true" ] && [ "$subtitlesConvertToSrt" = "auto" ]; then
-    subtitle_srt_converter
-  fi
+    $(video_encode)
 
-  if [ "$hasChapters" = "true" ] && [ "$chaptersInclude" = "auto" ]; then
-    $(chapter_stream_extractor)
-  fi
+    $(mux_streams)
 
-  $(audio_encode)
-
-  $(video_encode)
-
-  $(mux_streams)
-
-  ## ffmpeg redirected output [nul]
-  ## pgs subtitles
-  $(cleanup_temp_file) $(filename).hvc
-  $(cleanup_temp_file) $(filename).stats
-  $(cleanup_temp_file) $(filename).${audioCodec}
-  $(cleanup_temp_file) $(filename).sub
-  $(cleanup_temp_file) $(filename).idx
-  $(cleanup_temp_file) $(filename).srt
-  $(cleanup_temp_file) $(filename).xml
-}
-
-
-
+    ## ffmpeg redirected output [nul]
+    ## pgs subtitles
+    $(cleanup_temp_file) $(filename).hvc
+    $(cleanup_temp_file) $(filename).stats
+    $(cleanup_temp_file) $(filename).${audioCodec}
+    $(cleanup_temp_file) $(filename).sub
+    $(cleanup_temp_file) $(filename).idx
+    $(cleanup_temp_file) $(filename).srt
+    $(cleanup_temp_file) $(filename).xml
+  }
+########################################################################################################################
+##################################################### RUN ARKHIVE ######################################################
+########################################################################################################################
 
 if [ -d "$userInput" ]; then
   find . -type f \( \
@@ -1104,7 +1104,10 @@ if [ -d "$userInput" ]; then
     -o -name "*.webm" \
     -o -name "*.wmv" \
   \) -print0 | \
-  while read -d $'\0' file; do \
+  while read -d $'\0' inputFile; do \
     $(run_arkhive) \
   done
+elif [ -f "$userInput" ]; then
+  inputFile="$userInput"
+  $(run_arkhive)
 fi
