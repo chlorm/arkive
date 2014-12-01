@@ -39,7 +39,7 @@ VERSION="3"
 # RETURN CODES
 # 2 - Cpu detection error
 
-# SUPPORTED INPUT CONTAINERS: avi,f4v,flv,m2ts,m4v,mkv,mov,mp4,mpeg,ts,wmv
+# SUPPORTED INPUT CONTAINERS: avi,f4v,flv,m2ts,m4v,mkv,mov,mp4,mpg,mpeg,ts,webm,wmv
 
 ################################################################################
 ############################# AUTO SETTING DETAILS #############################
@@ -57,7 +57,7 @@ VERSION="3"
 
   containerFormat="mkv" #(mkv,mp4)
 
-  languageDefault="eng" # ISO xxxx
+  languageDefault="eng" # ISO 639-2
 
   #########
   # AUDIO #
@@ -93,6 +93,7 @@ VERSION="3"
     videoResolution="auto" #(480p,720p,1080p,4k,auto)
     videoCropBlackbars="auto" #(no,auto)
     videoDeinterlace="auto" #(no.auto)
+    videoEncodingPasses="2" #(1,2,3)
 
 ################################################################################
 ################################### ARKHIVE ####################################
@@ -189,7 +190,6 @@ VERSION="3"
               echo -e "${clR}ERROR: No input provided"
               exit 1
             elif [ -f "$2" ]; then
-
               inputFileExt=${2##*.}
 
               case "$inputFileExt" in
@@ -206,7 +206,9 @@ VERSION="3"
                   ;;
 
               esac
-
+            elif [ -d "$2" ]; then
+              userInput="$2"
+              shift
             else
               printf "${clR}ERROR: Input file does not exist\n"
               exit 1
@@ -439,11 +441,11 @@ VERSION="3"
 
         subtitle_srt_converter () {
 
-          ## [check for and convert VobSub to SRT]
+          # Check for VobSub and convert to SRT]
           if [ -f "$tempFilePath/$fileName.idx" ]; then
             echo "         Converting VobSub to SRT"
             vobsub2srt $(temp_directory)/$(filename) &>/dev/null || \
-            { echo "WARNING: failed to convert vobsub to srt"; }
+            { echo "WARNING: failed to convert vobsub to srt" ; return 1 ; }
           fi
 
         }
@@ -836,6 +838,7 @@ VERSION="3"
         ## [gather crop values]
         A=0
         while [ "$A" -lt "$totalLoops" ]; do
+
           A="$(( $A + 1 ))"
           skipSecs="$(( 120 * $A ))"
           crop[$A]=$(\
@@ -843,27 +846,36 @@ VERSION="3"
             -t 1 -vf cropdetect -f null - 2>&1 | \
             awk -F "=" '/crop/ { print $NF }' | tail -1)
           echo -ne "\r       ${clC}crop detect ${clP}$A ${clC}of ${clP}10 ${clC}complete"
+
         done
+
         B=0
         while [ "$B" -lt "$totalLoops" ]; do
+
           B="$(( $B + 1 ))"
           C=0
           while [ "$C" -lt "$totalLoops" ]; do
+
             C="$(( $C + 1 ))"
             if [ "${crop[$B]}" == "${crop[$C]}" ]; then
               countCrop[$B]="$(( ${countCrop[$B]} + 1 ))"
             fi
+
           done
+
         done
+
         ## [find greatest crop]
         highestCount=0
         D=0
         while [ "$D" -lt "$totalLoops" ]; do
+
           D="$(( $D + 1 ))"
           if [ "${countCrop[$D]}" -gt "$highestCount" ]; then
             highestCount="${countCrop[$D]}"
             greatest="$D"
           fi
+
         done
         ## [final crop value]
         crop="${crop[$greatest]}"
@@ -906,15 +918,12 @@ VERSION="3"
       totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
       echo "Estimated total frames: $totalFrames"
 
-      # Number of encoding passes
-      passes="2"
-
       # Initial pass number, DO NOT CHANGE VALUE
       PASS="1"
 
-      while [ $PASS -le $passes ]; do
+      while [ "$videoEncodingPass" -le "$videoEncodingPasses" ]; do
 
-        echo -e "${clC}Encoding Pass: ${clP}$PASS ${clC}of ${clP}$passes${clD}"
+        echo -e "${clC}Encoding Pass: ${clP}$videoEncodingPass ${clC}of ${clP}$videoEncodingPasses${clD}"
 
         ## [ffmpeg piped to x265]
         ## TODO: determine if crop height or width are odd numbers and if so
@@ -956,7 +965,7 @@ VERSION="3"
           --vbv-bufsize=31250 \
           --vbv-maxrate=31250 \
           --no-slow-firstpass \
-          --pass=$PASS \
+          --pass=$videoEncodingPass \
           --keyint=250 \
           --min-keyint=23 \
           --rc-lookahead=60 \
@@ -974,10 +983,10 @@ VERSION="3"
           --hash=2 \
           -f 0 \
           -o "$(temp_directory)/$(filename).hvc" - || \
-          { echo "ERROR: video encoding failed" ; exit 0 ; }
+          { echo "ERROR: video encoding failed" ; exit 1 ; }
 
         # Finished encoding
-        if [ $PASS == $passes ]; then
+        if [ "$videoEncodingPass" == "$videoEncodingPasses" ]; then
           echo
           echo "Encoding complete"
         # Not finised encoding
@@ -1045,41 +1054,73 @@ VERSION="3"
   ######################
 
     ## ffmpeg redirected output [nul]
+    ## pgs subtitles
 
     # Delete temp video
     if [ -f "$(temp_directory)/$(filename).hvc" ]; then
-      rm $(temp_directory)/$(filename).hvc
+      rm $(temp_directory)/$(filename).hvc || \
+      { echo "WARNING: Failed to remove $(filename).hvc" ; return 1 ; }
       echo "Removed $(filename).hvc"
     fi
 
     # Delete temp x265 multi-pass log
     if [ -f "$(temp_directory)/$(filename).stats" ]; then
-      rm $(temp_directory)/$(filename).stats
+      rm $(temp_directory)/$(filename).stats || \
+      { echo "WARNING: Failed to remove $(filename).stats" ; return 1 ; }
       echo "Removed $(filename).stats"
     fi
 
     # Delete temp audio file
-    if [ -f "$(temp_directory)/$(filename).opus" ]; then
-      rm $(temp_directory)/$(filename).aac
+    if [ -f "$(temp_directory)/$(filename).${audioCodec}" ]; then
+      rm $(temp_directory)/$(filename).${audioCodec} || \
+      { echo "WARNING: Failed to remove $(filename).${audioCodec}" ; return 1 ; }
       echo "Removed $(filename).aac"
     fi
 
     # Delete temp audio file
     if [ -f "$(temp_directory)/$(filename).sub" ]; then
-      rm $(temp_directory)/$(filename).sub
+      rm $(temp_directory)/$(filename).sub || \
+      { echo "WARNING: Failed to remove $(filename).sub" ; return 1 ; }
       echo "Removed $(filename).sub"
     fi
     if [ -f "$(temp_directory)/$(filename).idx" ]; then
-      rm $(temp_directory)/$(filename).idx
+      rm $(temp_directory)/$(filename).idx || \
+      { echo "WARNING: Failed to remove $(filename).idx" ; return 1 ; }
       echo "Removed $(filename).idx"
     fi
     if [ -f "$(temp_directory)/$(filename).srt" ]; then
-      rm $(temp_directory)/$(filename).srt
+      rm $(temp_directory)/$(filename).srt || \
+      { echo "WARNING: Failed to remove $(filename).srt" ; return 1 ; }
       echo "Removed $(filename).srt"
     fi
 
     # Delete temp chapter list
     if [ -f "$(temp_directory)/$(filename).xml" ]; then
-      rm $(temp_directory)/$(filename).xml
+      rm $(temp_directory)/$(filename).xml || \
+      { echo "WARNING: Failed to remove $(filename).xml" ; return 1 ; }
       echo "Removed $(filename).xml"
     fi
+
+
+
+
+if [ -d "$userInput" ]; then
+  find . -type f \( \
+    -name "*.avi" \
+    -o -name "*.f4v" \
+    -o -name "*.flv" \
+    -o -name "*.m2ts" \
+    -o -name "*.m4v" \
+    -o -name "*.mkv" \
+    -o -name "*.mov" \
+    -o -name "*.mp4" \
+    -o -name "*.mpeg" \
+    -o -name "*.mpg" \
+    -o -name "*.ts" \
+    -o -name "*.webm" \
+    -o -name "*.wmv" \
+  \) -print0 | \
+  while read -d $'\0' file; do \
+    $(run_arkhive) \
+  done
+fi
