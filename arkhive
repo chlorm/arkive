@@ -362,95 +362,83 @@ VERSION="3"
   # CHAPTER STREAM EXTRACTOR #
   ############################
 
-    if [ "$hasChapters" = "true" ] && [ "$chaptersInclude" = "auto" ]; then
+    chapter_stream_extractor () {
 
-      chapter_stream_extractor () {
+      # Determine if a chapter stream exists
+      hasChapters=$(ffprobe -i $userInput 2>&1 | awk '/Chapter/ { print $2 }')
 
-        # Determine if a chapter stream exists
-        hasChapters=$(ffprobe -i $userInput 2>&1 | awk '/Chapter/ { print $2 }')
+      # Videos has no chapters
+      if [ -z "${hasChapters}" ]; then
+        echo "No chapter stream found"
+      # Video has chapters
+      else
+        mkvextract \
+          chapters \
+          --simple $userInput \
+          --redirect-output $(temp_directory)/$(filename).xml || \
+          { echo "WARNING: Failed to extract chapter stream" ; return 1 ; }
+      fi
 
-        # Videos has no chapters
-        if [ -z "$hasChapters" ]; then
-          echo "Video has no chapters"
-        # Video has chapters
-        else
-          mkvextract \
-            chapters \
-            --simple $userInput \
-            --redirect-output $(temp_directory)/$(filename).xml || \
-            { echo "WARNING: Failed to extract chapter stream" ; return 1 ; }
-        fi
-
-      }
-
-    fi
+    }
 
   #############
   # SUBTITLES #
   #############
 
-    if [ "$hasSubtitles" = "true" ] && [ "$subtitlesInclude" ]; then
+    ## TODO: case for subtitle without language set
+    ## TODO: use for loop to find all english subs in file
+    ##      after finding subs look for plain text subs
+    ## TODO: parse vobsub2srt output and remove ERROR:... lines
+    ## TODO: add support for PGS subtitles
+    ##      if pgs use bdsup2sub to covert to sub/idx and then vobsub2srt
 
-      ## TODO: case for subtitle without language set
-      ## TODO: use for loop to find all english subs in file
-      ##      after finding subs look for plain text subs
-      ## TODO: parse vobsub2srt output and remove ERROR:... lines
-      ## TODO: add support for PGS subtitles
-      ##      if pgs use bdsup2sub to covert to sub/idx and then vobsub2srt
+    subtitle_stream_selector () {
 
-      subtitle_stream_selector () {
+      # Determine if input has subtitles
+      hasSubtitles=$(\
+        ffprobe $userInput 2>&1 | \
+        awk '/Subtitle/ { print $2 }')
 
-        # Determine if input has subtitles
-        hasSubtitles=$(\
-          ffprobe $userInput 2>&1 | \
-          awk '/Subtitle/ { print $2 }')
+      # Look for seperate subtitle file
+      if [ -f "$(input_directory)/${orginalFilename}.srt" ]; then
+        cp "$(input_directory)/${orginalFilename}.srt" "$(temp_directory)/$(filename).srt"}
+      elif [ -n "$hasSubtitles" ]; then
+        # Finds first english subtitle stream]
+        subtitleStream=$(\
+          ffmpeg -i ${userInput} -f null - 2>&1 | \
+          grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | \
+          awk -F ":" '{print $2}' | tail -1)
 
-        # Look for seperate subtitle file
-        if [ -f "$(input_directory)/$orginalFilename.srt" ]; then
-          cp "$(input_directory)/$orginalFilename.srt" "$(temp_directory)/$(filename).srt"}
-        elif [ -n "$hasSubtitles" ]; then
-          # Finds first english subtitle stream]
-          subtitleStream=$(\
-            ffmpeg -i $userInput -f null - 2>&1 | \
-            grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | \
-            awk -F ":" '{print $2}' | tail -1)
-
-          if [ -z "subtitleStream" ]; then
-            echo "No english subtitles found"
-          fi
-        else
-          echo "No subtitles found"
+        if [ -z "${subtitleStream}" ]; then
+          echo "No english subtitles found"
         fi
+      else
+        echo "No subtitle stream found"
+      fi
 
-      }
+    }
 
-      subtitle_stream_extractor () {
+    subtitle_stream_extractor () {
 
-          mkvextract -q tracks $userInput $subtitleStream:temp_directory/filename 2>/dev/null
-          echo -e "       ${clC}Found English Subs, Stream: ${clP}$subtitleStream"
+        mkvextract -q tracks ${userInput} ${subtitleStream}:$(temp_directory)/$(filename) 2>/dev/null
+        echo -e "       ${clC}Found '${languageDefault}' Subs, Stream: ${clP}$subtitleStream"
 
-      }
-
-    fi
+    }
 
   ##############################
   # SUBTITLE CONVERSION TO SRT #
   ##############################
 
-    if [ "subtitlesNotSrt" = "true" ] && [ "$subtitlesConvertToSrt" = "auto" ]; then
+    subtitle_srt_converter () {
 
-        subtitle_srt_converter () {
+      # Check for VobSub and convert to SRT]
+      if [ -f "$tempFilePath/$fileName.idx" ]; then
+        echo "         Converting VobSub to SRT"
+        vobsub2srt $(temp_directory)/$(filename) &>/dev/null || \
+        { echo "WARNING: failed to convert vobsub to srt" ; return 1 ; }
+      fi
 
-          # Check for VobSub and convert to SRT]
-          if [ -f "$tempFilePath/$fileName.idx" ]; then
-            echo "         Converting VobSub to SRT"
-            vobsub2srt $(temp_directory)/$(filename) &>/dev/null || \
-            { echo "WARNING: failed to convert vobsub to srt" ; return 1 ; }
-          fi
-
-        }
-
-    fi
+    }
 
   #########################
   # AUDIO STREAM SELECTOR #
@@ -809,7 +797,7 @@ VERSION="3"
 
     }
 
-    audio_encoder () {
+    audio_encode () {
 
       # Encode Audio
       ffmpeg \
@@ -905,7 +893,7 @@ VERSION="3"
   # VIDEO ENCODER #
   #################
 
-    video_encoder () {
+    video_encode () {
 
       # Frames Per Second
       FPS="23.976023976"
@@ -1005,7 +993,7 @@ VERSION="3"
   # MUXER #
   #########
 
-    muxer () {
+    mux_streams () {
 
       # mkvmerge
       # -o "$rar_variable-s.mkv"
@@ -1053,53 +1041,49 @@ VERSION="3"
   # CLEANUP TEMP FILES #
   ######################
 
-    ## ffmpeg redirected output [nul]
-    ## pgs subtitles
+    cleanup_temp_file () {
+      if [ -f "$(temp_directory)/${1}" ]; then
+        rm $(temp_directory)/${1} || \
+        { echo "WARNING: failed to remove temp file: ${1}" ; return 1 ; }
+        echo "Removed temp file: ${1}"
+      fi
+    }
 
-    # Delete temp video
-    if [ -f "$(temp_directory)/$(filename).hvc" ]; then
-      rm $(temp_directory)/$(filename).hvc || \
-      { echo "WARNING: Failed to remove $(filename).hvc" ; return 1 ; }
-      echo "Removed $(filename).hvc"
-    fi
 
-    # Delete temp x265 multi-pass log
-    if [ -f "$(temp_directory)/$(filename).stats" ]; then
-      rm $(temp_directory)/$(filename).stats || \
-      { echo "WARNING: Failed to remove $(filename).stats" ; return 1 ; }
-      echo "Removed $(filename).stats"
-    fi
 
-    # Delete temp audio file
-    if [ -f "$(temp_directory)/$(filename).${audioCodec}" ]; then
-      rm $(temp_directory)/$(filename).${audioCodec} || \
-      { echo "WARNING: Failed to remove $(filename).${audioCodec}" ; return 1 ; }
-      echo "Removed $(filename).aac"
-    fi
 
-    # Delete temp audio file
-    if [ -f "$(temp_directory)/$(filename).sub" ]; then
-      rm $(temp_directory)/$(filename).sub || \
-      { echo "WARNING: Failed to remove $(filename).sub" ; return 1 ; }
-      echo "Removed $(filename).sub"
-    fi
-    if [ -f "$(temp_directory)/$(filename).idx" ]; then
-      rm $(temp_directory)/$(filename).idx || \
-      { echo "WARNING: Failed to remove $(filename).idx" ; return 1 ; }
-      echo "Removed $(filename).idx"
-    fi
-    if [ -f "$(temp_directory)/$(filename).srt" ]; then
-      rm $(temp_directory)/$(filename).srt || \
-      { echo "WARNING: Failed to remove $(filename).srt" ; return 1 ; }
-      echo "Removed $(filename).srt"
-    fi
 
-    # Delete temp chapter list
-    if [ -f "$(temp_directory)/$(filename).xml" ]; then
-      rm $(temp_directory)/$(filename).xml || \
-      { echo "WARNING: Failed to remove $(filename).xml" ; return 1 ; }
-      echo "Removed $(filename).xml"
-    fi
+run_arkhive () {
+
+  if [ "$hasSubtitles" = "true" ] && [ "$subtitlesInclude" ]; then
+    subtitle_stream_selector
+    subtitle_stream_extractor
+  fi
+
+  if [ "subtitlesNotSrt" = "true" ] && [ "$subtitlesConvertToSrt" = "auto" ]; then
+    subtitle_srt_converter
+  fi
+
+  if [ "$hasChapters" = "true" ] && [ "$chaptersInclude" = "auto" ]; then
+    $(chapter_stream_extractor)
+  fi
+
+  $(audio_encode)
+
+  $(video_encode)
+
+  $(mux_streams)
+
+  ## ffmpeg redirected output [nul]
+  ## pgs subtitles
+  $(cleanup_temp_file) $(filename).hvc
+  $(cleanup_temp_file) $(filename).stats
+  $(cleanup_temp_file) $(filename).${audioCodec}
+  $(cleanup_temp_file) $(filename).sub
+  $(cleanup_temp_file) $(filename).idx
+  $(cleanup_temp_file) $(filename).srt
+  $(cleanup_temp_file) $(filename).xml
+}
 
 
 
