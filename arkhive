@@ -20,7 +20,7 @@
 ##      opus
 ##      VobSub2SRT
 ##      x265 >=1.3.x
-##      Obviously: awk, bash, cat, dirname, grep, pwd, tail, rm
+##      Obviously: awk, bash, dirname, grep, pwd, tail, rm
 ##    Legend:
 ##      () - option
 ##      [] - description
@@ -64,7 +64,7 @@ VERSION="3"
   #########
 
     # ac3 and similar formats not supported due to channel count limitations
-    audioCodec="aac" #(aac,flac,ogg,opus)
+    audioCodec="ac3" #(aac,ac3,flac,ogg,opus)
     audioChannelBitrate="48" #kbps
     audioSampleRate="auto" #(44100,48000,82000,96000,192000,auto)
     audioBitsPerSample="16" #(8,16,24)
@@ -144,26 +144,22 @@ VERSION="3"
 
     }
 
+    ffmpeg_compile_option () {
+      hasLib=$(ffmpeg 2>&1 | grep "enable-${1}")
+      if [ -z "$hasLib" ]; then
+        echo "ERROR: FFmpeg not compiled with: '${1}'"
+        exit 1
+      fi
+    }
+
     # Optional dependencies
-      # Audio codecs
-      if [ "$audioCodec" = "aac" ]; then
-        path_hasbin fdk-aac ??? || { echo "ERROR: 'fdk-aac' is not installed" ; exit 1 ; }
-      fi
-      if [ "$audioCodec" = "ogg" ]; then
-        path_hasbin ogg ??? || { echo "ERROR: 'ogg' is not installed" ; exit 1 ; }
-      fi
-      if [ "$audioCodec" = "opus" ]; then
-        path_hasbin opus ??? || { echo "ERROR: 'opus' is not installed" ; exit 1 ; }
-      fi
       # Subtitle conversion
       if [ "$subtitlesConvertToSrt" = "auto" ]; then
-        path_hasbin vobsub2srt ??? || { echo "ERROR: 'vobsub2srt' is not installed" ; exit 1 ; }
+        path_hasbin vobsub2srt || { echo "ERROR: 'vobsub2srt' is not installed" ; exit 1 ; }
       fi
     # Required dependencies
       path_hasbin awk || { echo "ERROR: 'awk' is not installed" ; exit 1 ; }
-      path_hasbin cat || { echo "ERROR: 'cat' is not installed" ; exit 1 ; }
       path_hasbin dirname || { echo "ERROR: 'dirname' is not installed" ; exit 1 ; }
-      path_hasbin ffmpeg || { echo "ERROR: 'ffmpeg' is not installed" ; exit 1 ; }
       path_hasbin grep || { echo "ERROR: 'grep' is not installed" ; exit 1 ; }
       path_hasbin mkvextract || { echo "ERROR: 'mkvextract' is not installed" ; exit 1 ; }
       path_hasbin mkvmerge || { echo "ERROR: 'mkvmerge' is not installed" ; exit 1 ; }
@@ -171,6 +167,12 @@ VERSION="3"
       path_hasbin rm || { echo "ERROR: 'rm' is not installed" ; exit 1 ; }
       path_hasbin tail || { echo "ERROR: 'tail' is not installed" ; exit 1 ; }
       path_hasbin x265 || { echo "ERROR: 'x265' is not installed" ; exit 1 ; }
+      path_hasbin ffmpeg || { echo "ERROR: 'ffmpeg' is not installed" ; exit 1 ; }
+      ffmpeg_compile_option aften
+      ffmpeg_compile_option fdk-aac
+      ffmpeg_compile_option libopus
+      ffmpeg_compile_option libvorbis
+      ffmpeg_compile_option yuv4mpeg
 
   ###############
   # PARSE INPUT #
@@ -317,7 +319,7 @@ VERSION="3"
 
     input_directory () {
 
-      cd $(dirname $userInput)
+      cd $(dirname ${inputFile})
       pwd
 
     }
@@ -347,7 +349,7 @@ VERSION="3"
     filename () {
 
       # Input filename w/ ext
-      fileName=$(basename "$userInput")
+      fileName=$(basename "$inputFile")
 
       # Input filename w/o ext
       fileName=$(echo "$fileName" | sed -r 's/\.[[:alnum:]]+$//')
@@ -364,20 +366,11 @@ VERSION="3"
 
     chapter_stream_extractor () {
 
-      # Determine if a chapter stream exists
-      hasChapters=$(ffprobe -i $userInput 2>&1 | awk '/Chapter/ { print $2 }')
-
-      # Videos has no chapters
-      if [ -z "${hasChapters}" ]; then
-        echo "No chapter stream found"
-      # Video has chapters
-      else
         mkvextract \
           chapters \
-          --simple $userInput \
+          --simple $inputFile \
           --redirect-output $(temp_directory)/$(filename).xml || \
           { echo "WARNING: Failed to extract chapter stream" ; return 1 ; }
-      fi
 
     }
 
@@ -393,11 +386,6 @@ VERSION="3"
     ##      if pgs use bdsup2sub to covert to sub/idx and then vobsub2srt
 
     subtitle_stream_selector () {
-
-      # Determine if input has subtitles
-      hasSubtitles=$(\
-        ffprobe $userInput 2>&1 | \
-        awk '/Subtitle/ { print $2 }')
 
       # Look for seperate subtitle file
       if [ -f "$(input_directory)/${orginalFilename}.srt" ]; then
@@ -1055,25 +1043,48 @@ VERSION="3"
 
   run_arkhive () {
 
-    if [ "$hasSubtitles" = "true" ] && [ "$subtitlesInclude" ]; then
-      subtitle_stream_selector
-      subtitle_stream_extractor
+    # Find full path to the directory containing the input file
+    input_directory ${inputFile}
+
+    # SUBTITLES
+    if [ "$subtitlesInclude" == "auto" ]; then
+      # Determine if input has subtitles
+      hasSubtitles=$(\
+        ffprobe $userInput 2>&1 | \
+        awk '/Subtitle/ { print $2 }')
+      if [ -n "$hasSubtitles" ]; then
+        subtitle_stream_selector
+        subtitle_stream_extractor
+      fi
+      if [ "$subtitlesConvertToSrt" = "auto" ]; then
+        #
+        # TODO: test here for non-srt subtitles
+        #
+        if  [ "subtitlesNotSrt" = "true" ]; then
+          subtitle_srt_converter
+        fi
+      fi
     fi
 
-    if [ "subtitlesNotSrt" = "true" ] && [ "$subtitlesConvertToSrt" = "auto" ]; then
-      subtitle_srt_converter
+    # CHAPTERS
+    if [ "$chaptersInclude" == "auto" ]; then
+      # Determine if a chapter stream exists
+      hasChapters=$(ffprobe -i $userInput 2>&1 | awk '/Chapter/ { print $2 }')
+      if [ -n "$hasChapters" ]; then
+        $(chapter_stream_extractor)
+      fi
     fi
 
-    if [ "$hasChapters" = "true" ] && [ "$chaptersInclude" = "auto" ]; then
-      $(chapter_stream_extractor)
-    fi
-
+    # AUDIO
     $(audio_encode)
 
+    # VIDEO
     $(video_encode)
 
+    # MUX OUTPUT STREAMS
     $(mux_streams)
 
+    # CLEANUP TEMP FILES
     ## ffmpeg redirected output [nul]
     ## pgs subtitles
     $(cleanup_temp_file) $(filename).hvc
