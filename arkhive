@@ -14,13 +14,18 @@
 ## License: The MIT License - http://opensource.org/licenses/MIT
 ## Comments:
 ##    Dependencies:
+##      bash
+##      coreutils (cp, basename, dirname, pwd, rm, tail)
 ##      fdkaac
-##      ffmpeg[encode,ffprobe,fdkaac,threads] >=2.3.x
-##      mkvtoolnix[mkvextract,mkvmerge]
-##      opus
+##  ??? findutils
+##      ffmpeg (libfdkaac, libopus, libvorbis, threads) >=2.3.x
+##      gawk
+##      grep
+##      mkvtoolnix (mkvextract, mkvmerge)
+##      libopus
+##      libvorbis
 ##      VobSub2SRT
 ##      x265 >=1.3.x
-##      Obviously: awk, bash, dirname, grep, pwd, tail, rm
 ##    Legend:
 ##      () - option
 ##      [] - description
@@ -43,16 +48,16 @@ VERSION="3"
 
 # Dolby atmos not supported, only outputs stereo or 5.1 surround
 
-containerFormat="mkv" #(mkv,mp4)
+containerFormat="mkv" #(mkv,mp4) # Only mkv is supported currently
 # Prefered Language
 languageDefault="eng" # ISO 639-2
 # Audio Config
-audioCodec="ac3"          #(aac,ac3,flac,ogg,opus)
+audioCodec="ac3"            #(aac,ac3,flac,ogg,opus)
 audioChannelBitrate="48"
 audioChannelBitrateUnit="k" #(k,m) ???
-audioSampleRate="auto"    #(44100,48000,82000,96000,192000,auto)
-audioBitsPerSample="16"   #(8,16,24)
-audioChannelMaping="auto" #(2.0,4.0,5.1-rear,7.1,auto)
+audioSampleRate="auto"      #(44100,48000,82000,96000,192000,auto)
+audioBitsPerSample="16"     #(8,16,24)
+audioChannelMaping="auto"   #(2.0,4.0,5.1-rear,7.1,auto)
 # Chapters
 chaptersInclude="auto" #(no,auto)
 # Subtitle Config
@@ -61,7 +66,7 @@ subtitlesForced="no"         #(no,auto)
 subtitlesConvertToSrt="auto" #(no,auto)
 # Video Config
 videoBitrate="500"        #kbps
-videoFrameRate="23.976"
+videoFrameRate="24000/1001"
 videoResolution="auto"    #(480p,720p,1080p,4k,auto)
 videoCropBlackbars="auto" #(no,auto)
 videoDeinterlace="auto"   #(no.auto)
@@ -302,17 +307,27 @@ temp_directory () {
 
 }
 
-filename_handler () {
+filename_orginal () {
 
   # Input filename w/ ext
-  filenameFull=$(basename "$inputFile")
+  basename "$inputFile"
+
+}
+
+filename_base () {
 
   # Input filename w/o ext
-  filenameBase=$(echo "$filenameFull" | sed -r 's/\.[[:alnum:]]+$//')
+  filename_orginal | sed -r 's/\.[[:alnum:]]+$//'
+
+}
+
+filename_handler () {
+
+  # TODO: eventually this should handle more parsing, but for now, fuck it, ship it
 
   # Add tag
   arkMark="-ARK"
-  echo "$filenameBase$arkMark"
+  echo "$(filename_base)$arkMark"
 
 }
 
@@ -320,7 +335,7 @@ chapter_stream_extractor () {
 
     mkvextract \
       chapters \
-      --simple $inputFile \
+      --simple ${inputFile} \
       --redirect-output $(temp_directory)/$(filename).xml || \
       { echo "WARNING: Failed to extract chapter stream" ; return 1 ; }
 
@@ -441,6 +456,16 @@ audio_input_sample_rate () {
 
 }
 
+audio_sample_rate () {
+
+  if [ "$audioOutputChannels" == "2" ]; then
+    echo "44100"
+  elif [ "$audioOutputChannels" == "6" ]; then
+    echo "48000"
+  fi
+
+}
+
 audio_channel_mapper () {
 
   findChannelLayout=$(ffprobe -i ${inputFile} 2>&1 | \
@@ -489,6 +514,7 @@ audio_channel_mapper () {
       # AV_CH_LAYOUT_MONO
       # FC
       audioFilterComplex="[0:a][0:a]amerge[aout]"
+      # "pan="stereo| c0=FL | c1=FR"
       audioMap="[aout]"
       ;;
 
@@ -706,6 +732,30 @@ audio_channel_mapper () {
 
 }
 
+audio_codec () {
+
+  case "$audioCodec" in
+
+    'aac')
+      echo "libfdk_aac"
+      ;;
+
+    'ac3')
+      echo "ac3"
+      ;;
+
+    'ogg')
+      echo "libvorbis"
+      ;;
+
+    'opus')
+      echo "libopus"
+      ;;
+
+  esac
+
+}
+
 audio_encode () {
 
   # TODO: add audio channel mapping to the encoding
@@ -716,11 +766,11 @@ audio_encode () {
   # Encode Audio
   ffmpeg \
   -i "${inputFile}" \
-  -c:a libfdk_aac \
+  -c:a $(audio_codec) \
   -map 0:"${audioSelectedStream}" \
-  -ac "${audioNumChannel}" \
+  -ac "${audioOutputChannels}" \
   -b:a "${audioStreamBitrate}" \
-  -ar "${audioSampleRate}" \
+  -ar $(audio_sample_rate) \
   -y $(temp_directory)/$(filename).aac || \
   { echo -e "${clR}ERROR: Failed to encode audio" ; exit 1 ; }
 
@@ -738,7 +788,7 @@ black_bar_crop_detection () {
     A="$(( $A + 1 ))"
     skipSecs="$(( 120 * $A ))"
     crop[$A]=$(\
-      ffmpeg -threads $(cpu_cores) -i $userInput -ss $skipSecs \
+      ffmpeg -threads $(cpu_cores) -i $inputFile -ss $skipSecs \
       -t 1 -vf cropdetect -f null - 2>&1 | \
       awk -F "=" '/crop/ { print $NF }' | tail -1)
     echo -ne "\r       ${clC}crop detect ${clP}$A ${clC}of ${clP}10 ${clC}complete"
@@ -792,7 +842,7 @@ video_encode () {
   # Frames Per Second
   FPS="23.976023976"
   # Get Duration
-  totalLength=$(ffprobe "$userInput" 2>&1 | sed -n "s/.* Duration: \([^,]*\), .*/\1/p")
+  totalLength=$(ffprobe "$inputFile" 2>&1 | sed -n "s/.* Duration: \([^,]*\), .*/\1/p")
   HRS=$(echo $totalLength | cut -d":" -f1)
   MIN=$(echo $totalLength | cut -d":" -f2)
   SEC=$(echo $totalLength | cut -d":" -f3)
@@ -813,16 +863,16 @@ video_encode () {
     ## TODO: make ffmpeg output to $fileName.ffmpeg
     ffmpeg \
       -threads $(cpu_threads) \
-      -i "$userInput" \
-      -vf "crop=$crop,scale=$cropWidth:trunc(ow/a/2)*2" \
-      -r 24000/1001 \
+      -i "$inputFile" \
+      -vf "crop=${crop},scale=${cropWidth}:trunc(ow/a/2)*2" \
+      -r ${videoFrameRate} \
       -pix_fmt yuv420p \
       -f yuv4mpegpipe - 2> nul | \
     x265 \
       --y4m \
-      --stats=$tempFilePath/$fileName.stats \
+      --stats=$(temp_directory)/$(filename_handler).stats \
       --threads=$(cpu_cores) \
-      --frame-threads=$cpuCores \
+      --frame-threads=$(cpu_cores) \
       --wpp \
       --ctu=64 \
       --no-cutree \
@@ -842,12 +892,12 @@ video_encode () {
       --b-intra \
       --weightb \
       --weightp \
-      --bitrate=1024 \
+      --bitrate=${videoBitrate} \
       --vbv-init=0.9 \
       --vbv-bufsize=31250 \
       --vbv-maxrate=31250 \
       --no-slow-firstpass \
-      --pass=$videoEncodingPass \
+      --pass=${videoEncodingPass} \
       --keyint=250 \
       --min-keyint=23 \
       --rc-lookahead=60 \
@@ -921,9 +971,9 @@ mux_streams () {
     -o $(output_directory)/$(filename).mkv \
     --title $(filename) \
     -A $(temp_directory)/$(filename).hvc \
-    $muxChapters \
-    $muxSubtitles \
-    $(temp_directory)/$(filename).aac
+    ${muxChapters} \
+    ${muxSubtitles} \
+    $(temp_directory)/$(filename).${audioCodec}
 
 }
 
@@ -942,7 +992,6 @@ run_arkhive () {
   # Find full path to the directory containing the input file
   input_directory ${inputFile}
 
-  # SUBTITLES
   if [ "$subtitlesInclude" == "auto" ]; then
     # Determine if input has subtitles
     hasSubtitles=$(\
@@ -952,17 +1001,16 @@ run_arkhive () {
       subtitle_stream_selector
       subtitle_stream_extractor
     fi
-    if [ "$subtitlesConvertToSrt" = "auto" ]; then
+    if [ "$subtitlesConvertToSrt" == "auto" ]; then
       #
       # TODO: test here for non-srt subtitles
       #
-      if  [ "subtitlesNotSrt" = "true" ]; then
+      if  [ "subtitlesNotSrt" == "true" ]; then
         subtitle_srt_converter
       fi
     fi
   fi
 
-  # CHAPTERS
   if [ "$chaptersInclude" == "auto" ]; then
     # Determine if a chapter stream exists
     hasChapters=$(ffprobe -i $userInput 2>&1 | awk '/Chapter/ { print $2 }')
@@ -977,7 +1025,7 @@ run_arkhive () {
 
   audio_encode
 
-  if [ "$videoCropBlackbars" = "true" ]; then
+  if [ "$videoCropBlackbars" == "auto" ]; then
     black_bar_crop_detection
   fi
 
@@ -992,13 +1040,13 @@ run_arkhive () {
   # CLEANUP TEMP FILES
     ## ffmpeg redirected output [nul]
     ## pgs subtitles
-  cleanup_temp_file filename_handler.hvc
-  cleanup_temp_file filename_handler.stats
-  cleanup_temp_file filename_handler.${audioCodec}
-  cleanup_temp_file filename_handler.sub
-  cleanup_temp_file filename_handler.idx
-  cleanup_temp_file filename_handler.srt
-  cleanup_temp_file filename_handler.xml
+  cleanup_temp_file $(filename_handler).hvc
+  cleanup_temp_file $(filename_handler).stats
+  cleanup_temp_file $(filename_handler).${audioCodec}
+  cleanup_temp_file $(filename_handler).sub
+  cleanup_temp_file $(filename_handler).idx
+  cleanup_temp_file $(filename_handler).srt
+  cleanup_temp_file $(filename_handler).xml
 }
 
 if [ -d "$userInput" ]; then
