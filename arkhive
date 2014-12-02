@@ -41,1066 +41,968 @@ VERSION="3"
 
 # SUPPORTED INPUT CONTAINERS: avi,f4v,flv,m2ts,m4v,mkv,mov,mp4,mpg,mpeg,ts,webm,wmv
 
-################################################################################
-############################# AUTO SETTING DETAILS #############################
-################################################################################
+# Dolby atmos not supported, only outputs stereo or 5.1 surround
 
-# audioSampleRate
-#   uses 44100 khz for stereo and 48000 khz for 5.1 surround
+containerFormat="mkv" #(mkv,mp4)
+# Prefered Language
+languageDefault="eng" # ISO 639-2
+# Audio Config
+audioCodec="ac3"          #(aac,ac3,flac,ogg,opus)
+audioChannelBitrate="48"
+audioChannelBitrateUnit="k" #(k,m) ???
+audioSampleRate="auto"    #(44100,48000,82000,96000,192000,auto)
+audioBitsPerSample="16"   #(8,16,24)
+audioChannelMaping="auto" #(2.0,4.0,5.1-rear,7.1,auto)
+# Chapters
+chaptersInclude="auto" #(no,auto)
+# Subtitle Config
+subtitlesInclude="auto"      #(no,auto)
+subtitlesForced="no"         #(no,auto)
+subtitlesConvertToSrt="auto" #(no,auto)
+# Video Config
+videoBitrate="500"        #kbps
+videoFrameRate="23.976"
+videoResolution="auto"    #(480p,720p,1080p,4k,auto)
+videoCropBlackbars="auto" #(no,auto)
+videoDeinterlace="auto"   #(no.auto)
+videoEncodingPasses="2"   #(1,2,3)
 
-# audioChannelMaping
-#   remaps audio to stereo or 5.1 surround depending on input
+# Terminal Colors
+clR="\033[1;31m"  # Red
+clG="\033[1;32m"  # Green
+clW="\033[1;37m"  # White
+clP="\033[1;35m"  # Purple
+clGa="\033[0;30m" # Gray
+clC="\033[0;36m"  # Cyan (light blue)
+clY="\033[0;33m"  # Yellow
+clU="\033[0;4m"   # Underline
+clD="\033[0;0m"   # default
 
-################################################################################
-################################### SETTINGS ###################################
-################################################################################
+arkhive_usage () {
 
-  containerFormat="mkv" #(mkv,mp4)
+  eval "printf \"\n\${clC}ARKhive version:\${clG} ${VERSION}
+\${clC}Automated video encoding according to Chlorm's ARK specifications.
 
-  languageDefault="eng" # ISO 639-2
+Usage: \${clD}arkhive [\${clU}\${clP}OPTIONS\$clD] \${clU}\${clP}FILE\$clD [\${clU}\${clP}OPTIONS\$clD]\$clD
+    \$clG-i|--input  \${clU}\${clP}FILE\$clD          \$clY*\$clD - set input file\$clD
+    \$clG-o|--output \${clU}\${clP}DIRECTORY\$clD       - set output directory\$clD
+    \$clG-t|--temp   \${clU}\${clP}DIRECTORY\$clD       - set temp directory\$clD
+    \$clG-h|--help\$clD                   - print this message
+    \$clG-v|--version\$clD                - print version\n\n\""
 
-  #########
-  # AUDIO #
-  #########
+}
 
-    # ac3 and similar formats not supported due to channel count limitations
-    audioCodec="ac3" #(aac,ac3,flac,ogg,opus)
-    audioChannelBitrate="48" #kbps
-    audioSampleRate="auto" #(44100,48000,82000,96000,192000,auto)
-    audioBitsPerSample="16" #(8,16,24)
-    audioChannelMaping="auto" #(2.0,4.0,5.1-rear,7.1,auto)
+# Tests to see if a binary exists in the path
+path_hasbin () {
 
-  ############
-  # CHAPTERS #
-  ############
+  [ "$#" -ne "1" ] && return 2
+  type $1 >/dev/null 2>&1
 
-    chaptersInclude="auto" #(no,auto)
+}
 
-  #############
-  # SUBTITLES #
-  #############
+# Check for ffmpeg compile flag
+ffmpeg_compile_option () {
 
-    subtitlesInclude="auto" #(no,auto)
-    subtitlesForced="no" #(no,auto)
-    subtitlesConvertToSrt="auto" #(no,auto)
+  hasFFmpegLib=$(ffmpeg 2>&1 | grep "enable-${1}")
+  if [ -z "$hasFFmpegLib" ]; then
+    echo "ERROR: FFmpeg not compiled with: '${1}'"
+    exit 1
+  fi
 
-  #########
-  # VIDEO #
-  #########
+}
 
-    videoBitrate="500" #kbps
-    videoFrameRate="23.976"
-    videoResolution="auto" #(480p,720p,1080p,4k,auto)
-    videoCropBlackbars="auto" #(no,auto)
-    videoDeinterlace="auto" #(no.auto)
-    videoEncodingPasses="2" #(1,2,3)
+# Dependencies
+if [ "$subtitlesConvertToSrt" = "auto" ]; then
+  path_hasbin vobsub2srt || { echo "ERROR: 'vobsub2srt' is not installed" ; exit 1 ; }
+fi
+path_hasbin awk || { echo "ERROR: 'awk' is not installed" ; exit 1 ; }
+path_hasbin dirname || { echo "ERROR: 'dirname' is not installed" ; exit 1 ; }
+path_hasbin grep || { echo "ERROR: 'grep' is not installed" ; exit 1 ; }
+if [ "$containerFormat" == "mkv" ]; then
+  path_hasbin mkvextract || { echo "ERROR: 'mkvextract' is not installed" ; exit 1 ; }
+  path_hasbin mkvmerge || { echo "ERROR: 'mkvmerge' is not installed" ; exit 1 ; }
+fi
+path_hasbin pwd || { echo "ERROR: 'pwd' is not installed" ; exit 1 ; }
+path_hasbin rm || { echo "ERROR: 'rm' is not installed" ; exit 1 ; }
+path_hasbin tail || { echo "ERROR: 'tail' is not installed" ; exit 1 ; }
+path_hasbin x265 || { echo "ERROR: 'x265' is not installed" ; exit 1 ; }
+path_hasbin ffmpeg || { echo "ERROR: 'ffmpeg' is not installed" ; exit 1 ; }
+if [ "$audioCodec" == "ac3" ]; then
+  ffmpeg_compile_option aften
+fi
+if [ "$audioCodec" == "aac" ]; then
+  ffmpeg_compile_option fdk-aac
+fi
+if [ "$audioCodec" == "opus" ]; then
+  ffmpeg_compile_option libopus
+fi
+if [ "$audioCodec" == "ogg" ]; then
+  ffmpeg_compile_option libvorbis
+fi
+ffmpeg_compile_option yuv4mpeg
 
-################################################################################
-################################### ARKHIVE ####################################
-################################################################################
+# Check for input
+if [ -z "$1" ]; then
+  echo -e "${clR}ERROR: No arguments provided"
+  exit 1
+else
+  # Parse Arguments
+  while [ "$1" ]; do
 
-  ###################
-  # TERMINAL COLORS #
-  ###################
+    case "$1" in
 
-    # Colors
-    clR="\033[1;31m"  # Red
-    clG="\033[1;32m"  # Green
-    clW="\033[1;37m"  # White
-    clP="\033[1;35m"  # Purple
-    clGa="\033[0;30m" # Gray
-    clC="\033[0;36m"  # Cyan (light blue)
-    clY="\033[0;33m"  # Yellow
-    clU="\033[0;4m"   # Underline
-    clD="\033[0;0m"   # default
+      '-i'|'--input')
+        if [ -z "$2" ]; then
+          echo -e "${clR}ERROR: No input provided"
+          exit 1
+        elif [ -f "$2" ]; then
+          inputFileExt=${2##*.}
 
-  #########
-  # USAGE #
-  #########
+          case "$inputFileExt" in
 
-    arkhive_usage () {
-
-      eval "printf \"\n\${clC}ARKhive version:\${clG} ${VERSION}
-    \${clC}Automated video encoding according to Chlorm's ARK specifications.
-
-    Usage: \${clD}arkhive [\${clU}\${clP}OPTIONS\$clD] \${clU}\${clP}FILE\$clD [\${clU}\${clP}OPTIONS\$clD]\$clD
-        \$clG-i|--input  \${clU}\${clP}FILE\$clD          \$clY*\$clD - set input file\$clD
-        \$clG-o|--output \${clU}\${clP}DIRECTORY\$clD       - set output directory\$clD
-        \$clG-t|--temp   \${clU}\${clP}DIRECTORY\$clD       - set temp directory\$clD
-        \$clG-h|--help\$clD                   - print this message
-        \$clG-v|--version\$clD                - print version\n\n\""
-
-    }
-
-  ################
-  # DEPENDENCIES #
-  ################
-
-    # Tests to see if a binary exists in the path
-    path_hasbin () {
-
-      [ "$#" -ne "1" ] && return 2
-      type $1 >/dev/null 2>&1
-
-    }
-
-    ffmpeg_compile_option () {
-      hasLib=$(ffmpeg 2>&1 | grep "enable-${1}")
-      if [ -z "$hasLib" ]; then
-        echo "ERROR: FFmpeg not compiled with: '${1}'"
-        exit 1
-      fi
-    }
-
-    # Optional dependencies
-      # Subtitle conversion
-      if [ "$subtitlesConvertToSrt" = "auto" ]; then
-        path_hasbin vobsub2srt || { echo "ERROR: 'vobsub2srt' is not installed" ; exit 1 ; }
-      fi
-    # Required dependencies
-      path_hasbin awk || { echo "ERROR: 'awk' is not installed" ; exit 1 ; }
-      path_hasbin dirname || { echo "ERROR: 'dirname' is not installed" ; exit 1 ; }
-      path_hasbin grep || { echo "ERROR: 'grep' is not installed" ; exit 1 ; }
-      path_hasbin mkvextract || { echo "ERROR: 'mkvextract' is not installed" ; exit 1 ; }
-      path_hasbin mkvmerge || { echo "ERROR: 'mkvmerge' is not installed" ; exit 1 ; }
-      path_hasbin pwd || { echo "ERROR: 'pwd' is not installed" ; exit 1 ; }
-      path_hasbin rm || { echo "ERROR: 'rm' is not installed" ; exit 1 ; }
-      path_hasbin tail || { echo "ERROR: 'tail' is not installed" ; exit 1 ; }
-      path_hasbin x265 || { echo "ERROR: 'x265' is not installed" ; exit 1 ; }
-      path_hasbin ffmpeg || { echo "ERROR: 'ffmpeg' is not installed" ; exit 1 ; }
-      ffmpeg_compile_option aften
-      ffmpeg_compile_option fdk-aac
-      ffmpeg_compile_option libopus
-      ffmpeg_compile_option libvorbis
-      ffmpeg_compile_option yuv4mpeg
-
-  ###############
-  # PARSE INPUT #
-  ###############
-
-    if [ -z "$1" ]; then
-      echo -e "${clR}ERROR: No arguments provided"
-      exit 1
-    else
-      # Parse Arguments
-      while [ "$1" ]; do
-
-        case "$1" in
-
-          '-i'|'--input')
-            if [ -z "$2" ]; then
-              echo -e "${clR}ERROR: No input provided"
-              exit 1
-            elif [ -f "$2" ]; then
-              inputFileExt=${2##*.}
-
-              case "$inputFileExt" in
-
-                'avi'|'f4v'|'flv'|'m2ts'|'m4v'|'mkv'|'mp4'|'mpeg'|'mpg'|'mov'|'ts'|'wmv')
-                  userInput="$2"
-                  shift
-                  ;;
-
-                *)
-                  printf "${clR}ERROR: Selected file is not a supported format!\n"
-                  printf "${clY}Supported: avi,f4v,flv,m2ts,m4v,mkv,mp4,mpeg,mpg,mov,ts,wmv\n"
-                  exit 1
-                  ;;
-
-              esac
-            elif [ -d "$2" ]; then
+            'avi'|'f4v'|'flv'|'m2ts'|'m4v'|'mkv'|'mp4'|'mpeg'|'mpg'|'mov'|'ts'|'wmv')
               userInput="$2"
               shift
-            else
-              printf "${clR}ERROR: Input file does not exist\n"
+              ;;
+
+            *)
+              printf "${clR}ERROR: Selected file is not a supported format!\n"
+              printf "${clY}Supported: avi,f4v,flv,m2ts,m4v,mkv,mp4,mpeg,mpg,mov,ts,wmv\n"
               exit 1
-            fi
-            ;;
+              ;;
 
-          '-o'|'--output')
-            if [ -z "$2" ]; then
-              echo -e "${clR}ERROR: No output directory provided"
-              exit 1
-            elif [ ! -d "$2" ]; then
-              echo -e "${clR}ERROR: Output is not a directory"
-              exit 1
-            else
-              userOutput=$2
-              shift
-            fi
-            ;;
-
-          '-t'|'--temp')
-            if [ -z "$2" ]; then
-              echo -e "${clR}ERROR: No temp directory provided"
-              exit 1
-            elif [ ! -d "$2" ]; then
-              echo -e "${clR}ERROR: Temp is not a directory"
-              exit 1
-            else
-              userTemp="$2"
-              shift
-            fi
-            ;;
-
-          '-h'|'--help')
-            eval "printf \"${HELP}\""
-            exit 1
-            ;;
-
-          '-v'|'--version')
-            printf "ARKhive version: ${VERSION}\n\n"
-            exit 1
-            ;;
-
-          -*)
-            eval "printf \"${HELP}\""
-            printf "\n${clR}ERROR: Unknown option $1\n"
-            exit 1
-            ;;
-
-          *)
-            if [ -n "${INPATH}" ]; then
-              eval "printf \"${HELP}\""
-              printf "\n${clR}ERROR: Unknown option $1\n"
-              exit 1
-            elif [ ! -r "$1" ]; then
-              printf "${clR}ERROR: Unable to read $1\n"
-              exit 1
-            else
-              INPATH="$1"
-            fi
-            ;;
-
-        esac
-        shift
-
-      done
-    fi
-
-    # Confirm user has provided input
-    if [ -z "$userInput" ]; then
-      eval "printf \"${HELP}\""
-      echo -e "${clR}ERROR: no input provided"
-      exit 1
-    fi
-
-  ############
-  # CPU INFO #
-  ############
-
-    cpu_cores () {
-
-      cpuCores=$(awk '/^cpu\ cores/{print $4;exit}' /proc/cpuinfo)
-
-      if [ -z "$cpuCores" ]; then
-        cpuCores="1"
-      fi
-
-      echo "$cpuCores"
-
-    }
-
-    cpu_threads () {
-
-      cpuThreads=$(grep -c ^processor /proc/cpuinfo)
-
-      if [ -z "$cpuThreads" ]; then
-        cpuThreads="1"
-      fi
-
-      echo "$cupThreads"
-
-    }
-
-  #################
-  # INPUT HANDLER #
-  #################
-
-    input_directory () {
-
-      cd $(dirname ${inputFile})
-      pwd
-
-    }
-
-    output_directory () {
-
-      if [ -z "$userOutput" ]; then
-        input_directory
-      else
-        cd $userOutput
-        pwd
-      fi
-
-    }
-
-    temp_directory () {
-
-      if [ -z "$userTemp" ]; then
-        input_directory
-      else
-        cd $userTemp
-        pwd
-      fi
-
-    }
-
-    filename () {
-
-      # Input filename w/ ext
-      fileName=$(basename "$inputFile")
-
-      # Input filename w/o ext
-      fileName=$(echo "$fileName" | sed -r 's/\.[[:alnum:]]+$//')
-
-      # Add tag
-      arkMark="-ARK"
-      echo "$fileName$arkMark"
-
-    }
-
-  ############################
-  # CHAPTER STREAM EXTRACTOR #
-  ############################
-
-    chapter_stream_extractor () {
-
-        mkvextract \
-          chapters \
-          --simple $inputFile \
-          --redirect-output $(temp_directory)/$(filename).xml || \
-          { echo "WARNING: Failed to extract chapter stream" ; return 1 ; }
-
-    }
-
-  #############
-  # SUBTITLES #
-  #############
-
-    ## TODO: case for subtitle without language set
-    ## TODO: use for loop to find all english subs in file
-    ##      after finding subs look for plain text subs
-    ## TODO: parse vobsub2srt output and remove ERROR:... lines
-    ## TODO: add support for PGS subtitles
-    ##      if pgs use bdsup2sub to covert to sub/idx and then vobsub2srt
-
-    subtitle_stream_selector () {
-
-      # Look for seperate subtitle file
-      if [ -f "$(input_directory)/${orginalFilename}.srt" ]; then
-        cp "$(input_directory)/${orginalFilename}.srt" "$(temp_directory)/$(filename).srt"}
-      elif [ -n "$hasSubtitles" ]; then
-        # Finds first english subtitle stream]
-        subtitleStream=$(\
-          ffmpeg -i ${userInput} -f null - 2>&1 | \
-          grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | \
-          awk -F ":" '{print $2}' | tail -1)
-
-        if [ -z "${subtitleStream}" ]; then
-          echo "No english subtitles found"
+          esac
+        elif [ -d "$2" ]; then
+          userInput="$2"
+          shift
+        else
+          printf "${clR}ERROR: Input file does not exist\n"
+          exit 1
         fi
-      else
-        echo "No subtitle stream found"
-      fi
+        ;;
 
-    }
+      '-o'|'--output')
+        if [ -z "$2" ]; then
+          echo -e "${clR}ERROR: No output directory provided"
+          exit 1
+        elif [ ! -d "$2" ]; then
+          echo -e "${clR}ERROR: Output is not a directory"
+          exit 1
+        else
+          userOutput=$2
+          shift
+        fi
+        ;;
 
-    subtitle_stream_extractor () {
+      '-t'|'--temp')
+        if [ -z "$2" ]; then
+          echo -e "${clR}ERROR: No temp directory provided"
+          exit 1
+        elif [ ! -d "$2" ]; then
+          echo -e "${clR}ERROR: Temp is not a directory"
+          exit 1
+        else
+          userTemp="$2"
+          shift
+        fi
+        ;;
 
-        mkvextract -q tracks ${userInput} ${subtitleStream}:$(temp_directory)/$(filename) 2>/dev/null
-        echo -e "       ${clC}Found '${languageDefault}' Subs, Stream: ${clP}$subtitleStream"
+      '-h'|'--help')
+        eval "printf \"${HELP}\""
+        exit 1
+        ;;
 
-    }
+      '-v'|'--version')
+        printf "ARKhive version: ${VERSION}\n\n"
+        exit 1
+        ;;
 
-  ##############################
-  # SUBTITLE CONVERSION TO SRT #
-  ##############################
+      -*)
+        eval "printf \"${HELP}\""
+        printf "\n${clR}ERROR: Unknown option $1\n"
+        exit 1
+        ;;
 
-    subtitle_srt_converter () {
+      *)
+        if [ -n "${INPATH}" ]; then
+          eval "printf \"${HELP}\""
+          printf "\n${clR}ERROR: Unknown option $1\n"
+          exit 1
+        elif [ ! -r "$1" ]; then
+          printf "${clR}ERROR: Unable to read $1\n"
+          exit 1
+        else
+          INPATH="$1"
+        fi
+        ;;
 
-      # Check for VobSub and convert to SRT]
-      if [ -f "$tempFilePath/$fileName.idx" ]; then
-        echo "         Converting VobSub to SRT"
-        vobsub2srt $(temp_directory)/$(filename) &>/dev/null || \
-        { echo "WARNING: failed to convert vobsub to srt" ; return 1 ; }
-      fi
+    esac
+    shift
 
-    }
+  done
+fi
 
-  #########################
-  # AUDIO STREAM SELECTOR #
-  #########################
+# Confirm user has provided input
+if [ -z "$userInput" ]; then
+  eval "printf \"${HELP}\""
+  echo -e "${clR}ERROR: no input provided"
+  exit 1
+fi
 
-    # CONTAINERS WITH NO LANGUAGE CODES: avi,m2ts,ts
-    audio_stream_selector () {
+cpu_cores () {
 
-      # Add all streams with audio into an array
-      # <There is a lot or trickery required to get the stream
-      #  number that is container specific, so 'or' statements
-      #  were added to grep to work around this>
-      audioStreamArray=($(\
-        ffprobe -i test4.mp4 2>&1 | \
-        grep "Audio:" | \
-        awk '/Stream\ #0:/ { print $2 }' | \
-        grep -o -P '(?<=\#0\:)[0-9](?=\([a-z]+\)|\[[0-9]+x[0-9]+\]|\:)'))
+  cpuCores=$(awk '/^cpu\ cores/{print $4;exit}' /proc/cpuinfo)
 
-      # Find total number of audio streams in the container
-      audioStreamCount=$(${#audioStreamArray[@]})
+  if [ -z "$cpuCores" ]; then
+    cpuCores="1"
+  fi
 
-      if [ -z "$audioStreamCount" ]; then
-        echo "WARNING: No audio streams found"
-      elif [ "$audioStreamCount" = "1" ]; then
-        # Set stream number to the only one found
-        audioPreferedStream=$($audioStreamArray[1])
+  echo "$cpuCores"
 
-      # Containers with: mkv,mp4
-      # MP4 has two audio lines, only one with a stream section
-      elif [ "$audioStreamCount" -gt "1" ]; then
-        # get pounded in the ass
+}
 
-        # Not sure where to start with this section
+cpu_threads () {
 
-      # Find language of audio stream
-      ffprobe -i test4.mp4 2>&1 | \
-        # Gets line of streams
-        grep "Stream #0:1" | \
-        # Pulls first part of line containing language
-        awk '/Stream\ #0:1/ { print $2 }' | \
-        # Pulls the three digit language code
-        # ISO 639-2/B
-        grep -m 1 -o -P '(?<=\#0\:1\().*(?=\):)'
-      # 3 
-      #  if only one audio stream take it
-      #  if not, see if any audio streams contain english
-      #    if so, see if there are multiples
-      #      select best option 
-      #  if not, see if there is anything other than "und"
-      #  if not, see if there are multiple und
-      #    if so, pick best option
-      else
-        echo "ERROR: Video has no audio"
-        exit 2
-      fi
+  cpuThreads=$(grep -c ^processor /proc/cpuinfo)
 
-      # 4 Fuck Bitches
+  if [ -z "$cpuThreads" ]; then
+    cpuThreads="1"
+  fi
 
-    }
+  echo "$cpuThreads"
+
+}
+
+input_directory () {
+
+  cd $(dirname ${inputFile})
+  pwd
+
+}
+
+output_directory () {
+
+  if [ -z "${userOutput}" ]; then
+    input_directory
+  else
+    cd ${userOutput}
+    pwd
+  fi
+
+}
+
+temp_directory () {
+
+  if [ -z "${userTemp}" ]; then
+    input_directory
+  else
+    cd ${userTemp}
+    pwd
+  fi
+
+}
+
+filename_handler () {
+
+  # Input filename w/ ext
+  filenameFull=$(basename "$inputFile")
+
+  # Input filename w/o ext
+  filenameBase=$(echo "$filenameFull" | sed -r 's/\.[[:alnum:]]+$//')
+
+  # Add tag
+  arkMark="-ARK"
+  echo "$filenameBase$arkMark"
+
+}
+
+chapter_stream_extractor () {
+
+    mkvextract \
+      chapters \
+      --simple $inputFile \
+      --redirect-output $(temp_directory)/$(filename).xml || \
+      { echo "WARNING: Failed to extract chapter stream" ; return 1 ; }
+
+}
+
+#############
+# SUBTITLES #
+#############
+
+## TODO: case for subtitle without language set
+## TODO: use for loop to find all english subs in file
+##      after finding subs look for plain text subs
+## TODO: parse vobsub2srt output and remove ERROR:... lines
+## TODO: add support for PGS subtitles
+##      if pgs use bdsup2sub to covert to sub/idx and then vobsub2srt
+
+subtitle_stream_selector () {
+
+  # Look for seperate subtitle file
+  if [ -f "$(input_directory)/${orginalFilename}.srt" ]; then
+    cp "$(input_directory)/${orginalFilename}.srt" "$(temp_directory)/$(filename).srt"}
+  elif [ -n "$hasSubtitles" ]; then
+    # Finds first english subtitle stream]
+    subtitleStream=$(\
+      ffmpeg -i ${userInput} -f null - 2>&1 | \
+      grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | \
+      awk -F ":" '{print $2}' | tail -1)
+
+    if [ -z "${subtitleStream}" ]; then
+      echo "No english subtitles found"
+    fi
+  else
+    echo "No subtitle stream found"
+  fi
+
+}
+
+subtitle_stream_extractor () {
+
+    mkvextract -q tracks ${userInput} ${subtitleStream}:$(temp_directory)/$(filename) 2>/dev/null
+    echo -e "       ${clC}Found '${languageDefault}' Subs, Stream: ${clP}$subtitleStream"
+
+}
+
+subtitle_srt_converter () {
+
+  # Check for VobSub and convert to SRT]
+  if [ -f "$tempFilePath/$fileName.idx" ]; then
+    echo "         Converting VobSub to SRT"
+    vobsub2srt $(temp_directory)/$(filename) &>/dev/null || \
+    { echo "WARNING: failed to convert vobsub to srt" ; return 1 ; }
+  fi
+
+}
+
+audio_stream_selector () {
+
+# CONTAINERS WITH NO LANGUAGE CODES: avi,m2ts,ts
+
+  # Add all streams with audio into an array
+  # <There is a lot or trickery required to get the stream
+  #  number that is container specific, so 'or' statements
+  #  were added to grep to work around this>
+  audioStreamArray=($(\
+    ffprobe -i test4.mp4 2>&1 | \
+    grep "Audio:" | \
+    awk '/Stream\ #0:/ { print $2 }' | \
+    grep -o -P '(?<=\#0\:)[0-9](?=\([a-z]+\)|\[[0-9]+x[0-9]+\]|\:)'))
+
+  # Find total number of audio streams in the container
+  audioStreamCount=$(${#audioStreamArray[@]})
+
+  if [ -z "$audioStreamCount" ]; then
+    echo "WARNING: No audio streams found"
+  elif [ "$audioStreamCount" = "1" ]; then
+    # Set stream number to the only one found
+    audioPreferedStream=$($audioStreamArray[1])
+
+  # Containers with: mkv,mp4
+  elif [ "$audioStreamCount" -gt "1" ]; then
+    # MP4 has two audio lines, only one with a stream section
+
+    # get pounded in the ass
+
+    # Not sure where to start with this section
+
+  # Find language of audio stream
+  ffprobe -i test4.mp4 2>&1 | \
+    # Gets line of streams
+    grep "Stream #0:1" | \
+    # Pulls first part of line containing language
+    awk '/Stream\ #0:1/ { print $2 }' | \
+    # Pulls the three digit language code
+    # ISO 639-2/B
+    grep -m 1 -o -P '(?<=\#0\:1\().*(?=\):)'
+  # 3 
+    #  if only one audio stream take it
+    #  if not, see if any audio streams contain english
+    #    if so, see if there are multiples
+    #      select best option 
+    #  if not, see if there is anything other than "und"
+    #  if not, see if there are multiple und
+    #    if so, pick best option
+  else
+    echo "ERROR: Video has no audio"
+    exit 2
+  fi
+
+  # 4 Fuck Bitches
+
+}
         
-    audio_input_sample_rate () {
+audio_input_sample_rate () {
 
-      ffprobe -i ${userInput} 2>&1 | \
-        grep -m 1 "Stream #0:${primaryAudioStream}" | \
-        awk -F ", " '/Hz/ { print $2 }'
+  ffprobe -i ${userInput} 2>&1 | \
+    grep -m 1 "Stream #0:${primaryAudioStream}" | \
+    awk -F ", " '/Hz/ { print $2 }'
 
-    }
+}
 
-  ########################
-  # AUDIO CHANNEL MAPPER #
-  ########################
+audio_channel_mapper () {
 
-    audio_channel_mapper () {
+  findChannelLayout=$(ffprobe -i ${inputFile} 2>&1 | \
+    grep -m 1 "Stream #0:${audioSelectedStream}" | \
+    awk -F ", " "/  $(audio_input_sample_rate)\ Hz/ { print $3 }")
 
-      # Finds channel layout
-      # TODO: add $(audio_input_samplerate) function
-      findChannelLayout=$(ffprobe -i $userInput 2>&1 | \
-        grep -m 1 "Stream #0:$primaryAudioStream" | \
-        awk -F ", " "/  $(audio_input_samplerate)\ Hz/ { print $3 }")
+  # https://github.com/FFmpeg/FFmpeg/blob/master/libavutil/channel_layout.c
+  # https://github.com/FFmpeg/FFmpeg/blob/master/doc/utils.texi
 
-      # Determine channel layout for later use
-      # https://github.com/FFmpeg/FFmpeg/blob/master/libavutil/channel_layout.c
-      # https://github.com/FFmpeg/FFmpeg/blob/master/doc/utils.texi
+  # 0 = FL - Front Left
+  # 1 = FR - Front Right
+  # 2 = FC - Front Center
+  # 3 = LFE - Low Frequency
+  # 4 = BL - Back Left
+  # 5 = BR - Back Fight
+  # 6 = FLC - Front Left-of-Center
+  # 7 = FRC - Front Right-of-Center
+  # 8 = BC - Back Center
+  # 9 = SL - Side Left
+  # 10 = SR - Side Right
+  # 11 = TC - Top Center
+  # 12 = TFL - Top Front Left
+  # 13 = TFC - Top Front Center
+  # 14 = TFR - Top Front Right
+  # 15 = TBL - Top Back Left
+  # 16 = TBC - Top Back Center
+  # 17 = TBR - Top Back Right
+  # 29 = DL - Downmix Left
+  # 30 = DR - Downmix Right
+  # 31 = WL - Wide Left
+  # 32 = WR - Wide Right
+  # 33 = SDL - Surround Direct Right
+  # 34 = SDR - Surround Direct Left
+  # 35 = LFE2 - Low Frequency 2
 
-      # 0 = FL - Front Left
-      # 1 = FR - Front Right
-      # 2 = FC - Front Center
-      # 3 = LFE - Low Frequency
-      # 4 = BL - Back Left
-      # 5 = BR - Back Fight
-      # 6 = FLC - Front Left-of-Center
-      # 7 = FRC - Front Right-of-Center
-      # 8 = BC - Back Center
-      # 9 = SL - Side Left
-      # 10 = SR - Side Right
-      # 11 = TC - Top Center
-      # 12 = TFL - Top Front Left
-      # 13 = TFC - Top Front Center
-      # 14 = TFR - Top Front Right
-      # 15 = TBL - Top Back Left
-      # 16 = TBC - Top Back Center
-      # 17 = TBR - Top Back Right
-      # 29 = DL - Downmix Left
-      # 30 = DR - Downmix Right
-      # 31 = WL - Wide Left
-      # 32 = WR - Wide Right
-      # 33 = SDL - Surround Direct Right
-      # 34 = SDR - Surround Direct Left
-      # 35 = LFE2 - Low Frequency 2
+  case "$findChannelLayout" in
 
-      # TODO: for 5.1 and others re-map 5.1(side) to 5.1(rear)
-      # TODO: remap 7.1 -> 5.1
-    ## TODO: add support to automatically remap surround-sound channels in a consistent manner
-    ## get rid of 5.1(side)  it is annoying on a 7.1 setup even if it is technically extended stereo
+    '')
+      echo "ERROR: could not detect input file's audio channel layout"
+      exit 1
+      ;;
 
-      case "$findChannelLayout" in
+    'mono')
+      audioSourceChannels="1"
+      audioOutputChannels="2"
+      # AV_CH_LAYOUT_MONO
+      # FC
+      audioFilterComplex="[0:a][0:a]amerge[aout]"
+      audioMap="[aout]"
+      ;;
 
-        '')
-          echo "ERROR: could not detect input file's audio channel layout"
-          exit 1
-          ;;
+    'stereo')
+      audioSourceChannels="2"
+      audioOutputChannels="2"
+      # AV_CH_LAYOUT_STEREO
+      # FL+FR
+      audioMap="FL+FR -> FL+FR"
+      ;;
 
-        'mono')
-          audioSourceChannels="1"
-          audioOutputChannels="2"
-          # AV_CH_LAYOUT_MONO
-          # FC
-          audioFilterComplex="[0:a][0:a]amerge[aout]"
-          audioMap="[aout]"
-          ;;
+    '2.1')
+      audioChannels="3"
+      audioOutputChannels="2"
+      # AV_CH_LAYOUT_2POINT1
+      # FL+FR+LFE
+      audioMap="FL"
+      ;;
 
-        'stereo')
-          audioSourceChannels="2"
-          audioOutputChannels="2"
-          # AV_CH_LAYOUT_STEREO
-          # FL+FR
-          audioMap="FL+FR -> FL+FR"
-          ;;
+    '3.0')
+      audioChannels="3"
+      audioOutputChannels="2"
+      # AV_CH_LAYOUT_SURROUND
+      # FL+FR+FC
+      ;;
 
-        '2.1')
-          audioChannels="3"
-          audioOutputChannels="2"
-          # AV_CH_LAYOUT_2POINT1
-          # FL+FR+LFE
-          audioMap="FL"
-          ;;
+    '3.0(back)')
+      # Remap to 5.1
+      audioChannels="3"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_2_1
+      # FL+FR+BC
+      ;;
 
-        '3.0')
-          audioChannels="3"
-          audioOutputChannels="2"
-          # AV_CH_LAYOUT_SURROUND
-          # FL+FR+FC
-          ;;
+    '4.0')
+      audioChannels="4"
+      audioOutputChannels="2"
+      # AV_CH_LAYOUT_4POINT0
+      # FL+FR+FC+BC
+      ;;
 
-        '3.0(back)')
-          # Remap to 5.1
-          audioChannels="3"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_2_1
-          # FL+FR+BC
-          ;;
+    'quad')
+      # Remap to 5.1
+      audioChannels="4"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_QUAD
+      # FL+FR+BL+BR
+      ;;
 
-        '4.0')
-          audioChannels="4"
-          audioOutputChannels="2"
-          # AV_CH_LAYOUT_4POINT0
-          # FL+FR+FC+BC
-          ;;
+    'quad(side)')
+      audioChannels="2"
+      audioOutputChannels="2"
+      # AV_CH_LAYOUT_2_2
+      # FL+FR+SL+SR
+      ;;
 
-        'quad')
-          # Remap to 5.1
-          audioChannels="4"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_QUAD
-          # FL+FR+BL+BR
-          ;;
+    '3.1')
+      audioChannels="4"
+      audioOutputChannels="2"
+      # AV_CH_LAYOUT_3POINT1
+      # FL+FR+FC+LFE
+      ;;
 
-        'quad(side)')
-          audioChannels="2"
-          audioOutputChannels="2"
-          # AV_CH_LAYOUT_2_2
-          # FL+FR+SL+SR
-          ;;
+    '4.1')
+      # Remap to 5.1
+      audioChannels="5"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_4POINT1
+      # FL+FR+FC+LFE+BC
+      ;;
 
-        '3.1')
-          audioChannels="4"
-          audioOutputChannels="2"
-          # AV_CH_LAYOUT_3POINT1
-          # FL+FR+FC+LFE
-          ;;
+    '5.0')
+      # Remap to 5.1
+      audioChannels="5"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_5POINT0_BACK
+      # FL+FR+FC+BL+BR
+      ;;
 
-        '4.1')
-          # Remap to 5.1
-          audioChannels="5"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_4POINT1
-          # FL+FR+FC+LFE+BC
-          ;;
+    '5.0(side)')
+      # Remap to 5.1
+      audioChannels="5"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_5POINT0
+      # FL+FR+FC+SL+SR
+      ;;
 
-        '5.0')
-          # Remap to 5.1
-          audioChannels="5"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_5POINT0_BACK
-          # FL+FR+FC+BL+BR
-          ;;
+    '5.1')
+      # Remap to 5.1
+      audioChannels="6"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_5POINT1_BACK
+      # FL+FR+FC+LFE+BL+BR
+      ;;
 
-        '5.0(side)')
-          # Remap to 5.1
-          audioChannels="5"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_5POINT0
-          # FL+FR+FC+SL+SR
-          ;;
+    '5.1(side)')
+      # Remap to 5.1
+      audioChannels="6"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_5POINT1
+      # FL+FR+FC+LFE+SL+SR
+      ;;
 
-        '5.1')
-          # Remap to 5.1
-          audioChannels="6"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_5POINT1_BACK
-          # FL+FR+FC+LFE+BL+BR
-          ;;
+    '6.0')
+      # Remap to 5.1
+      audioChannels="6"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_6POINT0
+      # FL+FR+FC+BC+SL+SR
+      ;;
 
-        '5.1(side)')
-          # Remap to 5.1
-          audioChannels="6"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_5POINT1
-          # FL+FR+FC+LFE+SL+SR
-          ;;
+    '6.0(front)')
+      # Remap to 5.1
+      audioChannels="6"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_6POINT0_FRONT
+      # FL+FR+FLC+FRC+SL+SR
+      ;;
 
-        '6.0')
-          # Remap to 5.1
-          audioChannels="6"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_6POINT0
-          # FL+FR+FC+BC+SL+SR
-          ;;
+    'hexagonal')
+      # Remap to 5.1
+      audioChannels="6"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_HEXAGONAL
+      # FL+FR+FC+BL+BR+BC
+      ;;
 
-        '6.0(front)')
-          # Remap to 5.1
-          audioChannels="6"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_6POINT0_FRONT
-          # FL+FR+FLC+FRC+SL+SR
-          ;;
+    '6.1')
+      # Remap to 5.1
+      audioChannels="7"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_6POINT1
+      # FL+FR+FC+LFE+BC+SL+SR
+      ;;
 
-        'hexagonal')
-          # Remap to 5.1
-          audioChannels="6"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_HEXAGONAL
-          # FL+FR+FC+BL+BR+BC
-          ;;
+    '6.1(back)')
+      # Remap to 5.1
+      audioChannels="7"
+      audioOutputChannels="6"
+      ## TODO: fix upstream
+      # actually 6.1, not 6.1(back), upstream typo
+      # AV_CH_LAYOUT_6POINT1_BACK
+      # FL+FR+FC+LFE+BL+BR+BC
+      ;;
 
-        '6.1')
-          # Remap to 5.1
-          audioChannels="7"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_6POINT1
-          # FL+FR+FC+LFE+BC+SL+SR
-          ;;
+    '6.1(front)')
+      # Remap to 5.1
+      audioChannels="7"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_6POINT1_FRONT
+      # FL+FR+LFE+FLC+FRC+SL+SR
+      ;;
 
-        '6.1(back)')
-          # Remap to 5.1
-          audioChannels="7"
-          audioOutputChannels="6"
-          ## TODO: fix upstream
-          # actually 6.1, not 6.1(back), upstream typo
-          # AV_CH_LAYOUT_6POINT1_BACK
-          # FL+FR+FC+LFE+BL+BR+BC
-          ;;
+    '7.0')
+      # Remap to 5.1
+      audioChannels="7"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_7POINT0
+      # FL+FR+FC+BL+BR+SL+SR
+      ;;
 
-        '6.1(front)')
-          # Remap to 5.1
-          audioChannels="7"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_6POINT1_FRONT
-          # FL+FR+LFE+FLC+FRC+SL+SR
-          ;;
+    '7.0(front)')
+      # Remap to 5.1
+      audioChannels="7"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_7POINT0_FRONT
+      # FL+FR+FC+FLC+FRC+SL+SR
+      ;;
 
-        '7.0')
-          # Remap to 5.1
-          audioChannels="7"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_7POINT0
-          # FL+FR+FC+BL+BR+SL+SR
-          ;;
+    '7.1')
+      # Remap to 5.1
+      audioChannels="8"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_7POINT1
+      # FL+FR+FC+LFE+BL+BR+SL+SR
+      ;;
 
-        '7.0(front)')
-          # Remap to 5.1
-          audioChannels="7"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_7POINT0_FRONT
-          # FL+FR+FC+FLC+FRC+SL+SR
-          ;;
+    '7.1(wide)')
+      # Remap to 5.1
+      audioChannels="8"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_7POINT1_WIDE_BACK
+      # FL+FR+FC+LFE+BL+BR+FLC+FRC
+      ;;
 
-        '7.1')
-          # Remap to 5.1
-          audioChannels="8"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_7POINT1
-          # FL+FR+FC+LFE+BL+BR+SL+SR
-          ;;
+    '7.1(wide-side)')
+      # Remap to 5.1
+      audioChannels="8"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_7POINT1_WIDE
+      # FL+FR+FC+LFE+FLC+FRC+SL+SR
+      ;;
 
-        '7.1(wide)')
-          # Remap to 5.1
-          audioChannels="8"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_7POINT1_WIDE_BACK
-          # FL+FR+FC+LFE+BL+BR+FLC+FRC
-          ;;
+    'octagonal')
+      # Remap to 5.1
+      audioChannels="8"
+      audioOutputChannels="6"
+      # AV_CH_LAYOUT_OCTAGONAL
+      # FL+FR+FC+BL+BR+BC+SL+SR
+      ;;
 
-        '7.1(wide-side)')
-          # Remap to 5.1
-          audioChannels="8"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_7POINT1_WIDE
-          # FL+FR+FC+LFE+FLC+FRC+SL+SR
-          ;;
+    'downmix')
+      audioChannels="2"
+      audioOutputChannels="2" # ???
+      # AV_CH_LAYOUT_STEREO_DOWNMIX
+      # DL+DR
+      ;;
 
-        'octagonal')
-          # Remap to 5.1
-          audioChannels="8"
-          audioOutputChannels="6"
-          # AV_CH_LAYOUT_OCTAGONAL
-          # FL+FR+FC+BL+BR+BC+SL+SR
-          ;;
+    *)
+      echo "ERROR: Unsupported channel layout"
+      exit 1
+      ;;
 
-        'downmix')
-          audioChannels="2"
-          audioOutputChannels="2" # ???
-          # AV_CH_LAYOUT_STEREO_DOWNMIX
-          # DL+DR
-          ;;
+  esac
 
-        *)
-          echo "ERROR: Unsupported channel layout"
-          exit 1
-          ;;
+}
 
-      esac
+audio_encode () {
 
-    }
+  # TODO: add audio channel mapping to the encoding
 
-  #################
-  # AUDIO ENCODER #
-  #################
+  audioBitrate=$((${audioOutputChannels} * ${audioChannelBitrate}))
+  audioStreamBitrate="${audioBitrate}${audioChannelBitrateUnit}"
 
-    audio () {
+  # Encode Audio
+  ffmpeg \
+  -i "${inputFile}" \
+  -c:a libfdk_aac \
+  -map 0:"${audioSelectedStream}" \
+  -ac "${audioNumChannel}" \
+  -b:a "${audioStreamBitrate}" \
+  -ar "${audioSampleRate}" \
+  -y $(temp_directory)/$(filename).aac || \
+  { echo -e "${clR}ERROR: Failed to encode audio" ; exit 1 ; }
 
-      audio_channel_layout
-      audioBitrate=$(($audioChannels * $audioChannelBitrate))
-      audioBitrateUnit="k"
-      audioBitrate="$audioBitrate$audioBitrateUnit"
+}
 
-    }
+black_bar_crop_detection () {
 
-    audio_encode () {
+  ## [several checks to accurately crop black-bars]
+  crop="1"
+  totalLoops="10"
+  ## [gather crop values]
+  A=0
+  while [ "$A" -lt "$totalLoops" ]; do
 
-      # Encode Audio
-      ffmpeg \
+    A="$(( $A + 1 ))"
+    skipSecs="$(( 120 * $A ))"
+    crop[$A]=$(\
+      ffmpeg -threads $(cpu_cores) -i $userInput -ss $skipSecs \
+      -t 1 -vf cropdetect -f null - 2>&1 | \
+      awk -F "=" '/crop/ { print $NF }' | tail -1)
+    echo -ne "\r       ${clC}crop detect ${clP}$A ${clC}of ${clP}10 ${clC}complete"
+
+  done
+
+  B=0
+  while [ "$B" -lt "$totalLoops" ]; do
+
+    B="$(( $B + 1 ))"
+    C=0
+    while [ "$C" -lt "$totalLoops" ]; do
+
+      C="$(( $C + 1 ))"
+      if [ "${crop[$B]}" == "${crop[$C]}" ]; then
+        countCrop[$B]="$(( ${countCrop[$B]} + 1 ))"
+      fi
+
+    done
+
+  done
+
+  ## [find greatest crop]
+  highestCount=0
+  D=0
+  while [ "$D" -lt "$totalLoops" ]; do
+
+    D="$(( $D + 1 ))"
+    if [ "${countCrop[$D]}" -gt "$highestCount" ]; then
+      highestCount="${countCrop[$D]}"
+      greatest="$D"
+    fi
+
+  done
+  ## [final crop value]
+  crop="${crop[$greatest]}"
+  ## [frame width from final crop value]
+  cropWidth=$(echo $crop | awk -F ":" '{print $1}')
+  echo -e "\n             Crop: ${clP}$crop"
+
+}
+
+video_interlace_detection () {
+
+  echo "Not implemented yet"
+
+}
+
+video_encode () {
+
+  # Frames Per Second
+  FPS="23.976023976"
+  # Get Duration
+  totalLength=$(ffprobe "$userInput" 2>&1 | sed -n "s/.* Duration: \([^,]*\), .*/\1/p")
+  HRS=$(echo $totalLength | cut -d":" -f1)
+  MIN=$(echo $totalLength | cut -d":" -f2)
+  SEC=$(echo $totalLength | cut -d":" -f3)
+  # Get total number of frames
+  totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
+  echo "Estimated total frames: $totalFrames"
+
+  # Initial pass number, DO NOT CHANGE VALUE
+  PASS="1"
+
+  while [ "$videoEncodingPass" -le "$videoEncodingPasses" ]; do
+
+    echo -e "${clC}Encoding Pass: ${clP}$videoEncodingPass ${clC}of ${clP}$videoEncodingPasses${clD}"
+
+    ## [ffmpeg piped to x265]
+    ## TODO: determine if crop height or width are odd numbers and if so
+    ##        enable ffmpeg scaling otherwise disable
+    ## TODO: make ffmpeg output to $fileName.ffmpeg
+    ffmpeg \
+      -threads $(cpu_threads) \
       -i "$userInput" \
-      -c:a libfdk_aac \
-      -map 0:$audioEngStream \
-      -ac $audioChannels \
-      -b:a $audioBitrate \
-      -ar 48000 \
-      -y $(temp_directory)/$(filename).aac || \
-      { echo -e "${clR}ERROR: audio failed to encode" ; exit 1 ; }
+      -vf "crop=$crop,scale=$cropWidth:trunc(ow/a/2)*2" \
+      -r 24000/1001 \
+      -pix_fmt yuv420p \
+      -f yuv4mpegpipe - 2> nul | \
+    x265 \
+      --y4m \
+      --stats=$tempFilePath/$fileName.stats \
+      --threads=$(cpu_cores) \
+      --frame-threads=$cpuCores \
+      --wpp \
+      --ctu=64 \
+      --no-cutree \
+      --tu-intra-depth=4 \
+      --tu-inter-depth=4 \
+      --me=2 \
+      --cbqpoffs=3 \
+      --crqpoffs=3 \
+      --psy-rd=0.15 \
+      --subme=7 \
+      --merange=60 \
+      --ref=4 \
+      --bframes=3 \
+      --b-pyramid \
+      --b-adapt=2 \
+      --bframe-bias=0 \
+      --b-intra \
+      --weightb \
+      --weightp \
+      --bitrate=1024 \
+      --vbv-init=0.9 \
+      --vbv-bufsize=31250 \
+      --vbv-maxrate=31250 \
+      --no-slow-firstpass \
+      --pass=$videoEncodingPass \
+      --keyint=250 \
+      --min-keyint=23 \
+      --rc-lookahead=60 \
+      --no-constrained-intra \
+      --aq-mode=0 \
+      --lft \
+      --sao-lcu-opt=1 \
+      --cbqpoffs=-3 \
+      --crqpoffs=-3 \
+      --rect \
+      --amp \
+      --max-merge=5 \
+      --no-early-skip \
+      --no-tskip \
+      --hash=2 \
+      -f 0 \
+      -o "$(temp_directory)/$(filename).hvc" - || \
+      { echo "ERROR: video encoding failed" ; exit 1 ; }
 
-    }
-
-  ############################
-  # BLACK BAR CROP DETECTION #
-  ############################
-
-    if [ "$videoCropBlackbars" = "true" ]; then
-
-      black_bar_crop_detection () {
-
-        ## [several checks to accurately crop black-bars]
-        crop="1"
-        totalLoops="10"
-        ## [gather crop values]
-        A=0
-        while [ "$A" -lt "$totalLoops" ]; do
-
-          A="$(( $A + 1 ))"
-          skipSecs="$(( 120 * $A ))"
-          crop[$A]=$(\
-            ffmpeg -threads $(cpu_cores) -i $userInput -ss $skipSecs \
-            -t 1 -vf cropdetect -f null - 2>&1 | \
-            awk -F "=" '/crop/ { print $NF }' | tail -1)
-          echo -ne "\r       ${clC}crop detect ${clP}$A ${clC}of ${clP}10 ${clC}complete"
-
-        done
-
-        B=0
-        while [ "$B" -lt "$totalLoops" ]; do
-
-          B="$(( $B + 1 ))"
-          C=0
-          while [ "$C" -lt "$totalLoops" ]; do
-
-            C="$(( $C + 1 ))"
-            if [ "${crop[$B]}" == "${crop[$C]}" ]; then
-              countCrop[$B]="$(( ${countCrop[$B]} + 1 ))"
-            fi
-
-          done
-
-        done
-
-        ## [find greatest crop]
-        highestCount=0
-        D=0
-        while [ "$D" -lt "$totalLoops" ]; do
-
-          D="$(( $D + 1 ))"
-          if [ "${countCrop[$D]}" -gt "$highestCount" ]; then
-            highestCount="${countCrop[$D]}"
-            greatest="$D"
-          fi
-
-        done
-        ## [final crop value]
-        crop="${crop[$greatest]}"
-        ## [frame width from final crop value]
-        cropWidth=$(echo $crop | awk -F ":" '{print $1}')
-        echo -e "\n             Crop: ${clP}$crop"
-
-      }
-
+    # Finished encoding
+    if [ "$videoEncodingPass" == "$videoEncodingPasses" ]; then
+      echo
+      echo "Encoding complete"
+    # Not finised encoding
+    else 
+      echo
     fi
 
-  #############################
-  # VIDEO INTERLACE DETECTION #
-  #############################
+    # Increment pass count
+    PASS="$(( $PASS + 1 ))"
 
-    if [ "$videoDeinterlace" = "auto" ]; then
+  done
 
-      video_interlace_detection () {
+}
 
-        echo "Not implemented yet"
+mux_streams () {
 
-      }
+  # mkvmerge
+  # -o "$rar_variable-s.mkv"
+  # "--default-track" "0:yes"
+  # "--forced-track" "0:no"
+  # "--language" "1:eng"
+  # "--track-name"
+  # "1:English"
+  # "--default-track"
+  # "1:yes"
+  # "--forced-track"
+  # "1:no"
+  # "--language" "2:eng"
+  # "--default-track" "2:yes" "--forced-track"
+  # "2:no" "-a" "1" "-d" "0" "-s" "2" "-T" "--no-global-tags"
+  # "--no-chapters" "(" "$rlsname_variable.mkv" ")"
+  # "--track-order" "0:0,0:1,0:2" "--split" "parts:00:01:30-00:02:30"
 
+  ## [check for chapter file]
+  if [ -f "$(temp_directory)/$(filename).xml" ]; then
+    muxChapters="--chapters $(temp_directory)/$(filename).xml"
+  else
+    muxChapters=""
+  fi
+
+  ## [check for subtitle file]
+  if [ -f "$(temp_directory)/$(filename).srt" ]; then
+    muxSubtitles="$(temp_directory)/$(filename).srt"
+  else
+    muxSubtitles=""
+  fi
+
+  ## TODO: find audio language and set videolanguage to audiolanguage
+  mkvmerge \
+    -o $(output_directory)/$(filename).mkv \
+    --title $(filename) \
+    -A $(temp_directory)/$(filename).hvc \
+    $muxChapters \
+    $muxSubtitles \
+    $(temp_directory)/$(filename).aac
+
+}
+
+cleanup_temp_file () {
+
+  if [ -f "$(temp_directory)/${1}" ]; then
+    rm $(temp_directory)/${1} || \
+    { echo "WARNING: failed to remove temp file: ${1}" ; return 1 ; }
+    echo "Removed temp file: ${1}"
+  fi
+
+}
+
+run_arkhive () {
+
+  # Find full path to the directory containing the input file
+  input_directory ${inputFile}
+
+  # SUBTITLES
+  if [ "$subtitlesInclude" == "auto" ]; then
+    # Determine if input has subtitles
+    hasSubtitles=$(\
+      ffprobe $userInput 2>&1 | \
+      awk '/Subtitle/ { print $2 }')
+    if [ -n "$hasSubtitles" ]; then
+      subtitle_stream_selector
+      subtitle_stream_extractor
     fi
-
-  #################
-  # VIDEO ENCODER #
-  #################
-
-    video_encode () {
-
-      # Frames Per Second
-      FPS="23.976023976"
-      # Get Duration
-      totalLength=$(ffprobe "$userInput" 2>&1 | sed -n "s/.* Duration: \([^,]*\), .*/\1/p")
-      HRS=$(echo $totalLength | cut -d":" -f1)
-      MIN=$(echo $totalLength | cut -d":" -f2)
-      SEC=$(echo $totalLength | cut -d":" -f3)
-      # Get total number of frames
-      totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
-      echo "Estimated total frames: $totalFrames"
-
-      # Initial pass number, DO NOT CHANGE VALUE
-      PASS="1"
-
-      while [ "$videoEncodingPass" -le "$videoEncodingPasses" ]; do
-
-        echo -e "${clC}Encoding Pass: ${clP}$videoEncodingPass ${clC}of ${clP}$videoEncodingPasses${clD}"
-
-        ## [ffmpeg piped to x265]
-        ## TODO: determine if crop height or width are odd numbers and if so
-        ##        enable ffmpeg scaling otherwise disable
-        ## TODO: make ffmpeg output to $fileName.ffmpeg
-        ffmpeg \
-          -threads $(cpu_threads) \
-          -i "$userInput" \
-          -vf "crop=$crop,scale=$cropWidth:trunc(ow/a/2)*2" \
-          -r 24000/1001 \
-          -pix_fmt yuv420p \
-          -f yuv4mpegpipe - 2> nul | \
-        x265 \
-          --y4m \
-          --stats=$tempFilePath/$fileName.stats \
-          --threads=$(cpu_cores) \
-          --frame-threads=$cpuCores \
-          --wpp \
-          --ctu=64 \
-          --no-cutree \
-          --tu-intra-depth=4 \
-          --tu-inter-depth=4 \
-          --me=2 \
-          --cbqpoffs=3 \
-          --crqpoffs=3 \
-          --psy-rd=0.15 \
-          --subme=7 \
-          --merange=60 \
-          --ref=4 \
-          --bframes=3 \
-          --b-pyramid \
-          --b-adapt=2 \
-          --bframe-bias=0 \
-          --b-intra \
-          --weightb \
-          --weightp \
-          --bitrate=1024 \
-          --vbv-init=0.9 \
-          --vbv-bufsize=31250 \
-          --vbv-maxrate=31250 \
-          --no-slow-firstpass \
-          --pass=$videoEncodingPass \
-          --keyint=250 \
-          --min-keyint=23 \
-          --rc-lookahead=60 \
-          --no-constrained-intra \
-          --aq-mode=0 \
-          --lft \
-          --sao-lcu-opt=1 \
-          --cbqpoffs=-3 \
-          --crqpoffs=-3 \
-          --rect \
-          --amp \
-          --max-merge=5 \
-          --no-early-skip \
-          --no-tskip \
-          --hash=2 \
-          -f 0 \
-          -o "$(temp_directory)/$(filename).hvc" - || \
-          { echo "ERROR: video encoding failed" ; exit 1 ; }
-
-        # Finished encoding
-        if [ "$videoEncodingPass" == "$videoEncodingPasses" ]; then
-          echo
-          echo "Encoding complete"
-        # Not finised encoding
-        else 
-          echo
-        fi
-
-        # Increment pass count
-        PASS="$(( $PASS + 1 ))"
-
-      done
-
-    }
-
-  #########
-  # MUXER #
-  #########
-
-    mux_streams () {
-
-      # mkvmerge
-      # -o "$rar_variable-s.mkv"
-      # "--default-track" "0:yes"
-      # "--forced-track" "0:no"
-      # "--language" "1:eng"
-      # "--track-name"
-      # "1:English"
-      # "--default-track"
-      # "1:yes"
-      # "--forced-track"
-      # "1:no"
-      # "--language" "2:eng"
-      # "--default-track" "2:yes" "--forced-track"
-      # "2:no" "-a" "1" "-d" "0" "-s" "2" "-T" "--no-global-tags"
-      # "--no-chapters" "(" "$rlsname_variable.mkv" ")"
-      # "--track-order" "0:0,0:1,0:2" "--split" "parts:00:01:30-00:02:30"
-
-      ## [check for chapter file]
-      if [ -f "$(temp_directory)/$(filename).xml" ]; then
-        muxChapters="--chapters $(temp_directory)/$(filename).xml"
-      else
-        muxChapters=""
-      fi
-
-      ## [check for subtitle file]
-      if [ -f "$(temp_directory)/$(filename).srt" ]; then
-        muxSubtitles="$(temp_directory)/$(filename).srt"
-      else
-        muxSubtitles=""
-      fi
-
-      ## TODO: find audio language and set videolanguage to audiolanguage
-      mkvmerge \
-        -o $(output_directory)/$(filename).mkv \
-        --title $(filename) \
-        -A $(temp_directory)/$(filename).hvc \
-        $muxChapters \
-        $muxSubtitles \
-        $(temp_directory)/$(filename).aac
-
-    }
-
-  ######################
-  # CLEANUP TEMP FILES #
-  ######################
-
-    cleanup_temp_file () {
-      if [ -f "$(temp_directory)/${1}" ]; then
-        rm $(temp_directory)/${1} || \
-        { echo "WARNING: failed to remove temp file: ${1}" ; return 1 ; }
-        echo "Removed temp file: ${1}"
-      fi
-    }
-
-  #####################
-  # EXECUTE FUNCTIONS #
-  #####################
-
-  run_arkhive () {
-
-    # Find full path to the directory containing the input file
-    input_directory ${inputFile}
-
-    # SUBTITLES
-    if [ "$subtitlesInclude" == "auto" ]; then
-      # Determine if input has subtitles
-      hasSubtitles=$(\
-        ffprobe $userInput 2>&1 | \
-        awk '/Subtitle/ { print $2 }')
-      if [ -n "$hasSubtitles" ]; then
-        subtitle_stream_selector
-        subtitle_stream_extractor
-      fi
-      if [ "$subtitlesConvertToSrt" = "auto" ]; then
-        #
-        # TODO: test here for non-srt subtitles
-        #
-        if  [ "subtitlesNotSrt" = "true" ]; then
-          subtitle_srt_converter
-        fi
+    if [ "$subtitlesConvertToSrt" = "auto" ]; then
+      #
+      # TODO: test here for non-srt subtitles
+      #
+      if  [ "subtitlesNotSrt" = "true" ]; then
+        subtitle_srt_converter
       fi
     fi
+  fi
 
-    # CHAPTERS
-    if [ "$chaptersInclude" == "auto" ]; then
-      # Determine if a chapter stream exists
-      hasChapters=$(ffprobe -i $userInput 2>&1 | awk '/Chapter/ { print $2 }')
-      if [ -n "$hasChapters" ]; then
-        $(chapter_stream_extractor)
-      fi
+  # CHAPTERS
+  if [ "$chaptersInclude" == "auto" ]; then
+    # Determine if a chapter stream exists
+    hasChapters=$(ffprobe -i $userInput 2>&1 | awk '/Chapter/ { print $2 }')
+    if [ -n "$hasChapters" ]; then
+      $(chapter_stream_extractor)
     fi
+  fi
 
-    # AUDIO
-    $(audio_encode)
+  audio_stream_selector
 
-    # VIDEO
-    $(video_encode)
+  audio_channel_mapper
 
-    # MUX OUTPUT STREAMS
-    $(mux_streams)
+  audio_encode
 
-    # CLEANUP TEMP FILES
+  if [ "$videoCropBlackbars" = "true" ]; then
+    black_bar_crop_detection
+  fi
+
+  if [ "$videoDeinterlace" = "auto" ]; then
+    video_interlace_detection
+  fi
+
+  video_encode
+
+  mux_streams
+
+  # CLEANUP TEMP FILES
     ## ffmpeg redirected output [nul]
     ## pgs subtitles
-    $(cleanup_temp_file) $(filename).hvc
-    $(cleanup_temp_file) $(filename).stats
-    $(cleanup_temp_file) $(filename).${audioCodec}
-    $(cleanup_temp_file) $(filename).sub
-    $(cleanup_temp_file) $(filename).idx
-    $(cleanup_temp_file) $(filename).srt
-    $(cleanup_temp_file) $(filename).xml
-  }
-########################################################################################################################
-##################################################### RUN ARKHIVE ######################################################
-########################################################################################################################
+  cleanup_temp_file filename_handler.hvc
+  cleanup_temp_file filename_handler.stats
+  cleanup_temp_file filename_handler.${audioCodec}
+  cleanup_temp_file filename_handler.sub
+  cleanup_temp_file filename_handler.idx
+  cleanup_temp_file filename_handler.srt
+  cleanup_temp_file filename_handler.xml
+}
 
 if [ -d "$userInput" ]; then
-  find . -type f \( \
+  find $(input_directory) -type f \( \
     -name "*.avi" \
     -o -name "*.f4v" \
     -o -name "*.flv" \
@@ -1116,9 +1018,11 @@ if [ -d "$userInput" ]; then
     -o -name "*.wmv" \
   \) -print0 | \
   while read -d $'\0' inputFile; do \
-    $(run_arkhive) \
+    run_arkhive \
   done
 elif [ -f "$userInput" ]; then
   inputFile="$userInput"
-  $(run_arkhive)
+  run_arkhive
 fi
+
+return 0
