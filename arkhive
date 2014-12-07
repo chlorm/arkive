@@ -46,30 +46,33 @@ VERSION="3"
 
 # SUPPORTED INPUT CONTAINERS: avi,f4v,flv,m2ts,m4v,mkv,mov,mp4,mpg,mpeg,ts,webm,wmv
 
-# Dolby atmos not supported, only outputs stereo or 5.1 surround
+# VIDEO CODEC: h.265
+# AUDIO CODEC: ac3
+# CONTAINER FORMAT: mkv or mp4 ??? not sure yet
+# AUDIO BITRATE: stereo 256kbps surround 640kbps
+# AUDIO SAMPLE RATE: stereo 44100khz surround 48000khz
+# AUDIO BIT DEPTH: 16
+# FRAME RATE: ??? 24 or 23.976
+  videoFrameRate="24000/1001" #(24000/1001,24,30,60)
+# VIDEO BITRATE: ??? maybe 5000kbps
+  videoBitrate="500"        #kbps
+# VIDEO ENCODING PASSES: 2
+
+# AUTOMATICLY HANDLED
+# -------------------
+# CHAPTERS: added if available
+# SUBTITLES: added if available & prefered language match is found
+# BLACK BARS: cropped if detected
+# INTERLACE: enables de-interlace filter if interlacing is present
 
 containerFormat="mkv" #(mkv,mp4) # Only mkv is supported currently
 # Prefered Language
 languageDefault="eng" # ISO 639-2
-# Audio Config
-audioCodec="ac3"            #(aac,ac3,flac,ogg,opus)
-audioChannelBitrate="48"
-audioChannelBitrateUnit="k" #(k,m) ???
-audioSampleRate="auto"      #(44100,48000,82000,96000,192000,auto)
-audioBitsPerSample="16"     #(8,16,24)
-audioChannelMaping="auto"   #(2.0,4.0,5.1-rear,7.1,auto)
-# Chapters
-chaptersInclude="auto" #(no,auto)
 # Subtitle Config
-subtitlesInclude="auto"      #(no,auto)
 subtitlesForced="no"         #(no,auto)
 subtitlesConvertToSrt="auto" #(no,auto)
 # Video Config
-videoBitrate="500"        #kbps
-videoFrameRate="24000/1001"
 videoResolution="auto"    #(480p,720p,1080p,4k,auto)
-videoCropBlackbars="auto" #(no,auto)
-videoDeinterlace="auto"   #(no.auto)
 videoEncodingPasses="2"   #(1,2,3)
 
 # Terminal Colors
@@ -333,6 +336,8 @@ filename_handler () {
 
 chapter_stream_extractor () {
 
+  ## TODO: convert to use ffmpeg instead of mkvextract
+
     mkvextract \
       chapters \
       --simple ${inputFile} \
@@ -458,19 +463,79 @@ audio_input_sample_rate () {
 
 audio_sample_rate () {
 
-  if [ "$audioOutputChannels" == "2" ]; then
+  if [ "$(audio_num_channels)" == "2" ]; then
     echo "44100"
-  elif [ "$audioOutputChannels" == "6" ]; then
+  elif [ "$(audio_num_channels)" == "6" ]; then
     echo "48000"
   fi
 
 }
 
-audio_channel_mapper () {
+audio_bitrate () {
 
-  findChannelLayout=$(ffprobe -i ${inputFile} 2>&1 | \
-    grep -m 1 "Stream #0:${audioSelectedStream}" | \
-    awk -F ", " "/  $(audio_input_sample_rate)\ Hz/ { print $3 }")
+  if [ "$(audio_num_channels)" == "2" ]; then
+    echo "256"
+  elif [ "$(audio_num_channels)" == "6" ]; then
+    echo "640"
+  fi
+
+}
+
+audio_source_channel_layout () {
+
+  ffprobe -i ${inputFile} 2>&1 | \
+    grep -m 1 "Stream #0:$(audio_stream_selector)" | \
+    awk -F ", " "/  $(audio_input_sample_rate)\ Hz/ { print $3 }"
+
+}
+
+audio_num_channels () {
+
+  case $(audio_source_channel_layout) in
+
+    '')
+      echo "ERROR: could not detect input file's number of audio channels"
+      exit 1
+      ;;
+
+    'mono') echo "2" ;;
+    'stereo') echo "2" ;;
+    '2.1') echo "2" ;;
+    '3.0') echo "2" ;;
+    '3.0(back)') echo "6" ;;
+    '4.0') echo "2" ;;
+    'quad') echo "6" ;;
+    'quad(side)') echo "2" ;;
+    '3.1') echo "2" ;;
+    '4.1') echo "6" ;;
+    '5.0') echo "6" ;;
+    '5.0(side)') echo "6" ;;
+    '5.1') echo "6" ;;
+    '5.1(side)') echo "6" ;;
+    '6.0') echo "6" ;;
+    '6.0(front)') echo "6" ;;
+    'hexagonal') echo "6" ;;
+    '6.1') echo "6" ;;
+    '6.1(back)') echo "6" ;;
+    '6.1(front)') echo "6" ;;
+    '7.0') echo "6" ;;
+    '7.0(front)') echo "6" ;;
+    '7.1') echo "6" ;;
+    '7.1(wide)') echo "6" ;;
+    '7.1(wide-side)') echo "6" ;;
+    'octagonal') echo "6" ;;
+    'downmix') echo "2" ;;
+
+    *)
+      echo "ERROR: Unsupported channel layout"
+      exit 1
+      ;;
+
+  esac
+
+}
+
+audio_channel_mapper () {
 
   # https://github.com/FFmpeg/FFmpeg/blob/master/libavutil/channel_layout.c
   # https://github.com/FFmpeg/FFmpeg/blob/master/doc/utils.texi
@@ -501,277 +566,115 @@ audio_channel_mapper () {
   # 34 = SDR - Surround Direct Left
   # 35 = LFE2 - Low Frequency 2
 
-  case "$findChannelLayout" in
+  case $(audio_source_channel_layout) in
 
     '')
       echo "ERROR: could not detect input file's audio channel layout"
       exit 1
       ;;
 
-    'mono')
-      audioSourceChannels="1"
-      audioOutputChannels="2"
-      # AV_CH_LAYOUT_MONO
-      # FC
-      audioFilterComplex="[0:a][0:a]amerge[aout]"
-      # "pan="stereo| c0=FL | c1=FR"
-      audioMap="[aout]"
+    'mono') # FC -> FL+FR
+      echo ""
       ;;
-
-    'stereo')
-      audioSourceChannels="2"
-      audioOutputChannels="2"
-      # AV_CH_LAYOUT_STEREO
-      # FL+FR
-      audioMap="FL+FR -> FL+FR"
+    'stereo') # FL+FR -> FL+FR
+      echo ""
       ;;
-
-    '2.1')
-      audioChannels="3"
-      audioOutputChannels="2"
-      # AV_CH_LAYOUT_2POINT1
-      # FL+FR+LFE
-      audioMap="FL"
+    '2.1') # FL+FR+LFE -> FL+FR
+      echo ""
       ;;
-
-    '3.0')
-      audioChannels="3"
-      audioOutputChannels="2"
-      # AV_CH_LAYOUT_SURROUND
-      # FL+FR+FC
+    '3.0') # FL+FR+FC -> FL+FR
+      echo ""
       ;;
-
-    '3.0(back)')
-      # Remap to 5.1
-      audioChannels="3"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_2_1
-      # FL+FR+BC
+    '3.0(back)') # FL+FR+BC -> FL+FR
+      echo ""
       ;;
-
-    '4.0')
-      audioChannels="4"
-      audioOutputChannels="2"
-      # AV_CH_LAYOUT_4POINT0
-      # FL+FR+FC+BC
+    '4.0') # FL+FR+FC+BC -> FL+FR
+      echo ""
       ;;
-
-    'quad')
-      # Remap to 5.1
-      audioChannels="4"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_QUAD
-      # FL+FR+BL+BR
+    'quad') # FL+FR+BL+BR -> FL+FR+FC+LFE+BL+BR
+      echo ""
       ;;
-
-    'quad(side)')
-      audioChannels="2"
-      audioOutputChannels="2"
-      # AV_CH_LAYOUT_2_2
-      # FL+FR+SL+SR
+    'quad(side)') # FL+FR+SL+SR -> FL+FR+FC+LFE+BL+BR
+      echo ""
       ;;
-
-    '3.1')
-      audioChannels="4"
-      audioOutputChannels="2"
-      # AV_CH_LAYOUT_3POINT1
-      # FL+FR+FC+LFE
+    '3.1') # FL+FR+FC+LFE -> FL+FR
+      echo ""
       ;;
-
-    '4.1')
-      # Remap to 5.1
-      audioChannels="5"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_4POINT1
-      # FL+FR+FC+LFE+BC
+    '4.1') # FL+FR+FC+LFE+BC -> FL+FR
+      echo ""
       ;;
-
-    '5.0')
-      # Remap to 5.1
-      audioChannels="5"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_5POINT0_BACK
-      # FL+FR+FC+BL+BR
+    '5.0') # FL+FR+FC+BL+BR -> FL+FR+FC+LFE+BL+BR
+      echo ""
       ;;
-
-    '5.0(side)')
-      # Remap to 5.1
-      audioChannels="5"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_5POINT0
-      # FL+FR+FC+SL+SR
+    '5.0(side)') # FL+FR+FC+SL+SR -> FL+FR+FC+LFE+BL+BR
+      echo ""
       ;;
-
-    '5.1')
-      # Remap to 5.1
-      audioChannels="6"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_5POINT1_BACK
-      # FL+FR+FC+LFE+BL+BR
+    '5.1') # FL+FR+FC+LFE+BL+BR -> FL+FR+FC+LFE+BL+BR
+      echo ""
       ;;
-
-    '5.1(side)')
-      # Remap to 5.1
-      audioChannels="6"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_5POINT1
-      # FL+FR+FC+LFE+SL+SR
+    '5.1(side)') # FL+FR+FC+LFE+SL+SR -> FL+FR+FC+LFE+BL+BR
+      echo ""
       ;;
-
-    '6.0')
-      # Remap to 5.1
-      audioChannels="6"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_6POINT0
-      # FL+FR+FC+BC+SL+SR
+    '6.0') # FL+FR+FC+BC+SL+SR -> FL+FR+FC+LFE+BL+BR
+      echo ""
       ;;
-
-    '6.0(front)')
-      # Remap to 5.1
-      audioChannels="6"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_6POINT0_FRONT
-      # FL+FR+FLC+FRC+SL+SR
+    '6.0(front)') # FL+FR+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
+      echo ""
       ;;
-
-    'hexagonal')
-      # Remap to 5.1
-      audioChannels="6"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_HEXAGONAL
-      # FL+FR+FC+BL+BR+BC
+    'hexagonal') # FL+FR+FC+BL+BR+BC -> FL+FR+FC+LFE+BL+BR
+      echo ""
       ;;
-
-    '6.1')
-      # Remap to 5.1
-      audioChannels="7"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_6POINT1
-      # FL+FR+FC+LFE+BC+SL+SR
+    '6.1') # FL+FR+FC+LFE+BC+SL+SR -> FL+FR+FC+LFE+BL+BR
+      echo ""
       ;;
-
-    '6.1(back)')
-      # Remap to 5.1
-      audioChannels="7"
-      audioOutputChannels="6"
-      ## TODO: fix upstream
-      # actually 6.1, not 6.1(back), upstream typo
-      # AV_CH_LAYOUT_6POINT1_BACK
-      # FL+FR+FC+LFE+BL+BR+BC
+#    '6.1(back)') # FL+FR+FC+LFE+BL+BR+BC -> FL+FR+FC+LFE+BL+BR
+#      echo ""
+#      ;;
+    '6.1(front)') # FL+FR+LFE+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
+      echo ""
       ;;
-
-    '6.1(front)')
-      # Remap to 5.1
-      audioChannels="7"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_6POINT1_FRONT
-      # FL+FR+LFE+FLC+FRC+SL+SR
+    '7.0') # FL+FR+FC+BL+BR+SL+SR -> FL+FR+FC+LFE+BL+BR
+      echo ""
       ;;
-
-    '7.0')
-      # Remap to 5.1
-      audioChannels="7"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_7POINT0
-      # FL+FR+FC+BL+BR+SL+SR
+    '7.0(front)') # FL+FR+FC+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
+      echo ""
       ;;
-
-    '7.0(front)')
-      # Remap to 5.1
-      audioChannels="7"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_7POINT0_FRONT
-      # FL+FR+FC+FLC+FRC+SL+SR
+    '7.1') # FL+FR+FC+LFE+BL+BR+SL+SR -> FL+FR+FC+LFE+BL+BR
+      echo ""
       ;;
-
-    '7.1')
-      # Remap to 5.1
-      audioChannels="8"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_7POINT1
-      # FL+FR+FC+LFE+BL+BR+SL+SR
+    '7.1(wide)') # FL+FR+FC+LFE+BL+BR+FLC+FRC -> FL+FR+FC+LFE+BL+BR
+      echo ""
       ;;
-
-    '7.1(wide)')
-      # Remap to 5.1
-      audioChannels="8"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_7POINT1_WIDE_BACK
-      # FL+FR+FC+LFE+BL+BR+FLC+FRC
+    '7.1(wide-side)') # FL+FR+FC+LFE+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
+      echo ""
       ;;
-
-    '7.1(wide-side)')
-      # Remap to 5.1
-      audioChannels="8"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_7POINT1_WIDE
-      # FL+FR+FC+LFE+FLC+FRC+SL+SR
+    'octagonal') # FL+FR+FC+BL+BR+BC+SL+SR -> FL+FR+FC+LFE+BL+BR
+      echo ""
       ;;
-
-    'octagonal')
-      # Remap to 5.1
-      audioChannels="8"
-      audioOutputChannels="6"
-      # AV_CH_LAYOUT_OCTAGONAL
-      # FL+FR+FC+BL+BR+BC+SL+SR
+    'downmix') # DL+DR -> FL+FR
+      echo ""
       ;;
-
-    'downmix')
-      audioChannels="2"
-      audioOutputChannels="2" # ???
-      # AV_CH_LAYOUT_STEREO_DOWNMIX
-      # DL+DR
-      ;;
-
     *)
       echo "ERROR: Unsupported channel layout"
       exit 1
       ;;
 
   esac
-
-}
-
-audio_codec () {
-
-  case "$audioCodec" in
-
-    'aac')
-      echo "libfdk_aac"
-      ;;
-
-    'ac3')
-      echo "ac3"
-      ;;
-
-    'ogg')
-      echo "libvorbis"
-      ;;
-
-    'opus')
-      echo "libopus"
-      ;;
-
-  esac
-
 }
 
 audio_encode () {
 
   # TODO: add audio channel mapping to the encoding
 
-  audioBitrate=$((${audioOutputChannels} * ${audioChannelBitrate}))
-  audioStreamBitrate="${audioBitrate}${audioChannelBitrateUnit}"
-
   # Encode Audio
   ffmpeg \
   -i "${inputFile}" \
-  -c:a $(audio_codec) \
-  -map 0:"${audioSelectedStream}" \
-  -ac "${audioOutputChannels}" \
-  -b:a "${audioStreamBitrate}" \
+  -c:a ac3 \
+  -map 0:"$(audio_stream_selector)" \
+  -ac "$(audio_num_channels)" \
+  -b:a "$(audio_bitrate)" \
   -ar $(audio_sample_rate) \
-  -y $(temp_directory)/$(filename).aac || \
+  -y $(temp_directory)/$(filename).ac3 || \
   { echo -e "${clR}ERROR: Failed to encode audio" ; exit 1 ; }
 
 }
@@ -992,31 +895,25 @@ run_arkhive () {
   # Find full path to the directory containing the input file
   input_directory ${inputFile}
 
-  if [ "$subtitlesInclude" == "auto" ]; then
-    # Determine if input has subtitles
-    hasSubtitles=$(\
-      ffprobe $userInput 2>&1 | \
-      awk '/Subtitle/ { print $2 }')
-    if [ -n "$hasSubtitles" ]; then
-      subtitle_stream_selector
-      subtitle_stream_extractor
-    fi
-    if [ "$subtitlesConvertToSrt" == "auto" ]; then
-      #
-      # TODO: test here for non-srt subtitles
-      #
-      if  [ "subtitlesNotSrt" == "true" ]; then
-        subtitle_srt_converter
-      fi
-    fi
+  # Determine if input has subtitles
+  hasSubtitles=$(\
+    ffprobe $userInput 2>&1 | \
+    awk '/Subtitle/ { print $2 }')
+  if [ -n "$hasSubtitles" ]; then
+    subtitle_stream_selector
+    subtitle_stream_extractor
+  fi
+  #
+  # TODO: test here for non-srt subtitles
+  #
+  if  [ "subtitlesNotSrt" == "true" ]; then
+    subtitle_srt_converter
   fi
 
-  if [ "$chaptersInclude" == "auto" ]; then
-    # Determine if a chapter stream exists
-    hasChapters=$(ffprobe -i $userInput 2>&1 | awk '/Chapter/ { print $2 }')
-    if [ -n "$hasChapters" ]; then
-      $(chapter_stream_extractor)
-    fi
+  # Determine if a chapter stream exists
+  hasChapters=$(ffprobe -i $userInput 2>&1 | awk '/Chapter/ { print $2 }')
+  if [ -n "$hasChapters" ]; then
+    $(chapter_stream_extractor)
   fi
 
   audio_stream_selector
@@ -1025,13 +922,9 @@ run_arkhive () {
 
   audio_encode
 
-  if [ "$videoCropBlackbars" == "auto" ]; then
-    black_bar_crop_detection
-  fi
+  black_bar_crop_detection
 
-  if [ "$videoDeinterlace" = "auto" ]; then
-    video_interlace_detection
-  fi
+  video_interlace_detection
 
   video_encode
 
@@ -1042,7 +935,7 @@ run_arkhive () {
     ## pgs subtitles
   cleanup_temp_file $(filename_handler).hvc
   cleanup_temp_file $(filename_handler).stats
-  cleanup_temp_file $(filename_handler).${audioCodec}
+  cleanup_temp_file $(filename_handler).ac3
   cleanup_temp_file $(filename_handler).sub
   cleanup_temp_file $(filename_handler).idx
   cleanup_temp_file $(filename_handler).srt
