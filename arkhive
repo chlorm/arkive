@@ -26,54 +26,14 @@
 ##      libvorbis
 ##      VobSub2SRT
 ##      x265 >=1.3.x
-##    Legend:
-##      () - option
-##      [] - description
-##      ## - comments [not to be uncommented]
-##      <> - issue description
-##      # -- commented variables
+
+# VIDEO: h.265/HEVC
+# AUDIO: ac3
+# Subtitles: ASS (Advanced SubStation Alpha)
+# Chapters: ??? xml ???
+# Container: mkv or mp4 ???
 
 VERSION="3"
-
-# ERROR: something went wrong and program will exit
-# WARNING: something went wrong, but program will continue
-
-# EXIT CODES
-# 1 - Input error
-
-# RETURN CODES
-# 2 - Cpu detection error
-
-# SUPPORTED INPUT CONTAINERS: avi,f4v,flv,m2ts,m4v,mkv,mov,mp4,mpg,mpeg,ts,webm,wmv
-
-# VIDEO CODEC: h.265
-# AUDIO CODEC: ac3
-# CONTAINER FORMAT: mkv or mp4 ??? not sure yet
-# AUDIO BITRATE: stereo 256kbps surround 640kbps
-# AUDIO SAMPLE RATE: stereo 44100khz surround 48000khz
-# AUDIO BIT DEPTH: 16
-# FRAME RATE: ??? 24 or 23.976
-  videoFrameRate="24000/1001" #(24000/1001,24,30,60)
-# VIDEO BITRATE: ??? maybe 5000kbps
-  videoBitrate="500"        #kbps
-# VIDEO ENCODING PASSES: 2
-
-# AUTOMATICLY HANDLED
-# -------------------
-# CHAPTERS: added if available
-# SUBTITLES: added if available & prefered language match is found
-# BLACK BARS: cropped if detected
-# INTERLACE: enables de-interlace filter if interlacing is present
-
-containerFormat="mkv" #(mkv,mp4) # Only mkv is supported currently
-# Prefered Language
-languageDefault="eng" # ISO 639-2
-# Subtitle Config
-subtitlesForced="no"         #(no,auto)
-subtitlesConvertToSrt="auto" #(no,auto)
-# Video Config
-videoResolution="auto"    #(480p,720p,1080p,4k,auto)
-videoEncodingPasses="2"   #(1,2,3)
 
 # Terminal Colors
 clR="\033[1;31m"  # Red
@@ -120,34 +80,20 @@ ffmpeg_compile_option () {
 }
 
 # Dependencies
-if [ "$subtitlesConvertToSrt" = "auto" ]; then
-  path_hasbin vobsub2srt || { echo "ERROR: 'vobsub2srt' is not installed" ; exit 1 ; }
-fi
+path_hasbin vobsub2srt || { echo "ERROR: 'vobsub2srt' is not installed" ; exit 1 ; }
 path_hasbin awk || { echo "ERROR: 'awk' is not installed" ; exit 1 ; }
 path_hasbin dirname || { echo "ERROR: 'dirname' is not installed" ; exit 1 ; }
 path_hasbin grep || { echo "ERROR: 'grep' is not installed" ; exit 1 ; }
-if [ "$containerFormat" == "mkv" ]; then
-  path_hasbin mkvextract || { echo "ERROR: 'mkvextract' is not installed" ; exit 1 ; }
-  path_hasbin mkvmerge || { echo "ERROR: 'mkvmerge' is not installed" ; exit 1 ; }
-fi
 path_hasbin pwd || { echo "ERROR: 'pwd' is not installed" ; exit 1 ; }
 path_hasbin rm || { echo "ERROR: 'rm' is not installed" ; exit 1 ; }
 path_hasbin tail || { echo "ERROR: 'tail' is not installed" ; exit 1 ; }
 path_hasbin x265 || { echo "ERROR: 'x265' is not installed" ; exit 1 ; }
 path_hasbin ffmpeg || { echo "ERROR: 'ffmpeg' is not installed" ; exit 1 ; }
-if [ "$audioCodec" == "ac3" ]; then
-  ffmpeg_compile_option aften
-fi
-if [ "$audioCodec" == "aac" ]; then
-  ffmpeg_compile_option fdk-aac
-fi
-if [ "$audioCodec" == "opus" ]; then
-  ffmpeg_compile_option libopus
-fi
-if [ "$audioCodec" == "ogg" ]; then
-  ffmpeg_compile_option libvorbis
-fi
-ffmpeg_compile_option yuv4mpeg
+
+ffmpeg_compile_option aften # ac3
+ffmpeg_compile_option libass # substation alpha subtitles
+ffmpeg_compile_option libzvbi # Enable support for decoding DVB Teletext Subtitles
+ffmpeg_compile_option yuv4mpeg # Piping ffmpeg output to x265
 
 # Check for input
 if [ -z "$1" ]; then
@@ -163,14 +109,24 @@ else
         if [ -z "$2" ]; then
           echo -e "${clR}ERROR: No input provided"
           exit 1
+        elif [ -d "$2" ]; then
+          userInput="$2"
+          shift
         elif [ -f "$2" ]; then
           inputFileExt=${2##*.}
 
           case "$inputFileExt" in
 
-            'avi'|'f4v'|'flv'|'m2ts'|'m4v'|'mkv'|'mp4'|'mpeg'|'mpg'|'mov'|'ts'|'wmv')
+            'avi'|'f4v'|'flv'|'m4v'|'mkv'|'mp4'|'mpeg'|'mpg'|'mov'|'ts'|'wmv')
               userInput="$2"
               shift
+              ;;
+
+            'm2ts')
+              echo -e "${clR}ERROR: unsupported format"
+              echo "ARKhive cannot handle 'm2ts' files, they do not contain stream language codes"
+              echo "Please remux the 'm2ts' to mkv or another supported format"
+              exit 1
               ;;
 
             *)
@@ -180,9 +136,6 @@ else
               ;;
 
           esac
-        elif [ -d "$2" ]; then
-          userInput="$2"
-          shift
         else
           printf "${clR}ERROR: Input file does not exist\n"
           exit 1
@@ -378,6 +331,106 @@ subtitle_stream_selector () {
 
 }
 
+subtitle_source_format () {
+
+  echo "not implemented"
+  return 0 # Exit, the following does nothing
+
+  # https://github.com/FFmpeg/FFmpeg/blob/master/libavcodec/codec_desc.c
+
+  subtitleFormat=$(ffprobe ${inputFile} | grep "subtitle format")
+
+  case $subtitleFormat in
+
+    '')
+      echo "WARNING: could not detect subtitle format, not including subtitles"
+      return 1
+      ;;
+
+    # Name, File Extension, Type, Line Break, Text Styling Support, Metadata Support, Timing Method, Timing Precision
+    'ass'|'ssa') # (Advanced) SubStation Alpla, .ass/.ssa, Text, y, y, Elapsed Time, 10 milliseconds
+      ;;
+    'dvb_subtitle') # DVB Subtitles, (in DVB stream), bitmap, n, n, n, elapsed time, ???
+      ;;
+    'dvb_teletext') #???
+      ;;
+    'dvd_subtitle') # VOBSub, .sub+.idx, bitmap, n, n, n, elapsed time, 1 millisecond
+      ;;
+    'hdmv_pgs_subtitle') # Blu-Ray, (pgs), bitmap, n, n, n, elapsed time, ???
+      ;;
+    'jacosub') # JACOSub, .jss, Text w/markup, y, n, elapsed time, frame
+      ;;
+    'microdvd') # MicroDVD, .sub, Text, n, n, frame, frame
+      ;;
+    'mov_text') #???
+      ;;
+    'mpl2') # MPL2, ???, Text ???, ???, ???, ???, ???
+      ;;
+    'pjs') # Phoenix Subtitle, .pjs, Text, n, n, frame, frame
+      ;;
+    'realtext') # RealText, .rt, HTML, y, n, elapsed time, 10 Milliseconds
+      ;;
+    'sami') # SAMI, .smi, HTML, y, y, frame, frame
+      ;;
+    'stl') # Spruce Subtitle Format, .stl, Text, y, y, Sequential Time+Frames, Sequential Time+Frames
+      ;;
+    'subrip'|'srt') # SubRip, .srt, Text, y, n, elapsed time, 1 Millisecond
+      ;;
+    'subviewer'|'subviewer1') # SubViewer, .sub, Text, n, y, elapsed time, 10 Milliseconds
+      ;;
+    'text') # Raw UTF-8 Text
+      ;;
+    'vplayer') # VPlayer , .txt, Text, y, n, n, frame/time, 10 milliseconds
+      ;;
+    'webvtt') # WebVTT ???, ???, Text ???, ... ???
+      ;;
+    'xsub') # DivX XSUB, n/a (embedded in divx container), image, n, n, elapsed time, 1 Millisecond
+      echo "xsub"
+      ;;
+    *|'eia_608')
+      echo "WARNING: unsupported subtitle format, not including subtitles"
+      return 1
+      ;;
+
+  esac
+
+}
+
+subtitle_type () {
+
+  echo "not implemented"
+  return 0 # Exit, the following does nothing
+
+  # Determines if subtitles are in a text or bitmap based format
+
+  subtitleFormat=$(ffprobe ${inputFile} | grep "subtitle format")
+
+  case $subtitleFormat in
+
+    '')
+      echo "WARNING: could not detect subtitle format, not including subtitles"
+      return 1
+      ;;
+
+    # Name, File Extension, Type, Text Styling Support, Metadata Support, Timing Method, Timing Precision
+    'ass'|'ssa'|'jacosub'|'microdvd'|'mov_text'|'mpl2'|'pjs'|'realtext'|'sami'|'srt'|'stl'|'subrip'|'subviewer'|'subviewer1'|'text'|'vplayer'|'webvtt')
+      echo "text"
+      ;;
+    'dvb_subtitle'|'dvd_subtitle'|'hdmv_pgs_subtitle'|'xsub')
+      echo "bitmap"
+      ;;
+    'dvb_teletext') #???
+      echo "unknown"
+      ;;
+    *)
+      echo "WARNING: unsupported subtitle format, not including subtitles"
+      return 1
+      ;;
+
+  esac
+
+}
+
 subtitle_stream_extractor () {
 
     mkvextract -q tracks ${userInput} ${subtitleStream}:$(temp_directory)/$(filename) 2>/dev/null
@@ -387,7 +440,7 @@ subtitle_stream_extractor () {
 
 subtitle_srt_converter () {
 
-  # Check for VobSub and convert to SRT]
+  # Check for VobSub and convert to SRT
   if [ -f "$tempFilePath/$fileName.idx" ]; then
     echo "         Converting VobSub to SRT"
     vobsub2srt $(temp_directory)/$(filename) &>/dev/null || \
@@ -414,18 +467,12 @@ audio_stream_selector () {
   audioStreamCount=$(${#audioStreamArray[@]})
 
   if [ -z "$audioStreamCount" ]; then
-    echo "WARNING: No audio streams found"
+    echo "ERROR: No audio streams found"
+    return 1
   elif [ "$audioStreamCount" = "1" ]; then
     # Set stream number to the only one found
     audioPreferedStream=$($audioStreamArray[1])
-
-  # Containers with: mkv,mp4
   elif [ "$audioStreamCount" -gt "1" ]; then
-    # MP4 has two audio lines, only one with a stream section
-
-    # get pounded in the ass
-
-    # Not sure where to start with this section
 
   # Find language of audio stream
   ffprobe -i test4.mp4 2>&1 | \
@@ -446,7 +493,7 @@ audio_stream_selector () {
     #    if so, pick best option
   else
     echo "ERROR: Video has no audio"
-    exit 2
+    return 2
   fi
 
   # 4 Fuck Bitches
@@ -570,11 +617,11 @@ audio_channel_mapper () {
 
     '')
       echo "ERROR: could not detect input file's audio channel layout"
-      exit 1
+      return 1
       ;;
 
     'mono') # FC -> FL+FR
-      echo ""
+      echo "-filter_complex \"[0:a][0:a]amerge[aout]\" -map \"[aout]\""
       ;;
     'stereo') # FL+FR -> FL+FR
       echo ""
@@ -660,6 +707,7 @@ audio_channel_mapper () {
       ;;
 
   esac
+
 }
 
 audio_encode () {
@@ -675,7 +723,7 @@ audio_encode () {
   -b:a "$(audio_bitrate)" \
   -ar $(audio_sample_rate) \
   -y $(temp_directory)/$(filename).ac3 || \
-  { echo -e "${clR}ERROR: Failed to encode audio" ; exit 1 ; }
+  { echo -e "${clR}ERROR: Failed to encode audio" ; return 1 ; }
 
 }
 
@@ -740,7 +788,7 @@ video_interlace_detection () {
 
 }
 
-video_encode () {
+video_frame_counter () {
 
   # Frames Per Second
   FPS="23.976023976"
@@ -752,6 +800,10 @@ video_encode () {
   # Get total number of frames
   totalFrames=$(echo "($HRS*3600+$MIN*60+$SEC)*$FPS" | bc | cut -d"." -f1)
   echo "Estimated total frames: $totalFrames"
+
+}
+
+video_encode () {
 
   # Initial pass number, DO NOT CHANGE VALUE
   PASS="1"
@@ -765,7 +817,7 @@ video_encode () {
     ##        enable ffmpeg scaling otherwise disable
     ## TODO: make ffmpeg output to $fileName.ffmpeg
     ffmpeg \
-      -threads $(cpu_threads) \
+      -threads $(cpu_cores) \
       -i "$inputFile" \
       -vf "crop=${crop},scale=${cropWidth}:trunc(ow/a/2)*2" \
       -r ${videoFrameRate} \
@@ -818,7 +870,7 @@ video_encode () {
       --hash=2 \
       -f 0 \
       -o "$(temp_directory)/$(filename).hvc" - || \
-      { echo "ERROR: video encoding failed" ; exit 1 ; }
+      { echo "ERROR: video encoding failed" ; return 1 ; }
 
     # Finished encoding
     if [ "$videoEncodingPass" == "$videoEncodingPasses" ]; then
@@ -902,6 +954,7 @@ run_arkhive () {
   if [ -n "$hasSubtitles" ]; then
     subtitle_stream_selector
     subtitle_stream_extractor
+    subtitle_format_detection
   fi
   #
   # TODO: test here for non-srt subtitles
