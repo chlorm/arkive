@@ -27,11 +27,11 @@
 ##      VobSub2SRT
 ##      x265 >=1.3.x
 
-# VIDEO: h.265/HEVC
-# AUDIO: ac3
+# VIDEO: h.265 (High Efficiency Video Coding)
+# AUDIO: AC-3 (Audio Codec 3)
 # Subtitles: ASS (Advanced SubStation Alpha)
 # Chapters: ??? xml ???
-# Container: mkv or mp4 ???
+# Container: mkv (Matroska)
 
 VERSION="3"
 
@@ -123,10 +123,34 @@ else
               ;;
 
             'm2ts')
-              echo -e "${clR}ERROR: unsupported format"
-              echo "ARKhive cannot handle 'm2ts' files, they do not contain stream language codes"
-              echo "Please remux the 'm2ts' to mkv or another supported format"
-              exit 1
+              m2tsAudioStreamArray=($(\
+                ffprobe -i ${inputFile} 2>&1 | \
+                grep "Audio:" | \
+                awk '/Stream\ #0:/ { print $2 }' | \
+                grep -o -P '(?<=\#0\:)[0-9](?=\([a-z]+\)|\[[0-9]+x[0-9]+\]|\:)'))
+
+              # Find total number of audio streams in the container
+              m2tsAudioStreamCount=$(${#m2tsAudioStreamArray[@]})
+
+              m2tsSubtitleStreamArray=($(\
+                ffprobe -i ${inputFile} 2>&1 | \
+                grep "Subtitle:" | \
+                awk '/Stream\ #0:/ { print $2 }' | \
+                grep -o -P '(?<=\#0\:)[0-9](?=\([a-z]+\)|\[[0-9]+x[0-9]+\]|\:)'))
+
+              # Find total number of subtitle streams in the container
+              m2tsSubtitleStreamCount=$(${#m2tsSubtitleStreamArray[@]})
+
+              if [ ${m2tsAudioStreamCount} == "1" ] && [ ${m2tsSubtitleStreamCount} -le "1" ]; then
+                userInput=$2
+                shift
+              else
+                echo -e "${clR}ERROR: unsupported format"
+                echo "ARKhive cannot handle 'm2ts' files with multiple audio or"
+                echo "subtitle streams, they do not contain stream language codes"
+                echo "Please remux the 'm2ts' to mkv or another supported format"
+                exit 1
+              fi
               ;;
 
             *)
@@ -185,11 +209,11 @@ else
         ;;
 
       *)
-        if [ -n "${INPATH}" ]; then
+        if [ -n "${1}" ]; then
           eval "printf \"${HELP}\""
           printf "\n${clR}ERROR: Unknown option $1\n"
           exit 1
-        elif [ ! -r "$1" ]; then
+        elif [ ! -r "${1}" ]; then
           printf "${clR}ERROR: Unable to read $1\n"
           exit 1
         else
@@ -312,10 +336,17 @@ chapter_stream_extractor () {
 
 subtitle_stream_selector () {
 
-  # Look for seperate subtitle file
-  if [ -f "$(input_directory)/${orginalFilename}.srt" ]; then
-    cp "$(input_directory)/${orginalFilename}.srt" "$(temp_directory)/$(filename).srt"}
+  # Look for seperate subtitle file(s)
+  if [ -f "$(input_directory)/$(filename_base).ass" ]; then
+
+    cp "$(input_directory)/$(filename_base).ass" "$(temp_directory)/$(filename).ass"
+
+  elif [ -f "$(input_directory)/$(filename_base).srt" ]; then
+
+    ffmpeg -i $(input_directory)/$(filename_base).srt -an -vn -c:s:0 ass $(temp_directory)/$(filename_handler).ass
+
   elif [ -n "$hasSubtitles" ]; then
+
     # Finds first english subtitle stream]
     subtitleStream=$(\
       ffmpeg -i ${userInput} -f null - 2>&1 | \
@@ -325,16 +356,18 @@ subtitle_stream_selector () {
     if [ -z "${subtitleStream}" ]; then
       echo "No english subtitles found"
     fi
+
   else
+
     echo "No subtitle stream found"
+
   fi
 
 }
 
-subtitle_source_format () {
+subtitle_stream_extractor () {
 
-  echo "not implemented"
-  return 0 # Exit, the following does nothing
+  # Extract subtitles to ASS or VOBSub format
 
   # https://github.com/FFmpeg/FFmpeg/blob/master/libavcodec/codec_desc.c
 
@@ -348,45 +381,70 @@ subtitle_source_format () {
       ;;
 
     # Name, File Extension, Type, Line Break, Text Styling Support, Metadata Support, Timing Method, Timing Precision
-    'ass'|'ssa') # (Advanced) SubStation Alpla, .ass/.ssa, Text, y, y, Elapsed Time, 10 milliseconds
+    'ass') # Advanced SubStation Alpla, .ass/.ssa, Text, y, y, Elapsed Time, 10 milliseconds
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) copy output.ass"
       ;;
     'dvb_subtitle') # DVB Subtitles, (in DVB stream), bitmap, n, n, n, elapsed time, ???
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) dvd_subtitle output.sub/.idx ???"
       ;;
     'dvb_teletext') #???
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) copy output.ass"
       ;;
     'dvd_subtitle') # VOBSub, .sub+.idx, bitmap, n, n, n, elapsed time, 1 millisecond
+      echo "ffmpeg(extract) -> vobsub2srt -> ass"
       ;;
     'hdmv_pgs_subtitle') # Blu-Ray, (pgs), bitmap, n, n, n, elapsed time, ???
+      echo "ffmpeg(extract) -> bdsup2sub -> vobsub2srt -> ass"
       ;;
     'jacosub') # JACOSub, .jss, Text w/markup, y, n, elapsed time, frame
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
       ;;
     'microdvd') # MicroDVD, .sub, Text, n, n, frame, frame
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
       ;;
-    'mov_text') #???
+    'mov_text') #MPEG-4 Timed Text, Text, ???
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
       ;;
     'mpl2') # MPL2, ???, Text ???, ???, ???, ???, ???
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
       ;;
     'pjs') # Phoenix Subtitle, .pjs, Text, n, n, frame, frame
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
       ;;
     'realtext') # RealText, .rt, HTML, y, n, elapsed time, 10 Milliseconds
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
       ;;
     'sami') # SAMI, .smi, HTML, y, y, frame, frame
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
+      ;;
+    'ssa') # SubStation Alpla, .ass/.ssa, Text, y, y, Elapsed Time, 10 milliseconds
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:0 ass -map ??? output.ass"
       ;;
     'stl') # Spruce Subtitle Format, .stl, Text, y, y, Sequential Time+Frames, Sequential Time+Frames
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
       ;;
     'subrip'|'srt') # SubRip, .srt, Text, y, n, elapsed time, 1 Millisecond
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
       ;;
-    'subviewer'|'subviewer1') # SubViewer, .sub, Text, n, y, elapsed time, 10 Milliseconds
+    'subviewer') # SubViewer v2, .sub, Text, n, y, elapsed time, 10 Milliseconds
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
+      ;;
+    'subviewer1') # SubViewer v1, .sub, Text, n, y, elapsed time, 10 Milliseconds
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
       ;;
     'text') # Raw UTF-8 Text
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
       ;;
     'vplayer') # VPlayer , .txt, Text, y, n, n, frame/time, 10 milliseconds
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
       ;;
     'webvtt') # WebVTT ???, ???, Text ???, ... ???
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
       ;;
     'xsub') # DivX XSUB, n/a (embedded in divx container), image, n, n, elapsed time, 1 Millisecond
-      echo "xsub"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
       ;;
+
     *|'eia_608')
       echo "WARNING: unsupported subtitle format, not including subtitles"
       return 1
@@ -394,6 +452,10 @@ subtitle_source_format () {
 
   esac
 
+}
+
+subtitle_ass_parser () {
+  # Parses the ASS file and adds/fixes formatting
 }
 
 subtitle_type () {
@@ -416,12 +478,15 @@ subtitle_type () {
     'ass'|'ssa'|'jacosub'|'microdvd'|'mov_text'|'mpl2'|'pjs'|'realtext'|'sami'|'srt'|'stl'|'subrip'|'subviewer'|'subviewer1'|'text'|'vplayer'|'webvtt')
       echo "text"
       ;;
+
     'dvb_subtitle'|'dvd_subtitle'|'hdmv_pgs_subtitle'|'xsub')
       echo "bitmap"
       ;;
+
     'dvb_teletext') #???
       echo "unknown"
       ;;
+
     *)
       echo "WARNING: unsupported subtitle format, not including subtitles"
       return 1
@@ -431,17 +496,10 @@ subtitle_type () {
 
 }
 
-subtitle_stream_extractor () {
-
-    mkvextract -q tracks ${userInput} ${subtitleStream}:$(temp_directory)/$(filename) 2>/dev/null
-    echo -e "       ${clC}Found '${languageDefault}' Subs, Stream: ${clP}$subtitleStream"
-
-}
-
 subtitle_srt_converter () {
 
   # Check for VobSub and convert to SRT
-  if [ -f "$tempFilePath/$fileName.idx" ]; then
+  if [ -f "$(temp_directory)/$(fileName).idx" ]; then
     echo "         Converting VobSub to SRT"
     vobsub2srt $(temp_directory)/$(filename) &>/dev/null || \
     { echo "WARNING: failed to convert vobsub to srt" ; return 1 ; }
@@ -458,7 +516,7 @@ audio_stream_selector () {
   #  number that is container specific, so 'or' statements
   #  were added to grep to work around this>
   audioStreamArray=($(\
-    ffprobe -i test4.mp4 2>&1 | \
+    ffprobe -i ${inputFile} 2>&1 | \
     grep "Audio:" | \
     awk '/Stream\ #0:/ { print $2 }' | \
     grep -o -P '(?<=\#0\:)[0-9](?=\([a-z]+\)|\[[0-9]+x[0-9]+\]|\:)'))
@@ -475,7 +533,7 @@ audio_stream_selector () {
   elif [ "$audioStreamCount" -gt "1" ]; then
 
   # Find language of audio stream
-  ffprobe -i test4.mp4 2>&1 | \
+  ffprobe -i ${inputFile} 2>&1 | \
     # Gets line of streams
     grep "Stream #0:1" | \
     # Pulls first part of line containing language
@@ -545,33 +603,86 @@ audio_num_channels () {
       exit 1
       ;;
 
-    'mono') echo "2" ;;
-    'stereo') echo "2" ;;
-    '2.1') echo "2" ;;
-    '3.0') echo "2" ;;
-    '3.0(back)') echo "6" ;;
-    '4.0') echo "2" ;;
-    'quad') echo "6" ;;
-    'quad(side)') echo "2" ;;
-    '3.1') echo "2" ;;
-    '4.1') echo "6" ;;
-    '5.0') echo "6" ;;
-    '5.0(side)') echo "6" ;;
-    '5.1') echo "6" ;;
-    '5.1(side)') echo "6" ;;
-    '6.0') echo "6" ;;
-    '6.0(front)') echo "6" ;;
-    'hexagonal') echo "6" ;;
-    '6.1') echo "6" ;;
-    '6.1(back)') echo "6" ;;
-    '6.1(front)') echo "6" ;;
-    '7.0') echo "6" ;;
-    '7.0(front)') echo "6" ;;
-    '7.1') echo "6" ;;
-    '7.1(wide)') echo "6" ;;
-    '7.1(wide-side)') echo "6" ;;
-    'octagonal') echo "6" ;;
-    'downmix') echo "2" ;;
+    'mono')
+      echo "2"
+      ;;
+    'stereo')
+      echo "2"
+      ;;
+    '2.1')
+      echo "2"
+      ;;
+    '3.0')
+      echo "2"
+      ;;
+    '3.0(back)')
+      echo "6"
+      ;;
+    '4.0')
+      echo "2"
+      ;;
+    'quad')
+      echo "6"
+      ;;
+    'quad(side)')
+      echo "2"
+      ;;
+    '3.1')
+      echo "2"
+      ;;
+    '4.1')
+      echo "6"
+      ;;
+    '5.0')
+      echo "6"
+      ;;
+    '5.0(side)')
+      echo "6"
+      ;;
+    '5.1')
+      echo "6"
+      ;;
+    '5.1(side)')
+      echo "6"
+      ;;
+    '6.0')
+      echo "6"
+      ;;
+    '6.0(front)')
+      echo "6"
+      ;;
+    'hexagonal')
+      echo "6"
+      ;;
+    '6.1')
+      echo "6"
+      ;;
+    '6.1(back)')
+      echo "6"
+      ;;
+    '6.1(front)')
+      echo "6"
+      ;;
+    '7.0')
+      echo "6"
+      ;;
+    '7.0(front)')
+      echo "6"
+      ;;
+    '7.1')
+      echo "6"
+      ;;
+    '7.1(wide)')
+      echo "6"
+      ;;
+    '7.1(wide-side)')
+      echo "6"
+      ;;
+    'octagonal')
+      echo "6"
+      ;;
+    'downmix')
+      echo "2" ;;
 
     *)
       echo "ERROR: Unsupported channel layout"
@@ -969,19 +1080,19 @@ run_arkhive () {
     $(chapter_stream_extractor)
   fi
 
-  audio_stream_selector
+  audio_stream_selector || { return 1; }
 
-  audio_channel_mapper
+  audio_channel_mapper || { return 1; }
 
-  audio_encode
+  audio_encode || { return 1; }
 
-  black_bar_crop_detection
+  black_bar_crop_detection || { return 1; }
 
-  video_interlace_detection
+  video_interlace_detection || { return 1; }
 
-  video_encode
+  video_encode || { return 1; }
 
-  mux_streams
+  mux_streams || { return 1; }
 
   # CLEANUP TEMP FILES
     ## ffmpeg redirected output [nul]
