@@ -1,7 +1,7 @@
 ARKhive
 =======
 
-Bash frontend to ffmpeg, mkvtoolnix, x265 and other utilities to prepare video for archiving according to Chlorm's ARK specifications.
+ARKhive is a video encoding automation tool using ffmpeg and x265.
 
 Dependencies: ffmpeg, vobsub2srt, x265, coreutils, gawk, grep
 
@@ -16,7 +16,7 @@ TODO:
   * find method to accuratly get total frames (skew exists between x265 and ffmpeg)
   * allow user to input a directory and recursively encode files within
 
-Outputs a file according to the follwing specs:
+Outputs a file according to the following specs:
   * Audio
     + Prefers english audio stream if available
     + Channel Layouts: stereo or 5.1(rear) depending upon input
