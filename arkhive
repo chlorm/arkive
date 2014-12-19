@@ -71,10 +71,10 @@ path_hasbin () {
 # Check for ffmpeg compile flag
 ffmpeg_compile_option () {
 
-  hasFFmpegLib=$(ffmpeg 2>&1 | grep "enable-${1}")
+  hasFFmpegLib=$(ffmpeg 2>&1 | grep -o "enable-${1}")
   if [ -z "$hasFFmpegLib" ]; then
     echo "ERROR: FFmpeg not compiled with: '${1}'"
-    exit 1
+    return 1
   fi
 
 }
@@ -90,10 +90,8 @@ path_hasbin tail || { echo "ERROR: 'tail' is not installed" ; exit 1 ; }
 path_hasbin x265 || { echo "ERROR: 'x265' is not installed" ; exit 1 ; }
 path_hasbin ffmpeg || { echo "ERROR: 'ffmpeg' is not installed" ; exit 1 ; }
 
-ffmpeg_compile_option aften # ac3
-ffmpeg_compile_option libass # substation alpha subtitles
-ffmpeg_compile_option libzvbi # Enable support for decoding DVB Teletext Subtitles
-ffmpeg_compile_option yuv4mpeg # Piping ffmpeg output to x265
+#ffmpeg_compile_option libass # substation alpha subtitles
+#ffmpeg_compile_option libzvbi # Enable support for decoding DVB Teletext Subtitles
 
 # Check for input
 if [ -z "$1" ]; then
@@ -380,15 +378,17 @@ subtitle_stream_extractor () {
       return 1
       ;;
 
+##### More than likely none of this works, but it is here as an outline
+
     # Name, File Extension, Type, Line Break, Text Styling Support, Metadata Support, Timing Method, Timing Precision
     'ass') # Advanced SubStation Alpla, .ass/.ssa, Text, y, y, Elapsed Time, 10 milliseconds
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) copy output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) copy $(temp_directory)/$(filename).ass"
       ;;
     'dvb_subtitle') # DVB Subtitles, (in DVB stream), bitmap, n, n, n, elapsed time, ???
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) dvd_subtitle output.sub/.idx ???"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) dvd_subtitle $(temp_directory)/$(filename).sub/.idx ???"
       ;;
     'dvb_teletext') #???
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) copy output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) copy $(temp_directory)/$(filename).ass"
       ;;
     'dvd_subtitle') # VOBSub, .sub+.idx, bitmap, n, n, n, elapsed time, 1 millisecond
       echo "ffmpeg(extract) -> vobsub2srt -> ass"
@@ -397,52 +397,52 @@ subtitle_stream_extractor () {
       echo "ffmpeg(extract) -> bdsup2sub -> vobsub2srt -> ass"
       ;;
     'jacosub') # JACOSub, .jss, Text w/markup, y, n, elapsed time, frame
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
     'microdvd') # MicroDVD, .sub, Text, n, n, frame, frame
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
     'mov_text') #MPEG-4 Timed Text, Text, ???
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
     'mpl2') # MPL2, ???, Text ???, ???, ???, ???, ???
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
     'pjs') # Phoenix Subtitle, .pjs, Text, n, n, frame, frame
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
     'realtext') # RealText, .rt, HTML, y, n, elapsed time, 10 Milliseconds
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
     'sami') # SAMI, .smi, HTML, y, y, frame, frame
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
     'ssa') # SubStation Alpla, .ass/.ssa, Text, y, y, Elapsed Time, 10 milliseconds
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:0 ass -map ??? output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:0 ass -map ??? $(temp_directory)/$(filename).ass"
       ;;
     'stl') # Spruce Subtitle Format, .stl, Text, y, y, Sequential Time+Frames, Sequential Time+Frames
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
     'subrip'|'srt') # SubRip, .srt, Text, y, n, elapsed time, 1 Millisecond
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
     'subviewer') # SubViewer v2, .sub, Text, n, y, elapsed time, 10 Milliseconds
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
     'subviewer1') # SubViewer v1, .sub, Text, n, y, elapsed time, 10 Milliseconds
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
     'text') # Raw UTF-8 Text
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
     'vplayer') # VPlayer , .txt, Text, y, n, n, frame/time, 10 milliseconds
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
     'webvtt') # WebVTT ???, ???, Text ???, ... ???
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
     'xsub') # DivX XSUB, n/a (embedded in divx container), image, n, n, elapsed time, 1 Millisecond
-      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass output.ass"
+      echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
 
     *|'eia_608')
@@ -456,6 +456,15 @@ subtitle_stream_extractor () {
 
 subtitle_ass_parser () {
   # Parses the ASS file and adds/fixes formatting
+  echo "does nothing yet"
+}
+
+subtitle_format () {
+
+  ffprobe ${inputFile} | \
+    grep -m 1 "Stream #0:$(subtitle_stream_selector)" | \
+    grep -o "\(ass\|dvb_subtitle\|dvb_teletext\|hdmv_pgs_subtitle\|jacosub\|microdvd\|mov_text\|mpl2\|pjs\|realtext\|sami\|srt\|ssa\|stl\|subrip\|subviewer\|subviewer1\|text\|vplayer\|webvtt\)"
+
 }
 
 subtitle_type () {
@@ -465,16 +474,13 @@ subtitle_type () {
 
   # Determines if subtitles are in a text or bitmap based format
 
-  subtitleFormat=$(ffprobe ${inputFile} | grep "subtitle format")
-
-  case $subtitleFormat in
+  case $(subtitle_format) in
 
     '')
       echo "WARNING: could not detect subtitle format, not including subtitles"
       return 1
       ;;
 
-    # Name, File Extension, Type, Text Styling Support, Metadata Support, Timing Method, Timing Precision
     'ass'|'ssa'|'jacosub'|'microdvd'|'mov_text'|'mpl2'|'pjs'|'realtext'|'sami'|'srt'|'stl'|'subrip'|'subviewer'|'subviewer1'|'text'|'vplayer'|'webvtt')
       echo "text"
       ;;
@@ -499,7 +505,7 @@ subtitle_type () {
 subtitle_srt_converter () {
 
   # Check for VobSub and convert to SRT
-  if [ -f "$(temp_directory)/$(fileName).idx" ]; then
+  if [ -f "$(temp_directory)/$(filename).idx" ] && [ -f "$(temp_directory)/$(filename).sub" ]; then
     echo "         Converting VobSub to SRT"
     vobsub2srt $(temp_directory)/$(filename) &>/dev/null || \
     { echo "WARNING: failed to convert vobsub to srt" ; return 1 ; }
@@ -704,8 +710,8 @@ audio_channel_mapper () {
   # 3 = LFE - Low Frequency
   # 4 = BL - Back Left
   # 5 = BR - Back Fight
-  # 6 = FLC - Front Left-of-Center
-  # 7 = FRC - Front Right-of-Center
+  # 6 = FLC - Front Left-of-Center <- Da Fuck is this shit (going to map them to FC for now)
+  # 7 = FRC - Front Right-of-Center <- Da Fuck is this shit
   # 8 = BC - Back Center
   # 9 = SL - Side Left
   # 10 = SR - Side Right
@@ -724,6 +730,15 @@ audio_channel_mapper () {
   # 34 = SDR - Surround Direct Left
   # 35 = LFE2 - Low Frequency 2
 
+  # AC3 channel ordering
+
+  # 1. FL
+  # 2. FR
+  # 3. FC
+  # 4. LFE
+  # 5. BL
+  # 6. BR
+
   case $(audio_source_channel_layout) in
 
     '')
@@ -732,85 +747,85 @@ audio_channel_mapper () {
       ;;
 
     'mono') # FC -> FL+FR
-      echo "-filter_complex \"[0:a][0:a]amerge[aout]\" -map \"[aout]\""
+      echo "-af \"pan=stereo|FL<FC|FR<FC\""
       ;;
     'stereo') # FL+FR -> FL+FR
-      echo ""
+      echo "-af \"pan=stereo|FL<FL|FR<FR\""
       ;;
     '2.1') # FL+FR+LFE -> FL+FR
-      echo ""
+      echo "-af \"pan=stereo|FL<FL+LFE|FR<FR+LFE\""
       ;;
     '3.0') # FL+FR+FC -> FL+FR
-      echo ""
+      echo "-af \"pan=stereo|FL<FL+FC|FR<FR+FC\""
       ;;
     '3.0(back)') # FL+FR+BC -> FL+FR
-      echo ""
+      echo "-af \"pan=stereo|FL<FL+BC|FR<FR+BC\""
       ;;
     '4.0') # FL+FR+FC+BC -> FL+FR
-      echo ""
+      echo "-af \"pan=stereo|FL<FL+FC+BC|FR<FR+FC+BC\""
       ;;
     'quad') # FL+FR+BL+BR -> FL+FR+FC+LFE+BL+BR
-      echo ""
+      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FL+FR|LFE<FL+FR+BL+BR|BL<BLBR<BR\""
       ;;
-    'quad(side)') # FL+FR+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo ""
+    'quad(side)') # FL+FR+SL+SR -> FL+FR
+      echo "-af \"pan=stereo|FL<FL+SL|FR<FR+SR\""
       ;;
     '3.1') # FL+FR+FC+LFE -> FL+FR
-      echo ""
+      echo "-af \"pan=stereo|FL<FL+FC+LFE|FR<FR+FC+LFE\""
       ;;
     '4.1') # FL+FR+FC+LFE+BC -> FL+FR
-      echo ""
+      echo "-af \"pan=stereo|FL<FL+FC+BC+LFE|FR<FR+FC+BC+LFE\""
       ;;
     '5.0') # FL+FR+FC+BL+BR -> FL+FR+FC+LFE+BL+BR
-      echo ""
+      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR|BL<BL|BR<BR\""
       ;;
     '5.0(side)') # FL+FR+FC+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo ""
+      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+SL+SR|BL<SL|BR<SR\""
       ;;
     '5.1') # FL+FR+FC+LFE+BL+BR -> FL+FR+FC+LFE+BL+BR
-      echo ""
+      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<BL|BR<BR\""
       ;;
     '5.1(side)') # FL+FR+FC+LFE+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo ""
+      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<SL|BR<SR\""
       ;;
     '6.0') # FL+FR+FC+BC+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo ""
+      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BC+SL+SR|BL<SL+BC|BR<SR+BC\""
       ;;
     '6.0(front)') # FL+FR+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo ""
+      echo "-af \"pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FC+FLC+FRC|LFE<FL+FR+FLC+FRC+SL+SR|BL<SL|BR<SR\""
       ;;
     'hexagonal') # FL+FR+FC+BL+BR+BC -> FL+FR+FC+LFE+BL+BR
-      echo ""
+      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR+BC|BL<BL+BC|BR<BL+BC\""
       ;;
     '6.1') # FL+FR+FC+LFE+BC+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo ""
+      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<SL+BC|BR<SR+BC\""
       ;;
 #    '6.1(back)') # FL+FR+FC+LFE+BL+BR+BC -> FL+FR+FC+LFE+BL+BR
-#      echo ""
+#      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<BL+BC|BR<BR+BC\""
 #      ;;
     '6.1(front)') # FL+FR+LFE+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo ""
+      echo "-af \"pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FLC+FRC+FL+FR|LFE<FL+FR+LFE+FLC+FRC+SL+SR|BL<SL|BR<SR\""
       ;;
     '7.0') # FL+FR+FC+BL+BR+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo ""
+      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR+SL+SR|BL<BL+SL|BR<BR+SR\""
       ;;
     '7.0(front)') # FL+FR+FC+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo ""
+      echo "-af \"pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FC+FLC+FRC|LFE<FL+FR+FC+FLC+FRC+SL+SR|BL<SL|BR<SR\""
       ;;
     '7.1') # FL+FR+FC+LFE+BL+BR+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo ""
+      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<BL+SL|BR<BR+SR\""
       ;;
     '7.1(wide)') # FL+FR+FC+LFE+BL+BR+FLC+FRC -> FL+FR+FC+LFE+BL+BR
-      echo ""
+      echo "-af \"pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FC+FLC+FRC|LFE<LFE|BL<BL|BR<BR\""
       ;;
     '7.1(wide-side)') # FL+FR+FC+LFE+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo ""
+      echo "-af \"pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FLC+FRC|LFE<LFE|BL<SL|BR<SR\""
       ;;
     'octagonal') # FL+FR+FC+BL+BR+BC+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo ""
+      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR+BC+SL+SR|BL<BL+BC+SL|BR<BR+BC+SR\""
       ;;
     'downmix') # DL+DR -> FL+FR
-      echo ""
+      echo "-af \"pan=stereo|FL<DL|FR<DR\""
       ;;
     *)
       echo "ERROR: Unsupported channel layout"
