@@ -384,63 +384,83 @@ subtitle_stream_extractor () {
     'ass') # Advanced SubStation Alpla, .ass/.ssa, Text, y, y, Elapsed Time, 10 milliseconds
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) copy $(temp_directory)/$(filename).ass"
       ;;
+
     'dvb_subtitle') # DVB Subtitles, (in DVB stream), bitmap, n, n, n, elapsed time, ???
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) dvd_subtitle $(temp_directory)/$(filename).sub/.idx ???"
       ;;
+
     'dvb_teletext') #???
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) copy $(temp_directory)/$(filename).ass"
       ;;
+
     'dvd_subtitle') # VOBSub, .sub+.idx, bitmap, n, n, n, elapsed time, 1 millisecond
       echo "ffmpeg(extract) -> vobsub2srt -> ass"
       ;;
+
     'hdmv_pgs_subtitle') # Blu-Ray, (pgs), bitmap, n, n, n, elapsed time, ???
       echo "ffmpeg(extract) -> bdsup2sub -> vobsub2srt -> ass"
       ;;
+
     'jacosub') # JACOSub, .jss, Text w/markup, y, n, elapsed time, frame
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
+
     'microdvd') # MicroDVD, .sub, Text, n, n, frame, frame
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
+
     'mov_text') #MPEG-4 Timed Text, Text, ???
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
+
     'mpl2') # MPL2, ???, Text ???, ???, ???, ???, ???
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
+
     'pjs') # Phoenix Subtitle, .pjs, Text, n, n, frame, frame
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
+
     'realtext') # RealText, .rt, HTML, y, n, elapsed time, 10 Milliseconds
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
+
     'sami') # SAMI, .smi, HTML, y, y, frame, frame
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
+
     'ssa') # SubStation Alpla, .ass/.ssa, Text, y, y, Elapsed Time, 10 milliseconds
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:0 ass -map ??? $(temp_directory)/$(filename).ass"
       ;;
+
     'stl') # Spruce Subtitle Format, .stl, Text, y, y, Sequential Time+Frames, Sequential Time+Frames
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
+
     'subrip'|'srt') # SubRip, .srt, Text, y, n, elapsed time, 1 Millisecond
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
+
     'subviewer') # SubViewer v2, .sub, Text, n, y, elapsed time, 10 Milliseconds
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
+
     'subviewer1') # SubViewer v1, .sub, Text, n, y, elapsed time, 10 Milliseconds
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
+
     'text') # Raw UTF-8 Text
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
+
     'vplayer') # VPlayer , .txt, Text, y, n, n, frame/time, 10 milliseconds
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
+
     'webvtt') # WebVTT ???, ???, Text ???, ... ???
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
+
     'xsub') # DivX XSUB, n/a (embedded in divx container), image, n, n, elapsed time, 1 Millisecond
       echo "ffmpeg -i ${inputFile} -an -vn -c:s:$(subtitle_stream_selector) ass $(temp_directory)/$(filename).ass"
       ;;
@@ -608,86 +628,113 @@ audio_num_channels () {
       exit 1
       ;;
 
-    'mono')
+    'mono') # 1 -> 2
       echo "2"
       ;;
-    'stereo')
+
+    'stereo') # 2 -> 2
       echo "2"
       ;;
-    '2.1')
+
+    '2.1') # 3 -> 2
       echo "2"
       ;;
-    '3.0')
+
+    '3.0') # 3 -> 2
       echo "2"
       ;;
-    '3.0(back)')
-      echo "6"
-      ;;
-    '4.0')
+
+    '3.0(back)') # 3 -> 2
       echo "2"
       ;;
-    'quad')
-      echo "6"
-      ;;
-    'quad(side)')
+
+    '4.0') # 4 -> 2
       echo "2"
       ;;
-    '3.1')
+
+    'quad') # 4 -> 6
+      echo "6"
+      ;;
+
+    'quad(side)') # 4 -> 6
+      echo "6"
+      ;;
+
+    '3.1') # 4 -> 2
       echo "2"
       ;;
-    '4.1')
+
+    '4.1') # 5 -> 2
+      echo "2"
+      ;;
+
+    '5.0') # 5 -> 6
       echo "6"
       ;;
-    '5.0')
+
+    '5.0(side)') # 5 -> 6
       echo "6"
       ;;
-    '5.0(side)')
+
+    '5.1') # 6 -> 6
       echo "6"
       ;;
-    '5.1')
+
+    '5.1(side)') # 6 -> 6
       echo "6"
       ;;
-    '5.1(side)')
+
+    '6.0') # 6 -> 6
       echo "6"
       ;;
-    '6.0')
+
+    '6.0(front)') # 6 -> 6
       echo "6"
       ;;
-    '6.0(front)')
+
+    'hexagonal') # 6 -> 6
       echo "6"
       ;;
-    'hexagonal')
+
+    '6.1') # 7 -> 6
       echo "6"
       ;;
-    '6.1')
+
+    '6.1(back)') # 7 -> 6
       echo "6"
       ;;
-    '6.1(back)')
+
+    '6.1(front)') # 7 -> 6
       echo "6"
       ;;
-    '6.1(front)')
+
+    '7.0') # 7 -> 6
       echo "6"
       ;;
-    '7.0')
+
+    '7.0(front)') # 7 -> 6
       echo "6"
       ;;
-    '7.0(front)')
+
+    '7.1') # 8 -> 6
       echo "6"
       ;;
-    '7.1')
+
+    '7.1(wide)') # 8 -> 6
       echo "6"
       ;;
-    '7.1(wide)')
+
+    '7.1(wide-side)') # 8 -> 6
       echo "6"
       ;;
-    '7.1(wide-side)')
+
+    'octagonal') # 8 -> 6
       echo "6"
       ;;
-    'octagonal')
-      echo "6"
+
+    'downmix') # 2 -> 2
+      echo "2"
       ;;
-    'downmix')
-      echo "2" ;;
 
     *)
       echo "ERROR: Unsupported channel layout"
@@ -748,81 +795,107 @@ audio_channel_mapper () {
     'mono') # FC -> FL+FR
       echo "pan=stereo|FL<FC|FR<FC"
       ;;
+
     'stereo') # FL+FR -> FL+FR
       echo "pan=stereo|FL<FL|FR<FR"
       ;;
+
     '2.1') # FL+FR+LFE -> FL+FR
       echo "pan=stereo|FL<FL+LFE|FR<FR+LFE"
       ;;
+
     '3.0') # FL+FR+FC -> FL+FR
       echo "pan=stereo|FL<FL+FC|FR<FR+FC"
       ;;
+
     '3.0(back)') # FL+FR+BC -> FL+FR
       echo "pan=stereo|FL<FL+BC|FR<FR+BC"
       ;;
+
     '4.0') # FL+FR+FC+BC -> FL+FR
       echo "pan=stereo|FL<FL+FC+BC|FR<FR+FC+BC"
       ;;
+
     'quad') # FL+FR+BL+BR -> FL+FR+FC+LFE+BL+BR
-      echo "pan=5.1|FL<FL|FR<FR|FC<FL+FR|LFE<FL+FR+BL+BR|BL<BLBR<BR"
+      echo "pan=5.1|FL<FL|FR<FR|FC<FL+FR|LFE<FL+FR+BL+BR|BL<BL|BR<BR"
       ;;
-    'quad(side)') # FL+FR+SL+SR -> FL+FR
-      echo "pan=stereo|FL<FL+SL|FR<FR+SR"
+
+    'quad(side)') # FL+FR+SL+SR -> FL+FR+FC+LFE+BL+BR
+      echo "pan=5.1|FL<FL|FR<FR|FC<FL+FR|LFE<FL+FR+SL+SR|BL<SL|BR<SR"
       ;;
+
     '3.1') # FL+FR+FC+LFE -> FL+FR
       echo "pan=stereo|FL<FL+FC+LFE|FR<FR+FC+LFE"
       ;;
+
     '4.1') # FL+FR+FC+LFE+BC -> FL+FR
       echo "pan=stereo|FL<FL+FC+BC+LFE|FR<FR+FC+BC+LFE"
       ;;
+
     '5.0') # FL+FR+FC+BL+BR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR|BL<BL|BR<BR"
       ;;
+
     '5.0(side)') # FL+FR+FC+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+SL+SR|BL<SL|BR<SR"
       ;;
+
     '5.1') # FL+FR+FC+LFE+BL+BR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<BL|BR<BR"
       ;;
+
     '5.1(side)') # FL+FR+FC+LFE+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<SL|BR<SR"
       ;;
+
     '6.0') # FL+FR+FC+BC+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BC+SL+SR|BL<SL+BC|BR<SR+BC"
       ;;
+
     '6.0(front)') # FL+FR+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FC+FLC+FRC|LFE<FL+FR+FLC+FRC+SL+SR|BL<SL|BR<SR"
       ;;
+
     'hexagonal') # FL+FR+FC+BL+BR+BC -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR+BC|BL<BL+BC|BR<BL+BC"
       ;;
+
     '6.1') # FL+FR+FC+LFE+BC+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<SL+BC|BR<SR+BC"
       ;;
+
 #    '6.1(back)') # FL+FR+FC+LFE+BL+BR+BC -> FL+FR+FC+LFE+BL+BR
 #      echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<BL+BC|BR<BR+BC"
 #      ;;
+
     '6.1(front)') # FL+FR+LFE+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FLC+FRC+FL+FR|LFE<FL+FR+LFE+FLC+FRC+SL+SR|BL<SL|BR<SR"
       ;;
+
     '7.0') # FL+FR+FC+BL+BR+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR+SL+SR|BL<BL+SL|BR<BR+SR"
       ;;
+
     '7.0(front)') # FL+FR+FC+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FC+FLC+FRC|LFE<FL+FR+FC+FLC+FRC+SL+SR|BL<SL|BR<SR"
       ;;
+
     '7.1') # FL+FR+FC+LFE+BL+BR+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<BL+SL|BR<BR+SR"
       ;;
+
     '7.1(wide)') # FL+FR+FC+LFE+BL+BR+FLC+FRC -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FC+FLC+FRC|LFE<LFE|BL<BL|BR<BR"
       ;;
+
     '7.1(wide-side)') # FL+FR+FC+LFE+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FLC+FRC|LFE<LFE|BL<SL|BR<SR"
       ;;
+
     'octagonal') # FL+FR+FC+BL+BR+BC+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR+BC+SL+SR|BL<BL+BC+SL|BR<BR+BC+SR"
       ;;
+
     'downmix') # DL+DR -> FL+FR
       echo "pan=stereo|FL<DL|FR<DR"
       ;;
@@ -847,7 +920,7 @@ audio_encode () {
   -b:a "$(audio_bitrate)k" \
   -af "$(audio_channel_mapper)" \
   -ar $(audio_sample_rate) \
-  -y $(temp_directory)/$(filename).ac3 || \
+  -y $(temp_directory)/$(filename_handler).ac3 || \
   { echo -e "${clR}ERROR: Failed to encode audio" ; return 1 ; }
 
 }
@@ -930,8 +1003,10 @@ video_frame_counter () {
 
 video_encode () {
 
+  videoEncodingPasses="2"
+
   # Initial pass number, DO NOT CHANGE VALUE
-  PASS="1"
+  videoEncodingPass="1"
 
   while [ "$videoEncodingPass" -le "$videoEncodingPasses" ]; do
 
@@ -944,8 +1019,8 @@ video_encode () {
     ffmpeg \
       -threads $(cpu_cores) \
       -i "$inputFile" \
-      -vf "crop=${crop},scale=${cropWidth}:trunc(ow/a/2)*2" \
-      -r ${videoFrameRate} \
+      -vf "crop=$crop,scale=$cropWidth:trunc(ow/a/2)*2" \
+      -r 24000/1001 \
       -pix_fmt yuv420p \
       -f yuv4mpegpipe - 2> nul | \
     x265 \
@@ -972,19 +1047,18 @@ video_encode () {
       --b-intra \
       --weightb \
       --weightp \
-      --bitrate=${videoBitrate} \
+      --bitrate=500 \
       --vbv-init=0.9 \
       --vbv-bufsize=31250 \
       --vbv-maxrate=31250 \
       --no-slow-firstpass \
-      --pass=${videoEncodingPass} \
+      --pass=$videoEncodingPass \
       --keyint=250 \
       --min-keyint=23 \
       --rc-lookahead=60 \
       --no-constrained-intra \
       --aq-mode=0 \
       --lft \
-      --sao-lcu-opt=1 \
       --cbqpoffs=-3 \
       --crqpoffs=-3 \
       --rect \
@@ -994,7 +1068,7 @@ video_encode () {
       --no-tskip \
       --hash=2 \
       -f 0 \
-      -o "$(temp_directory)/$(filename).hvc" - || \
+      -o "$(temp_directory)/$(filename_handler).hvc" - || \
       { echo "ERROR: video encoding failed" ; return 1 ; }
 
     # Finished encoding
@@ -1007,7 +1081,7 @@ video_encode () {
     fi
 
     # Increment pass count
-    PASS="$(( $PASS + 1 ))"
+    videoEncodingPass="$(( $videoEncodingPass + 1 ))"
 
   done
 
@@ -1033,27 +1107,35 @@ mux_streams () {
   # "--track-order" "0:0,0:1,0:2" "--split" "parts:00:01:30-00:02:30"
 
   ## [check for chapter file]
-  if [ -f "$(temp_directory)/$(filename).xml" ]; then
-    muxChapters="--chapters $(temp_directory)/$(filename).xml"
-  else
+  if [ -f "$(temp_directory)/$(filename_handler).xml" ]; then
     muxChapters=""
+  else
+    muxChapters=
   fi
 
   ## [check for subtitle file]
-  if [ -f "$(temp_directory)/$(filename).srt" ]; then
-    muxSubtitles="$(temp_directory)/$(filename).srt"
+  if [ -f "$(temp_directory)/$(filename_handler).srt" ]; then
+    muxSubtitles="-i $(temp_directory)/$(filename_handler).ass -c:s copy"
   else
-    muxSubtitles=""
+    muxSubtitles=
   fi
 
   ## TODO: find audio language and set videolanguage to audiolanguage
-  mkvmerge \
-    -o $(output_directory)/$(filename).mkv \
-    --title $(filename) \
-    -A $(temp_directory)/$(filename).hvc \
-    ${muxChapters} \
-    ${muxSubtitles} \
-    $(temp_directory)/$(filename).${audioCodec}
+#  mkvmerge \
+#    -o $(output_directory)/$(filename_handler).mkv \
+#    --title $(filename_handler) \
+#    -A $(temp_directory)/$(filename_handler).hvc \
+#    ${muxChapters} \
+#    ${muxSubtitles} \
+#    $(temp_directory)/$(filename_handler).${audioCodec}
+
+  ffmpeg \
+    -threads "$(cpu_cores)" \
+    -i "$(temp_directory)/$(filename_handler).hvc" \
+    -i "$(temp_directory)/$(filename_handler).ac3" \
+    -acodec copy -vcodec copy \
+    -y "$(temp_directory)/$(filename_handler).mkv"
+
 
 }
 
