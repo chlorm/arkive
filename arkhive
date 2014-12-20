@@ -521,21 +521,20 @@ audio_stream_selector () {
   # <There is a lot or trickery required to get the stream
   #  number that is container specific, so 'or' statements
   #  were added to grep to work around this>
+  # RETESTED: mkv,mp4,m2ts
   audioStreamArray=($(\
     ffprobe -i ${inputFile} 2>&1 | \
-    grep "Audio:" | \
-    awk '/Stream\ #0:/ { print $2 }' | \
-    grep -o -P '(?<=\#0\:)[0-9](?=\([a-z]+\)|\[[0-9]+x[0-9]+\]|\:)'))
+    grep -o -P '(?<=Stream\ #0:)[0-9]+(?=\([a-z]+\):\ Audio:|\[[0-9]x[0-9]+\]:\ Audio:|:\ Audio:)'))
 
   # Find total number of audio streams in the container
-  audioStreamCount=$(${#audioStreamArray[@]})
+  audioStreamCount="${#audioStreamArray[@]}"
 
   if [ -z "$audioStreamCount" ]; then
     echo "ERROR: No audio streams found"
     return 1
   elif [ "$audioStreamCount" = "1" ]; then
     # Set stream number to the only one found
-    audioPreferedStream=$($audioStreamArray[1])
+    echo "${audioStreamArray[0]}"
   elif [ "$audioStreamCount" -gt "1" ]; then
 
   # Find language of audio stream
@@ -596,13 +595,13 @@ audio_source_channel_layout () {
 
   ffprobe -i ${inputFile} 2>&1 | \
     grep -m 1 "Stream #0:$(audio_stream_selector)" | \
-    awk -F ", " "/  $(audio_input_sample_rate)\ Hz/ { print $3 }"
+    grep -o -P "(?<=$(audio_input_sample_rate) Hz, ).+(?=, [a-z]+)"
 
 }
 
 audio_num_channels () {
 
-  case $(audio_source_channel_layout) in
+  case "$(audio_source_channel_layout)" in
 
     '')
       echo "ERROR: could not detect input file's number of audio channels"
@@ -732,14 +731,14 @@ audio_channel_mapper () {
 
   # AC3 channel ordering
 
-  # 1. FL
-  # 2. FR
-  # 3. FC
-  # 4. LFE
-  # 5. BL
-  # 6. BR
+  # 0. FL
+  # 1. FR
+  # 2. FC
+  # 3. LFE
+  # 4. BL
+  # 5. BR
 
-  case $(audio_source_channel_layout) in
+  case "$(audio_source_channel_layout)" in
 
     '')
       echo "ERROR: could not detect input file's audio channel layout"
@@ -747,86 +746,87 @@ audio_channel_mapper () {
       ;;
 
     'mono') # FC -> FL+FR
-      echo "-af \"pan=stereo|FL<FC|FR<FC\""
+      echo "pan=stereo|FL<FC|FR<FC"
       ;;
     'stereo') # FL+FR -> FL+FR
-      echo "-af \"pan=stereo|FL<FL|FR<FR\""
+      echo "pan=stereo|FL<FL|FR<FR"
       ;;
     '2.1') # FL+FR+LFE -> FL+FR
-      echo "-af \"pan=stereo|FL<FL+LFE|FR<FR+LFE\""
+      echo "pan=stereo|FL<FL+LFE|FR<FR+LFE"
       ;;
     '3.0') # FL+FR+FC -> FL+FR
-      echo "-af \"pan=stereo|FL<FL+FC|FR<FR+FC\""
+      echo "pan=stereo|FL<FL+FC|FR<FR+FC"
       ;;
     '3.0(back)') # FL+FR+BC -> FL+FR
-      echo "-af \"pan=stereo|FL<FL+BC|FR<FR+BC\""
+      echo "pan=stereo|FL<FL+BC|FR<FR+BC"
       ;;
     '4.0') # FL+FR+FC+BC -> FL+FR
-      echo "-af \"pan=stereo|FL<FL+FC+BC|FR<FR+FC+BC\""
+      echo "pan=stereo|FL<FL+FC+BC|FR<FR+FC+BC"
       ;;
     'quad') # FL+FR+BL+BR -> FL+FR+FC+LFE+BL+BR
-      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FL+FR|LFE<FL+FR+BL+BR|BL<BLBR<BR\""
+      echo "pan=5.1|FL<FL|FR<FR|FC<FL+FR|LFE<FL+FR+BL+BR|BL<BLBR<BR"
       ;;
     'quad(side)') # FL+FR+SL+SR -> FL+FR
-      echo "-af \"pan=stereo|FL<FL+SL|FR<FR+SR\""
+      echo "pan=stereo|FL<FL+SL|FR<FR+SR"
       ;;
     '3.1') # FL+FR+FC+LFE -> FL+FR
-      echo "-af \"pan=stereo|FL<FL+FC+LFE|FR<FR+FC+LFE\""
+      echo "pan=stereo|FL<FL+FC+LFE|FR<FR+FC+LFE"
       ;;
     '4.1') # FL+FR+FC+LFE+BC -> FL+FR
-      echo "-af \"pan=stereo|FL<FL+FC+BC+LFE|FR<FR+FC+BC+LFE\""
+      echo "pan=stereo|FL<FL+FC+BC+LFE|FR<FR+FC+BC+LFE"
       ;;
     '5.0') # FL+FR+FC+BL+BR -> FL+FR+FC+LFE+BL+BR
-      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR|BL<BL|BR<BR\""
+      echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR|BL<BL|BR<BR"
       ;;
     '5.0(side)') # FL+FR+FC+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+SL+SR|BL<SL|BR<SR\""
+      echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+SL+SR|BL<SL|BR<SR"
       ;;
     '5.1') # FL+FR+FC+LFE+BL+BR -> FL+FR+FC+LFE+BL+BR
-      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<BL|BR<BR\""
+      echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<BL|BR<BR"
       ;;
     '5.1(side)') # FL+FR+FC+LFE+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<SL|BR<SR\""
+      echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<SL|BR<SR"
       ;;
     '6.0') # FL+FR+FC+BC+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BC+SL+SR|BL<SL+BC|BR<SR+BC\""
+      echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BC+SL+SR|BL<SL+BC|BR<SR+BC"
       ;;
     '6.0(front)') # FL+FR+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo "-af \"pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FC+FLC+FRC|LFE<FL+FR+FLC+FRC+SL+SR|BL<SL|BR<SR\""
+      echo "pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FC+FLC+FRC|LFE<FL+FR+FLC+FRC+SL+SR|BL<SL|BR<SR"
       ;;
     'hexagonal') # FL+FR+FC+BL+BR+BC -> FL+FR+FC+LFE+BL+BR
-      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR+BC|BL<BL+BC|BR<BL+BC\""
+      echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR+BC|BL<BL+BC|BR<BL+BC"
       ;;
     '6.1') # FL+FR+FC+LFE+BC+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<SL+BC|BR<SR+BC\""
+      echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<SL+BC|BR<SR+BC"
       ;;
 #    '6.1(back)') # FL+FR+FC+LFE+BL+BR+BC -> FL+FR+FC+LFE+BL+BR
-#      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<BL+BC|BR<BR+BC\""
+#      echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<BL+BC|BR<BR+BC"
 #      ;;
     '6.1(front)') # FL+FR+LFE+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo "-af \"pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FLC+FRC+FL+FR|LFE<FL+FR+LFE+FLC+FRC+SL+SR|BL<SL|BR<SR\""
+      echo "pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FLC+FRC+FL+FR|LFE<FL+FR+LFE+FLC+FRC+SL+SR|BL<SL|BR<SR"
       ;;
     '7.0') # FL+FR+FC+BL+BR+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR+SL+SR|BL<BL+SL|BR<BR+SR\""
+      echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR+SL+SR|BL<BL+SL|BR<BR+SR"
       ;;
     '7.0(front)') # FL+FR+FC+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo "-af \"pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FC+FLC+FRC|LFE<FL+FR+FC+FLC+FRC+SL+SR|BL<SL|BR<SR\""
+      echo "pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FC+FLC+FRC|LFE<FL+FR+FC+FLC+FRC+SL+SR|BL<SL|BR<SR"
       ;;
     '7.1') # FL+FR+FC+LFE+BL+BR+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<BL+SL|BR<BR+SR\""
+      echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<BL+SL|BR<BR+SR"
       ;;
     '7.1(wide)') # FL+FR+FC+LFE+BL+BR+FLC+FRC -> FL+FR+FC+LFE+BL+BR
-      echo "-af \"pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FC+FLC+FRC|LFE<LFE|BL<BL|BR<BR\""
+      echo "pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FC+FLC+FRC|LFE<LFE|BL<BL|BR<BR"
       ;;
     '7.1(wide-side)') # FL+FR+FC+LFE+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo "-af \"pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FLC+FRC|LFE<LFE|BL<SL|BR<SR\""
+      echo "pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FLC+FRC|LFE<LFE|BL<SL|BR<SR"
       ;;
     'octagonal') # FL+FR+FC+BL+BR+BC+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo "-af \"pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR+BC+SL+SR|BL<BL+BC+SL|BR<BR+BC+SR\""
+      echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR+BC+SL+SR|BL<BL+BC+SL|BR<BR+BC+SR"
       ;;
     'downmix') # DL+DR -> FL+FR
-      echo "-af \"pan=stereo|FL<DL|FR<DR\""
+      echo "pan=stereo|FL<DL|FR<DR"
       ;;
+
     *)
       echo "ERROR: Unsupported channel layout"
       exit 1
@@ -838,15 +838,14 @@ audio_channel_mapper () {
 
 audio_encode () {
 
-  # TODO: add audio channel mapping to the encoding
-
   # Encode Audio
   ffmpeg \
   -i "${inputFile}" \
   -c:a ac3 \
   -map 0:"$(audio_stream_selector)" \
   -ac "$(audio_num_channels)" \
-  -b:a "$(audio_bitrate)" \
+  -b:a "$(audio_bitrate)k" \
+  -af "$(audio_channel_mapper)" \
   -ar $(audio_sample_rate) \
   -y $(temp_directory)/$(filename).ac3 || \
   { echo -e "${clR}ERROR: Failed to encode audio" ; return 1 ; }
@@ -1071,7 +1070,7 @@ cleanup_temp_file () {
 run_arkhive () {
 
   # Find full path to the directory containing the input file
-  input_directory ${inputFile}
+  input_directory "${inputFile}"
 
   # Determine if input has subtitles
   hasSubtitles=$(\
@@ -1095,19 +1094,19 @@ run_arkhive () {
     $(chapter_stream_extractor)
   fi
 
-  audio_stream_selector || { return 1; }
+  audio_stream_selector || { return 1 ; }
 
-  audio_channel_mapper || { return 1; }
+  audio_channel_mapper || { return 1 ; }
 
-  audio_encode || { return 1; }
+  audio_encode || { return 1 ; }
 
-  black_bar_crop_detection || { return 1; }
+  black_bar_crop_detection || { return 1 ; }
 
-  video_interlace_detection || { return 1; }
+  video_interlace_detection || { return 1 ; }
 
-  video_encode || { return 1; }
+  video_encode || { return 1 ; }
 
-  mux_streams || { return 1; }
+  mux_streams || { return 1 ; }
 
   # CLEANUP TEMP FILES
     ## ffmpeg redirected output [nul]
@@ -1122,27 +1121,29 @@ run_arkhive () {
 }
 
 if [ -d "$userInput" ]; then
-  find $(input_directory) -type f \( \
-    -name "*.avi" \
-    -o -name "*.f4v" \
-    -o -name "*.flv" \
-    -o -name "*.m2ts" \
-    -o -name "*.m4v" \
-    -o -name "*.mkv" \
-    -o -name "*.mov" \
-    -o -name "*.mp4" \
-    -o -name "*.mpeg" \
-    -o -name "*.mpg" \
-    -o -name "*.ts" \
-    -o -name "*.webm" \
-    -o -name "*.wmv" \
-  \) -print0 | \
-  while read -d $'\0' inputFile; do \
-    run_arkhive \
-  done
+#  find $(input_directory) -type f \( \
+#    -name "*.avi" \
+#    -o -name "*.f4v" \
+#    -o -name "*.flv" \
+#    -o -name "*.m2ts" \
+#    -o -name "*.m4v" \
+#    -o -name "*.mkv" \
+#    -o -name "*.mov" \
+#    -o -name "*.mp4" \
+#    -o -name "*.mpeg" \
+#    -o -name "*.mpg" \
+#    -o -name "*.ts" \
+#    -o -name "*.webm" \
+#    -o -name "*.wmv" \
+#  \) -print0 | \
+#  while read -d $'\0' inputFile; do \
+#    run_arkhive \
+#  done
+echo "dirs not supported yet"
 elif [ -f "$userInput" ]; then
   inputFile="$userInput"
+  echo "str: $(audio_stream_selector)"
+  echo "sam: $(audio_input_sample_rate)"
+  echo "chn: $(audio_source_channel_layout)"
   run_arkhive
 fi
-
-return 0
