@@ -15,6 +15,7 @@ TODO:
   * improve colored terminal output
   * find method to accuratly get total frames (skew exists between x265 and ffmpeg)
   * allow user to input a directory and recursively encode files within
+  * chapters support
 
 Outputs a file according to the following specs:
   * Audio
