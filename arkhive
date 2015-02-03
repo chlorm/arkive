@@ -46,33 +46,35 @@ clY="\033[0;33m"  # Yellow
 clU="\033[0;4m"   # Underline
 clD="\033[0;0m"   # default
 
-arkhive_usage () {
+arkhive_usage() {
 
-  eval "printf \"\n\${clC}ARKhive version:\${clG} ${VERSION}
-\${clC}Automated video encoding according to Chlorm's ARK specifications.
+cat <<ARKIVEUSAGE
+${clC}ARKhive version:${clG} ${VERSION}
+${clC}Automated video encoding according to Chlorm's ARK specifications.
 
-Usage: \${clD}arkhive [\${clU}\${clP}OPTIONS\$clD] \${clU}\${clP}FILE\$clD [\${clU}\${clP}OPTIONS\$clD]\$clD
-    \$clG-i|--input  \${clU}\${clP}FILE\$clD          \$clY*\$clD - set input file\$clD
-    \$clG-o|--output \${clU}\${clP}DIRECTORY\$clD       - set output directory\$clD
-    \$clG-t|--temp   \${clU}\${clP}DIRECTORY\$clD       - set temp directory\$clD
-    \$clG-h|--help\$clD                   - print this message
-    \$clG-v|--version\$clD                - print version\n\n\""
+Usage: ${clD}arkhive [${clU}${clP}OPTIONS$clD] ${clU}${clP}FILE$clD [${clU}${clP}OPTIONS$clD]$clD
+    $clG-i|--input  ${clU}${clP}FILE\$clD          $clY*$clD - set input file$clD
+    $clG-o|--output ${clU}${clP}DIRECTORY$clD       - set output directory$clD
+    $clG-t|--temp   ${clU}${clP}DIRECTORY$clD       - set temp directory$clD
+    $clG-h|--help\$clD                   - print this message
+    $clG-v|--version\$clD                - print version
+ARKIVEUSAGE
 
 }
 
 # Tests to see if a binary exists in the path
-path_hasbin () {
+path_hasbin() {
 
   [ "$#" -ne "1" ] && return 2
-  type $1 >/dev/null 2>&1
+  type $1 > /dev/null 2>&1
 
 }
 
 # Check for ffmpeg compile flag
-ffmpeg_compile_option () {
+ffmpeg_compile_option() {
 
   hasFFmpegLib=$(ffmpeg 2>&1 | grep -o "enable-${1}")
-  if [ -z "$hasFFmpegLib" ]; then
+  if [ -z "$hasFFmpegLib" ] ; then
     echo "ERROR: FFmpeg not compiled with: '${1}'"
     return 1
   fi
@@ -94,23 +96,23 @@ path_hasbin ffmpeg || { echo "ERROR: 'ffmpeg' is not installed" ; exit 1 ; }
 #ffmpeg_compile_option libzvbi # Enable support for decoding DVB Teletext Subtitles
 
 # Check for input
-if [ -z "$1" ]; then
+if [ -z "$1" ] ; then
   echo -e "${clR}ERROR: No arguments provided"
   exit 1
 else
   # Parse Arguments
-  while [ "$1" ]; do
+  while [ "$1" ] ; do
 
     case "$1" in
 
       '-i'|'--input')
-        if [ -z "$2" ]; then
+        if [ -z "$2" ] ; then
           echo -e "${clR}ERROR: No input provided"
           exit 1
-        elif [ -d "$2" ]; then
+        elif [ -d "$2" ] ; then
           userInput="$2"
           shift
-        elif [ -f "$2" ]; then
+        elif [ -f "$2" ] ; then
           inputFileExt=${2##*.}
 
           case "$inputFileExt" in
@@ -139,7 +141,7 @@ else
               # Find total number of subtitle streams in the container
               m2tsSubtitleStreamCount=$(${#m2tsSubtitleStreamArray[@]})
 
-              if [ ${m2tsAudioStreamCount} == "1" ] && [ ${m2tsSubtitleStreamCount} -le "1" ]; then
+              if [ ${m2tsAudioStreamCount} == "1" ] && [ ${m2tsSubtitleStreamCount} -le "1" ] ; then
                 userInput=$2
                 shift
               else
@@ -165,10 +167,10 @@ else
         ;;
 
       '-o'|'--output')
-        if [ -z "$2" ]; then
+        if [ -z "$2" ] ; then
           echo -e "${clR}ERROR: No output directory provided"
           exit 1
-        elif [ ! -d "$2" ]; then
+        elif [ ! -d "$2" ] ; then
           echo -e "${clR}ERROR: Output is not a directory"
           exit 1
         else
@@ -178,10 +180,10 @@ else
         ;;
 
       '-t'|'--temp')
-        if [ -z "$2" ]; then
+        if [ -z "$2" ] ; then
           echo -e "${clR}ERROR: No temp directory provided"
           exit 1
-        elif [ ! -d "$2" ]; then
+        elif [ ! -d "$2" ] ; then
           echo -e "${clR}ERROR: Temp is not a directory"
           exit 1
         else
@@ -207,11 +209,11 @@ else
         ;;
 
       *)
-        if [ -n "${1}" ]; then
+        if [ -n "${1}" ] ; then
           eval "printf \"${HELP}\""
           printf "\n${clR}ERROR: Unknown option $1\n"
           exit 1
-        elif [ ! -r "${1}" ]; then
+        elif [ ! -r "${1}" ] ; then
           printf "${clR}ERROR: Unable to read $1\n"
           exit 1
         else
@@ -226,46 +228,26 @@ else
 fi
 
 # Confirm user has provided input
-if [ -z "$userInput" ]; then
+if [ -z "$userInput" ] ; then
   eval "printf \"${HELP}\""
   echo -e "${clR}ERROR: no input provided"
   exit 1
 fi
 
-cpu_cores () {
+# Find number of cpu's (physical, not logical cores)
+export cpuCores=$(awk '/^cpu\ cores/ { print $4 ; exit }' /proc/cpuinfo | grep -o '[0-9]*')
+[ -z "$cpuCores" ] && { cpuCores="1" ; }
 
-  cpuCores=$(awk '/^cpu\ cores/{print $4;exit}' /proc/cpuinfo)
-
-  if [ -z "$cpuCores" ]; then
-    cpuCores="1"
-  fi
-
-  echo "$cpuCores"
-
-}
-
-cpu_threads () {
-
-  cpuThreads=$(grep -c ^processor /proc/cpuinfo)
-
-  if [ -z "$cpuThreads" ]; then
-    cpuThreads="1"
-  fi
-
-  echo "$cpuThreads"
-
-}
-
-input_directory () {
+input_directory() {
 
   cd $(dirname ${inputFile})
   pwd
 
 }
 
-output_directory () {
+output_directory() {
 
-  if [ -z "${userOutput}" ]; then
+  if [ -z "${userOutput}" ] ; then
     input_directory
   else
     cd ${userOutput}
@@ -274,9 +256,9 @@ output_directory () {
 
 }
 
-temp_directory () {
+temp_directory() {
 
-  if [ -z "${userTemp}" ]; then
+  if [ -z "${userTemp}" ] ; then
     input_directory
   else
     cd ${userTemp}
@@ -285,21 +267,21 @@ temp_directory () {
 
 }
 
-filename_orginal () {
+filename_orginal() {
 
   # Input filename w/ ext
   basename "$inputFile"
 
 }
 
-filename_base () {
+filename_base() {
 
   # Input filename w/o ext
   filename_orginal | sed -r 's/\.[[:alnum:]]+$//'
 
 }
 
-filename_handler () {
+filename_handler() {
 
   # TODO: eventually this should handle more parsing, but for now, fuck it, ship it
 
@@ -309,7 +291,7 @@ filename_handler () {
 
 }
 
-chapter_stream_extractor () {
+chapter_stream_extractor() {
 
   ## TODO: convert to use ffmpeg instead of mkvextract
 
@@ -332,18 +314,18 @@ chapter_stream_extractor () {
 ## TODO: add support for PGS subtitles
 ##      if pgs use bdsup2sub to covert to sub/idx and then vobsub2srt
 
-subtitle_stream_selector () {
+subtitle_stream_selector() {
 
   # Look for seperate subtitle file(s)
-  if [ -f "$(input_directory)/$(filename_base).ass" ]; then
+  if [ -f "$(input_directory)/$(filename_base).ass" ] ; then
 
     cp "$(input_directory)/$(filename_base).ass" "$(temp_directory)/$(filename).ass"
 
-  elif [ -f "$(input_directory)/$(filename_base).srt" ]; then
+  elif [ -f "$(input_directory)/$(filename_base).srt" ] ; then
 
     ffmpeg -i $(input_directory)/$(filename_base).srt -an -vn -c:s:0 ass $(temp_directory)/$(filename_handler).ass
 
-  elif [ -n "$hasSubtitles" ]; then
+  elif [ -n "$hasSubtitles" ] ; then
 
     # Finds first english subtitle stream]
     subtitleStream=$(\
@@ -351,7 +333,7 @@ subtitle_stream_selector () {
       grep -m 1 -o -P '(?<=Stream).*(?=\(eng\):\ Subtitle)' | \
       awk -F ":" '{print $2}' | tail -1)
 
-    if [ -z "${subtitleStream}" ]; then
+    if [ -z "${subtitleStream}" ] ; then
       echo "No english subtitles found"
     fi
 
@@ -363,7 +345,7 @@ subtitle_stream_selector () {
 
 }
 
-subtitle_stream_extractor () {
+subtitle_stream_extractor() {
 
   # Extract subtitles to ASS or VOBSub format
 
@@ -474,20 +456,22 @@ subtitle_stream_extractor () {
 
 }
 
-subtitle_ass_parser () {
+subtitle_ass_parser() {
+
   # Parses the ASS file and adds/fixes formatting
-  echo "does nothing yet"
+  echo "does nothing"
+
 }
 
-subtitle_format () {
+subtitle_format() {
 
-  ffprobe ${inputFile} | \
+  ffprobe "${inputFile}" | \
     grep -m 1 "Stream #0:$(subtitle_stream_selector)" | \
     grep -o "\(ass\|dvb_subtitle\|dvb_teletext\|hdmv_pgs_subtitle\|jacosub\|microdvd\|mov_text\|mpl2\|pjs\|realtext\|sami\|srt\|ssa\|stl\|subrip\|subviewer\|subviewer1\|text\|vplayer\|webvtt\)"
 
 }
 
-subtitle_type () {
+subtitle_type() {
 
   echo "not implemented"
   return 0 # Exit, the following does nothing
@@ -522,18 +506,18 @@ subtitle_type () {
 
 }
 
-subtitle_srt_converter () {
+subtitle_srt_converter() {
 
   # Check for VobSub and convert to SRT
   if [ -f "$(temp_directory)/$(filename).idx" ] && [ -f "$(temp_directory)/$(filename).sub" ]; then
     echo "         Converting VobSub to SRT"
-    vobsub2srt $(temp_directory)/$(filename) &>/dev/null || \
+    vobsub2srt $(temp_directory)/$(filename) &> /dev/null || \
     { echo "WARNING: failed to convert vobsub to srt" ; return 1 ; }
   fi
 
 }
 
-audio_stream_selector () {
+audio_stream_selector() {
 
 # CONTAINERS WITH NO LANGUAGE CODES: avi,m2ts,ts
 
@@ -549,13 +533,13 @@ audio_stream_selector () {
   # Find total number of audio streams in the container
   audioStreamCount="${#audioStreamArray[@]}"
 
-  if [ -z "$audioStreamCount" ]; then
+  if [ -z "$audioStreamCount" ] ; then
     echo "ERROR: No audio streams found"
     return 1
-  elif [ "$audioStreamCount" = "1" ]; then
+  elif [ "$audioStreamCount" = "1" ] ; then
     # Set stream number to the only one found
     echo "${audioStreamArray[0]}"
-  elif [ "$audioStreamCount" -gt "1" ]; then
+  elif [ "$audioStreamCount" -gt "1" ] ; then
 
   # Find language of audio stream
   ffprobe -i ${inputFile} 2>&1 | \
@@ -583,7 +567,7 @@ audio_stream_selector () {
 
 }
         
-audio_input_sample_rate () {
+audio_input_sample_rate() {
 
   ffprobe -i ${userInput} 2>&1 | \
     grep -m 1 "Stream #0:${primaryAudioStream}" | \
@@ -591,27 +575,27 @@ audio_input_sample_rate () {
 
 }
 
-audio_sample_rate () {
+audio_sample_rate() {
 
-  if [ "$(audio_num_channels)" == "2" ]; then
+  if [ "$(audio_num_channels)" == "2" ] ; then
     echo "44100"
-  elif [ "$(audio_num_channels)" == "6" ]; then
+  elif [ "$(audio_num_channels)" == "6" ] ; then
     echo "48000"
   fi
 
 }
 
-audio_bitrate () {
+audio_bitrate() {
 
-  if [ "$(audio_num_channels)" == "2" ]; then
+  if [ "$(audio_num_channels)" == "2" ] ; then
     echo "256"
-  elif [ "$(audio_num_channels)" == "6" ]; then
+  elif [ "$(audio_num_channels)" == "6" ] ; then
     echo "640"
   fi
 
 }
 
-audio_source_channel_layout () {
+audio_source_channel_layout() {
 
   ffprobe -i ${inputFile} 2>&1 | \
     grep -m 1 "Stream #0:$(audio_stream_selector)" | \
@@ -619,7 +603,7 @@ audio_source_channel_layout () {
 
 }
 
-audio_num_channels () {
+audio_num_channels() {
 
   case "$(audio_source_channel_layout)" in
 
@@ -745,7 +729,7 @@ audio_num_channels () {
 
 }
 
-audio_channel_mapper () {
+audio_channel_mapper() {
 
   # https://github.com/FFmpeg/FFmpeg/blob/master/libavutil/channel_layout.c
   # https://github.com/FFmpeg/FFmpeg/blob/master/doc/utils.texi
@@ -793,43 +777,43 @@ audio_channel_mapper () {
       ;;
 
     'mono') # FC -> FL+FR
-      echo "pan=stereo|FL<FC|FR<FC"
+      echo "pan=stereo| FL < 0.5*FC | FR < 0.5*FC"
       ;;
 
     'stereo') # FL+FR -> FL+FR
-      echo "pan=stereo|FL<FL|FR<FR"
+      echo "pan=stereo| FL < FL | FR < FR"
       ;;
 
     '2.1') # FL+FR+LFE -> FL+FR
-      echo "pan=stereo|FL<FL+LFE|FR<FR+LFE"
+      echo "pan=stereo| FL < FL + LFE | FR < FR + LFE"
       ;;
 
     '3.0') # FL+FR+FC -> FL+FR
-      echo "pan=stereo|FL<FL+FC|FR<FR+FC"
+      echo "pan=stereo| FL < FL + 0.5*FC | FR < FR + 0.5*FC"
       ;;
 
     '3.0(back)') # FL+FR+BC -> FL+FR
-      echo "pan=stereo|FL<FL+BC|FR<FR+BC"
+      echo "pan=stereo| FL < FL + 0.5*BC | FR < FR + 0.5*BC"
       ;;
 
     '4.0') # FL+FR+FC+BC -> FL+FR
-      echo "pan=stereo|FL<FL+FC+BC|FR<FR+FC+BC"
+      echo "pan=stereo| FL < FL + 0.5*FC + BC | FR < FR + 0.5*FC + BC"
       ;;
 
     'quad') # FL+FR+BL+BR -> FL+FR+FC+LFE+BL+BR
-      echo "pan=5.1|FL<FL|FR<FR|FC<FL+FR|LFE<FL+FR+BL+BR|BL<BL|BR<BR"
+      echo "pan=5.1| FL < FL | FR < FR | FC < FL + FR | LFE < FL + FR + BL + BR | BL < BL | BR < BR"
       ;;
 
     'quad(side)') # FL+FR+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo "pan=5.1|FL<FL|FR<FR|FC<FL+FR|LFE<FL+FR+SL+SR|BL<SL|BR<SR"
+      echo "pan=5.1|FL < FL | FR < FR | FC < FL + FR | LFE < FL + FR + SL + SR | BL < SL | BR < SR"
       ;;
 
     '3.1') # FL+FR+FC+LFE -> FL+FR
-      echo "pan=stereo|FL<FL+FC+LFE|FR<FR+FC+LFE"
+      echo "pan=stereo| FL < FL + 0.5*FC + LFE | FR < FR + 0.5*FC + LFE"
       ;;
 
     '4.1') # FL+FR+FC+LFE+BC -> FL+FR
-      echo "pan=stereo|FL<FL+FC+BC+LFE|FR<FR+FC+BC+LFE"
+      echo "pan=stereo| FL < FL + 0.5*FC + BC + LFE | FR < FR + 0.5*FC + BC + LFE"
       ;;
 
     '5.0') # FL+FR+FC+BL+BR -> FL+FR+FC+LFE+BL+BR
@@ -881,11 +865,11 @@ audio_channel_mapper () {
       ;;
 
     '7.1') # FL+FR+FC+LFE+BL+BR+SL+SR -> FL+FR+FC+LFE+BL+BR
-      echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<BL+SL|BR<BR+SR"
+      echo "pan=5.1| FL < FL | FR < FR | FC < FC | LFE < LFE | BL < BL + SL | BR < BR + SR"
       ;;
 
     '7.1(wide)') # FL+FR+FC+LFE+BL+BR+FLC+FRC -> FL+FR+FC+LFE+BL+BR
-      echo "pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FC+FLC+FRC|LFE<LFE|BL<BL|BR<BR"
+      echo "pan=5.1| FL < FL + FLC | FR < FR + FRC | FC < FC + FLC + FRC | LFE < LFE | BL < BL | BR < BR"
       ;;
 
     '7.1(wide-side)') # FL+FR+FC+LFE+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
@@ -897,7 +881,7 @@ audio_channel_mapper () {
       ;;
 
     'downmix') # DL+DR -> FL+FR
-      echo "pan=stereo|FL<DL|FR<DR"
+      echo "pan=stereo | FL < DL | FR < DR"
       ;;
 
     *)
@@ -909,7 +893,7 @@ audio_channel_mapper () {
 
 }
 
-audio_encode () {
+audio_encode() {
 
   # Encode Audio
   ffmpeg \
@@ -925,19 +909,19 @@ audio_encode () {
 
 }
 
-black_bar_crop_detection () {
+black_bar_crop_detection() {
 
   ## [several checks to accurately crop black-bars]
   crop="1"
   totalLoops="10"
   ## [gather crop values]
   A=0
-  while [ "$A" -lt "$totalLoops" ]; do
+  while [ "$A" -lt "$totalLoops" ] ; do
 
     A="$(( $A + 1 ))"
     skipSecs="$(( 120 * $A ))"
     crop[$A]=$(\
-      ffmpeg -threads $(cpu_cores) -i $inputFile -ss $skipSecs \
+      ffmpeg -threads "${cpuCores}" -i $inputFile -ss $skipSecs \
       -t 1 -vf cropdetect -f null - 2>&1 | \
       awk -F "=" '/crop/ { print $NF }' | tail -1)
     echo -ne "\r       ${clC}crop detect ${clP}$A ${clC}of ${clP}10 ${clC}complete"
@@ -945,14 +929,14 @@ black_bar_crop_detection () {
   done
 
   B=0
-  while [ "$B" -lt "$totalLoops" ]; do
+  while [ "$B" -lt "$totalLoops" ] ; do
 
     B="$(( $B + 1 ))"
     C=0
-    while [ "$C" -lt "$totalLoops" ]; do
+    while [ "$C" -lt "$totalLoops" ] ; do
 
       C="$(( $C + 1 ))"
-      if [ "${crop[$B]}" == "${crop[$C]}" ]; then
+      if [ "${crop[$B]}" == "${crop[$C]}" ] ; then
         countCrop[$B]="$(( ${countCrop[$B]} + 1 ))"
       fi
 
@@ -963,10 +947,10 @@ black_bar_crop_detection () {
   ## [find greatest crop]
   highestCount=0
   D=0
-  while [ "$D" -lt "$totalLoops" ]; do
+  while [ "$D" -lt "$totalLoops" ] ; do
 
     D="$(( $D + 1 ))"
-    if [ "${countCrop[$D]}" -gt "$highestCount" ]; then
+    if [ "${countCrop[$D]}" -gt "$highestCount" ] ; then
       highestCount="${countCrop[$D]}"
       greatest="$D"
     fi
@@ -980,13 +964,13 @@ black_bar_crop_detection () {
 
 }
 
-video_interlace_detection () {
+video_interlace_detection() {
 
   echo "Not implemented yet"
 
 }
 
-video_frame_counter () {
+video_frame_counter() {
 
   # Frames Per Second
   FPS="23.976023976"
@@ -1001,14 +985,14 @@ video_frame_counter () {
 
 }
 
-video_encode () {
+video_encode() {
 
   videoEncodingPasses="2"
 
   # Initial pass number, DO NOT CHANGE VALUE
   videoEncodingPass="1"
 
-  while [ "$videoEncodingPass" -le "$videoEncodingPasses" ]; do
+  while [ "$videoEncodingPass" -le "$videoEncodingPasses" ] ; do
 
     echo -e "${clC}Encoding Pass: ${clP}$videoEncodingPass ${clC}of ${clP}$videoEncodingPasses${clD}"
 
@@ -1017,7 +1001,7 @@ video_encode () {
     ##        enable ffmpeg scaling otherwise disable
     ## TODO: make ffmpeg output to $fileName.ffmpeg
     ffmpeg \
-      -threads $(cpu_cores) \
+      -threads "${cpuCores}" \
       -i "$inputFile" \
       -vf "crop=$crop,scale=$cropWidth:trunc(ow/a/2)*2" \
       -r 24000/1001 \
@@ -1026,8 +1010,8 @@ video_encode () {
     x265 \
       --y4m \
       --stats=$(temp_directory)/$(filename_handler).stats \
-      --threads=$(cpu_cores) \
-      --frame-threads=$(cpu_cores) \
+      --threads="${cpuCores}" \
+      --frame-threads="${cpuCores}" \
       --wpp \
       --ctu=64 \
       --no-cutree \
@@ -1072,7 +1056,7 @@ video_encode () {
       { echo "ERROR: video encoding failed" ; return 1 ; }
 
     # Finished encoding
-    if [ "$videoEncodingPass" == "$videoEncodingPasses" ]; then
+    if [ "$videoEncodingPass" == "$videoEncodingPasses" ] ; then
       echo
       echo "Encoding complete"
     # Not finised encoding
@@ -1087,7 +1071,7 @@ video_encode () {
 
 }
 
-mux_streams () {
+mux_streams() {
 
   # mkvmerge
   # -o "$rar_variable-s.mkv"
@@ -1107,14 +1091,14 @@ mux_streams () {
   # "--track-order" "0:0,0:1,0:2" "--split" "parts:00:01:30-00:02:30"
 
   ## [check for chapter file]
-  if [ -f "$(temp_directory)/$(filename_handler).xml" ]; then
+  if [ -f "$(temp_directory)/$(filename_handler).xml" ] ; then
     muxChapters=""
   else
     muxChapters=
   fi
 
   ## [check for subtitle file]
-  if [ -f "$(temp_directory)/$(filename_handler).srt" ]; then
+  if [ -f "$(temp_directory)/$(filename_handler).srt" ] ; then
     muxSubtitles="-i $(temp_directory)/$(filename_handler).ass -c:s copy"
   else
     muxSubtitles=
@@ -1130,7 +1114,7 @@ mux_streams () {
 #    $(temp_directory)/$(filename_handler).${audioCodec}
 
   ffmpeg \
-    -threads "$(cpu_cores)" \
+    -threads "${cpuCores}" \
     -i "$(temp_directory)/$(filename_handler).hvc" \
     -i "$(temp_directory)/$(filename_handler).ac3" \
     -acodec copy -vcodec copy \
@@ -1139,17 +1123,32 @@ mux_streams () {
 
 }
 
-cleanup_temp_file () {
+cleanup_temp_file() {
 
-  if [ -f "$(temp_directory)/${1}" ]; then
-    rm $(temp_directory)/${1} || \
+  [ -f "$(temp_directory)/${1}" ] && {
+    rm -f $(temp_directory)/${1} || \
     { echo "WARNING: failed to remove temp file: ${1}" ; return 1 ; }
     echo "Removed temp file: ${1}"
-  fi
+  }
 
 }
 
-run_arkhive () {
+cleanup_temp() {
+
+  # CLEANUP TEMP FILES
+    ## ffmpeg redirected output [nul]
+    ## pgs subtitles
+  cleanup_temp_file $(filename_handler).hvc
+  cleanup_temp_file $(filename_handler).stats
+  cleanup_temp_file $(filename_handler).ac3
+  cleanup_temp_file $(filename_handler).sub
+  cleanup_temp_file $(filename_handler).idx
+  cleanup_temp_file $(filename_handler).srt
+  cleanup_temp_file $(filename_handler).xml
+
+}
+
+run_arkhive() {
 
   # Find full path to the directory containing the input file
   input_directory "${inputFile}"
@@ -1158,23 +1157,21 @@ run_arkhive () {
   hasSubtitles=$(\
     ffprobe $userInput 2>&1 | \
     awk '/Subtitle/ { print $2 }')
-  if [ -n "$hasSubtitles" ]; then
+  [ -n "$hasSubtitles" ] && {
     subtitle_stream_selector
     subtitle_stream_extractor
     subtitle_format_detection
-  fi
+  }
   #
   # TODO: test here for non-srt subtitles
   #
-  if  [ "subtitlesNotSrt" == "true" ]; then
+  if  [ "subtitlesNotSrt" == "true" ] ; then
     subtitle_srt_converter
   fi
 
   # Determine if a chapter stream exists
   hasChapters=$(ffprobe -i $userInput 2>&1 | awk '/Chapter/ { print $2 }')
-  if [ -n "$hasChapters" ]; then
-    $(chapter_stream_extractor)
-  fi
+  [ -n "$hasChapters" ] && { $(chapter_stream_extractor) ; }
 
   audio_stream_selector || { return 1 ; }
 
@@ -1189,20 +1186,9 @@ run_arkhive () {
   video_encode || { return 1 ; }
 
   mux_streams || { return 1 ; }
-
-  # CLEANUP TEMP FILES
-    ## ffmpeg redirected output [nul]
-    ## pgs subtitles
-  cleanup_temp_file $(filename_handler).hvc
-  cleanup_temp_file $(filename_handler).stats
-  cleanup_temp_file $(filename_handler).ac3
-  cleanup_temp_file $(filename_handler).sub
-  cleanup_temp_file $(filename_handler).idx
-  cleanup_temp_file $(filename_handler).srt
-  cleanup_temp_file $(filename_handler).xml
 }
 
-if [ -d "$userInput" ]; then
+if [ -d "$userInput" ] ; then
 #  find $(input_directory) -type f \( \
 #    -name "*.avi" \
 #    -o -name "*.f4v" \
@@ -1222,10 +1208,10 @@ if [ -d "$userInput" ]; then
 #    run_arkhive \
 #  done
 echo "dirs not supported yet"
-elif [ -f "$userInput" ]; then
+elif [ -f "$userInput" ] ; then
   inputFile="$userInput"
   echo "str: $(audio_stream_selector)"
   echo "sam: $(audio_input_sample_rate)"
   echo "chn: $(audio_source_channel_layout)"
-  run_arkhive
+  run_arkhive || { cleanup_temp ; }
 fi
