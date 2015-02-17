@@ -468,7 +468,8 @@ subtitle_format() {
 
   ffprobe "${inputFile}" | \
     grep -m 1 "Stream #0:$(subtitle_stream_selector)" | \
-    grep -o "\(ass\|dvb_subtitle\|dvb_teletext\|hdmv_pgs_subtitle\|jacosub\|microdvd\|mov_text\|mpl2\|pjs\|realtext\|sami\|srt\|ssa\|stl\|subrip\|subviewer\|subviewer1\|text\|vplayer\|webvtt\)"
+    grep -o "\(ass\|dvb_subtitle\|dvb_teletext\|hdmv_pgs_subtitle\|jacosub\|microdvd\|mov_text\|mpl2\|pjs\|\
+               realtext\|sami\|srt\|ssa\|stl\|subrip\|subviewer\|subviewer1\|text\|vplayer\|webvtt\)"
 
 }
 
@@ -580,21 +581,33 @@ audio_input_sample_rate() {
 
 audio_sample_rate() {
 
-  if [ "$(audio_num_channels)" == "2" ] ; then
+  [ "$(audio_num_channels)" == "2" ] && {
     echo "44100"
-  elif [ "$(audio_num_channels)" == "6" ] ; then
+    return 0
+  }
+
+  [ "$(audio_num_channels)" == "6" ] && {
     echo "48000"
-  fi
+    return 0
+  }
+
+  return 1
 
 }
 
 audio_bitrate() {
 
-  if [ "$(audio_num_channels)" == "2" ] ; then
+  [ "$(audio_num_channels)" == "2" ] && {
     echo "256"
-  elif [ "$(audio_num_channels)" == "6" ] ; then
+    return 0
+  }
+
+  [ "$(audio_num_channels)" == "6" ] && {
     echo "640"
-  fi
+    return 0
+  }
+
+  return 1
 
 }
 
@@ -778,115 +791,87 @@ audio_channel_mapper() {
       echo "ERROR: could not detect input file's audio channel layout"
       return 1
       ;;
-
     'mono') # FC -> FL+FR
       echo "pan=stereo| FL < 0.5*FC | FR < 0.5*FC"
       ;;
-
     'stereo') # FL+FR -> FL+FR
       echo "pan=stereo| FL < FL | FR < FR"
       ;;
-
     '2.1') # FL+FR+LFE -> FL+FR
       echo "pan=stereo| FL < FL + LFE | FR < FR + LFE"
       ;;
-
     '3.0') # FL+FR+FC -> FL+FR
       echo "pan=stereo| FL < FL + 0.5*FC | FR < FR + 0.5*FC"
       ;;
-
     '3.0(back)') # FL+FR+BC -> FL+FR
       echo "pan=stereo| FL < FL + 0.5*BC | FR < FR + 0.5*BC"
       ;;
-
     '4.0') # FL+FR+FC+BC -> FL+FR
       echo "pan=stereo| FL < FL + 0.5*FC + BC | FR < FR + 0.5*FC + BC"
       ;;
-
     'quad') # FL+FR+BL+BR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1| FL < FL | FR < FR | FC < FL + FR | LFE < FL + FR + BL + BR | BL < BL | BR < BR"
       ;;
-
     'quad(side)') # FL+FR+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL < FL | FR < FR | FC < FL + FR | LFE < FL + FR + SL + SR | BL < SL | BR < SR"
       ;;
-
     '3.1') # FL+FR+FC+LFE -> FL+FR
       echo "pan=stereo| FL < FL + 0.5*FC + LFE | FR < FR + 0.5*FC + LFE"
       ;;
-
     '4.1') # FL+FR+FC+LFE+BC -> FL+FR
-      echo "pan=stereo| FL < FL + 0.5*FC + BC + LFE | FR < FR + 0.5*FC + BC + LFE"
+      echo "pan=stereo|FL < FL + 0.5*FC + BC + LFE | FR < FR + 0.5*FC + BC + LFE"
       ;;
-
     '5.0') # FL+FR+FC+BL+BR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR|BL<BL|BR<BR"
       ;;
-
     '5.0(side)') # FL+FR+FC+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+SL+SR|BL<SL|BR<SR"
       ;;
-
     '5.1') # FL+FR+FC+LFE+BL+BR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<BL|BR<BR"
       ;;
-
     '5.1(side)') # FL+FR+FC+LFE+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<SL|BR<SR"
       ;;
-
     '6.0') # FL+FR+FC+BC+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BC+SL+SR|BL<SL+BC|BR<SR+BC"
       ;;
-
     '6.0(front)') # FL+FR+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FC+FLC+FRC|LFE<FL+FR+FLC+FRC+SL+SR|BL<SL|BR<SR"
       ;;
-
     'hexagonal') # FL+FR+FC+BL+BR+BC -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR+BC|BL<BL+BC|BR<BL+BC"
       ;;
-
     '6.1') # FL+FR+FC+LFE+BC+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<SL+BC|BR<SR+BC"
       ;;
-
 #    '6.1(back)') # FL+FR+FC+LFE+BL+BR+BC -> FL+FR+FC+LFE+BL+BR
 #      echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<LFE|BL<BL+BC|BR<BR+BC"
 #      ;;
-
     '6.1(front)') # FL+FR+LFE+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FLC+FRC+FL+FR|LFE<FL+FR+LFE+FLC+FRC+SL+SR|BL<SL|BR<SR"
       ;;
-
     '7.0') # FL+FR+FC+BL+BR+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR+SL+SR|BL<BL+SL|BR<BR+SR"
       ;;
-
     '7.0(front)') # FL+FR+FC+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FC+FLC+FRC|LFE<FL+FR+FC+FLC+FRC+SL+SR|BL<SL|BR<SR"
       ;;
-
     '7.1') # FL+FR+FC+LFE+BL+BR+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1| FL < FL | FR < FR | FC < FC | LFE < LFE | BL < BL + SL | BR < BR + SR"
       ;;
-
     '7.1(wide)') # FL+FR+FC+LFE+BL+BR+FLC+FRC -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1| FL < FL + FLC | FR < FR + FRC | FC < FC + FLC + FRC | LFE < LFE | BL < BL | BR < BR"
       ;;
-
     '7.1(wide-side)') # FL+FR+FC+LFE+FLC+FRC+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL+FLC|FR<FR+FRC|FC<FLC+FRC|LFE<LFE|BL<SL|BR<SR"
       ;;
-
     'octagonal') # FL+FR+FC+BL+BR+BC+SL+SR -> FL+FR+FC+LFE+BL+BR
       echo "pan=5.1|FL<FL|FR<FR|FC<FC|LFE<FL+FR+FC+BL+BR+BC+SL+SR|BL<BL+BC+SL|BR<BR+BC+SR"
       ;;
-
     'downmix') # DL+DR -> FL+FR
       echo "pan=stereo | FL < DL | FR < DR"
       ;;
-
     *)
       echo "ERROR: Unsupported channel layout"
       exit 1
@@ -990,10 +975,10 @@ video_frame_counter() {
 
 video_encode() {
 
-  videoEncodingPasses="2"
+  videoEncodingPasses=2
 
   # Initial pass number, DO NOT CHANGE VALUE
-  videoEncodingPass="1"
+  videoEncodingPass=1
 
   while [ "$videoEncodingPass" -le "$videoEncodingPasses" ] ; do
 
