@@ -39,69 +39,6 @@ ARKIVE_VERSION=4
 BIT_STREAM_VERSION=2
 VERSION="${ARKIVE_VERSION}.${BIT_STREAM_VERSION}"
 
-# NOTES:
-  # TODO: check what min length actually is
-  # - video must be > 60 seconds in length or crop filter will fail
-
-# TODO:
-  # Audio:
-    # - stream selector
-    # - re-sampling
-    # - channel layout mapping
-    # - leveling
-    # - stream mapper
-  # Chapters:
-    # - stream mapper
-    # - support for chapter titles
-  # Subtitles:
-    # - stream selector
-    # - bitmap -> plaintext conversion (using vobsub2srt/tesseract/bdsup2sub)
-    # - stream mapper
-  # Video:
-    # - stream selector
-    # - stream mapper
-    # - interlace detection/deinterlace filter
-    # - bitrate calculator
-    # - frame rate support
-    # - audit x265 config
-    # - codec specific rounding of crop filter values
-    # - h264
-    # - vp9
-    # - diffusion when source bit depth > output
-    # - take into account the coded resolution instead of the viewable
-    #   resolution when determining the bits per pixel value
-    # - add sanity checks to make sure crop filter values are sain
-    # - x265-params: redo frame thread core count logic
-    #   make sure it doesn't return a float (e.g. 1/2), >=1 <=16
-    # - implement scale filter independent of the crop filter, while respecting
-    #   crop filter output
-    # - dynamically determine merange based on framerate and resolution
-    # - look into setting merange relative to framerate
-    # - use cropdetect filter's rounding option (e.g. croptdetect=24:<round>:0)
-    # - x265 - if > x cpu cores enable parallel mode decision/motion estimation
-      # - determine how many cores before enabling each feature
-  # Misc:
-    # - cleanup handling of tmp files
-    #   - multi pass files
-    # - add config option validator
-    # - refactor thread pools/numa nodes support
-    # - pass cpu_physical to a variable to prevent extra calls
-    # - pass output_directory & tmp_directory to variables in run_arkive
-    # - add screenshot functionality (auto generate x screenshots)
-    # - add process nice support, set default on a lower value
-    # - add multi-{file,directory} input support (outlined, but nothing done)
-    # - move ffmpeg experimental flag out of video_pixel_format
-    # - Add debugging support to all functions
-  # Metadata:
-    # - everything
-  # Tests:
-    # - test audio stream selector
-    # - test video stream selector
-    # - test video crop filter
-    # - test video de-interlace filter
-    # - test audio stream re-mapping
-    # - test chapters
-
 ##########
 # Config #
 ##########
