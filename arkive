@@ -62,6 +62,10 @@ ARKIVE_AUDIO_CODEC='opus'
 # Bitrate per audio channel in kbps (5.1 -> 6 * 64 = 384),
 # Ignored if `flac` codec is specified
 ARKIVE_AUDIO_CHANNEL_BITRATE=64
+# Streams with phrases from this list in their title are discarded
+ARKIVE_AUDIO_STREAM_DISCARD_KEYWORDS=(
+  'commentary'
+)
 # Audio default language (ISO 639-2/B)
 ARKIVE_AUDIO_LANG_DEFAULT='eng'
 #### Audio languages to include (ISO 639-2/B)
@@ -595,15 +599,36 @@ function audio_stream_selector {
 
   # If multiple audio streams exist, select the correct one
   if [[ ${#Streams[@]} -gt 1 ]] ; then
-    echo "${Streams[@]}"
-    # TODO: add support for multiple audio streams.
-    #       only one maybe used in the output
+
+    # Remove streams that contain matching keywords in the stream title
     for Stream in ${Streams[@]} ; do
-      # Check sample rate
-      sampleRate=$(audio_sample_rate "${Stream}") || {
-        sampleRate=0
-      }
-      #OptimumAsocArray+=("sample_rate${Stream}" "${sampleRate}")
+      #ARKIVE_AUDIO_STREAM_DISCARD_KEYWORDS
+      FindMatch=false
+      for Keyword in "${ARKIVE_AUDIO_STREAM_DISCARD_KEYWORDS[@]}" ; do
+        FindKeyword="$(
+          echo $(
+            to_lower $(
+              ffprobe \
+                -v error \
+                -select_streams a:${Stream} \
+                -show_entries stream_tags=title \
+                -of default=noprint_wrappers=1:nokey=1 \
+                "${CurrentFile}"
+            )
+          ) | grep ${Keyword}
+        )"
+        if [[ -n "${FindKeyword}" ]] ; then
+          FindMatch=true
+        fi
+      done
+      unset Keyword
+      # Discard matches
+      if ${FindMatch} ; then
+        Streams=( ${Streams[@]/${Stream}} )
+      fi
+    done
+    unset FindMatch
+    unset Stream
 
       # Check number of channels
       Channels=$(audio_channels "${Stream}") || {
@@ -647,7 +672,7 @@ function audio_stream_selector {
     err_error 'multiple audio streams not implemented'
     return 1
   else
-    Stream=${audioStreams[1]}
+    Stream=${Streams[1]}
   fi
 
   echo "${Stream}"
