@@ -99,7 +99,6 @@ TMP_FILES=()
 unset FAILURE
 
 function arkive_usage {
-
 cat <<ARKIVEUSAGE
 Arkhive version: ${VERSION}
 
@@ -110,25 +109,19 @@ Usage: arkhive [OPTIONS] FILE [OPTIONS]
 ARKIVEUSAGE
 
   return 0
-
 }
 
+# Return the name of the executing function
 function err_call_stack {
-
-  # Return the name of the executing function
-
   # Take into account the function calls and the name you expect to return,
   # hense it returns 3, not 1 (also zsh arrays start from 1, not 0)
   echo "${funcstack[3]}"
 
   return 0
-
 }
 
+# Return a formatted error message
 function err_error {
-
-  # Return a formatted error message
-
   if [[ -n "${2}" ]] ; then
     # Allow returning a custom function/script error
     echo "Arkive: ERROR in \`${2}\`: ${1}" > /dev/stderr
@@ -137,13 +130,10 @@ function err_error {
   fi
 
   return 0
-
 }
 
+# Return a formatted warning message
 function err_warn {
-
-  # Return a formatted warning message
-
   if [[ -z "${FAILURE}" ]] ; then
     export FAILURE="${1}"
   fi
@@ -156,13 +146,10 @@ function err_warn {
   fi
 
   return 0
-
 }
 
+# Resolves the absolute path of the binary
 function path_bin_abs {
-
-  # Resolves the absolute path of the binary
-
   local Bin
 
   Bin="$(
@@ -177,13 +164,10 @@ function path_bin_abs {
   echo "${Bin}"
 
   return 0
-
 }
 
+# Test to see if a binary exists in the path
 function path_hasbin {
-
-  # Test to see if a binary exists in the path
-
   if [[ $# -ne 1 ]] ; then
     return 2
   fi
@@ -191,21 +175,16 @@ function path_hasbin {
   whence -p "${1}" > /dev/null 2>&1 || return 1
 
   return 0
-
 }
 
 function to_lower {
-
   echo $@ | tr '[A-Z]' '[a-z]'
 
   return 0
-
 }
 
+# Returns the shell executing the current script
 function shell {
-
-  # Returns the shell executing the current script
-
   # TODO: fix failure on FreeBSD returning null
 
   local FindShell
@@ -256,13 +235,10 @@ function shell {
   echo "${FindShell}"
 
   return 0
-
 }
 
+# Required dependencies
 function requires {
-
-  # Required dependencies
-
   # ffmpeg >= 2.7 (for 10bit libx265 support)
   #   libx264 (compiled with target bit depth)
   #   libx265 >= 1.9 (compiled with multilib or at least target bit depth)
@@ -291,11 +267,9 @@ function requires {
   fi
 
   return 0
-
 }
 
 function cpu_sockets {
-
   local Sockets
 
   Sockets="$(
@@ -312,13 +286,10 @@ function cpu_sockets {
   echo "${Sockets}"
 
   return 0
-
 }
 
+# Find number of physical cpu cores
 function cpu_physical {
-
-  # Find number of physical cpu cores
-
   # Assumes all sockets are identical, only some arm platforms won't
   # work with this logic.
 
@@ -339,13 +310,10 @@ function cpu_physical {
   echo "${CpuCores}"
 
   return 0
-
 }
 
+# Find number of logical cpu cores
 function cpu_logical {
-
-  # Find number of logical cpu cores
-
   # Assumes all sockets are identical, only some arm platforms won't
   # work with this logic
 
@@ -371,13 +339,10 @@ function cpu_logical {
   echo "${CpuThreads}"
 
   return 0
-
 }
 
+# Parses, validates, and exports input
 function input_parser {
-
-  # Parses, validates, and exports input
-
   local Item
   local InputFileSupported
   local UserInputList
@@ -495,11 +460,9 @@ function input_parser {
   fi
 
   return 0
-
 }
 
 function input_directory {
-
   local InputDirectory
 
   pushd "$(dirname "${CurrentFile}")"
@@ -514,11 +477,9 @@ function input_directory {
   echo "${InputDirectory}"
 
   return 0
-
 }
 
 function output_directory {
-
   local OutputDirectory
 
   if [[ -z "${OUTPUT_DIR}" ]] ; then
@@ -537,11 +498,9 @@ function output_directory {
   echo "${OutputDirectory}"
 
   return 0
-
 }
 
 function tmp_directory {
-
   local TmpDirectory
 
   if [[ -z "${TMP_DIR}" ]] ; then
@@ -560,31 +519,23 @@ function tmp_directory {
   echo "${TmpDirectory}"
 
   return 0
-
 }
 
+# Format filename w/ ext, w/ no path
 function filename_orginal {
-
-  # Format filename w/ ext, w/ no path
-
   basename "${1}" || return 1
 
   return 0
-
 }
 
+# Format filename w/o ext, w/ no path
 function filename_original_base {
-
-  # Format filename w/o ext, w/ no path
-
   basename "${1}" | sed -r 's/\.[[:alnum:]]+$//' || return 1
 
   return 0
-
 }
 
 function filename_formatted_base {
-
   local Filename
   local ArkMark
 
@@ -597,13 +548,10 @@ function filename_formatted_base {
   echo "${Filename}${ArkMark}"
 
   return 0
-
 }
 
+# Selects the audio stream to use if multiple exist
 function audio_stream_selector {
-
-  # Selects the audio stream to use if multiple exist
-
   local Bitrate
   local BitrateAsocArray
   local BitrateBest
@@ -705,11 +653,9 @@ function audio_stream_selector {
   echo "${Stream}"
 
   return 0
-
 }
 
 function audio_sample_rate {
-
   local SampleRate
   local Stream
 
@@ -732,11 +678,9 @@ function audio_sample_rate {
   echo "${SampleRate}"
 
   return 0
-
 }
 
 function audio_bitrate {
-
   local Bitrate
   local Stream
 
@@ -759,11 +703,9 @@ function audio_bitrate {
   echo "${Bitrate}"
 
   return 0
-
 }
 
 function audio_bitrate_output {
-
   # TODO: check for integer (make sure audio_channels is not null)
 
   local Bitrate
@@ -785,11 +727,9 @@ function audio_bitrate_output {
   echo "-b:a ${Bitrate}k"
 
   return 0
-
 }
 
 function audio_channels {
-
   local Channels
   local Stream
 
@@ -812,11 +752,9 @@ function audio_channels {
   echo "${Channels}"
 
   return 0
-
 }
 
 function audio_channel_layout {
-
   local ChannelLayout
   local Stream
 
@@ -838,7 +776,6 @@ function audio_channel_layout {
   echo "${ChannelLayout}"
 
   return 0
-
 }
 
 function audio_filters {
@@ -846,7 +783,6 @@ function audio_filters {
 }
 
 function audio_channels_output {
-
   local Channels
   local ChannelLayoutSource
   local Stream
@@ -948,11 +884,9 @@ function audio_channels_output {
   echo "${Channels}"
 
   return 0
-
 }
 
 function audio_codec {
-
   local codec
 
   case "${ARKIVE_AUDIO_CODEC}" in
@@ -979,11 +913,9 @@ function audio_codec {
   echo "-c:a ${codec}"
 
   return 0
-
 }
 
 function audio_args {
-
   # TODO: add stream mapping
 
   local Bitrate
@@ -999,13 +931,10 @@ function audio_args {
   echo "${Bitrate} ${Codec} ${Filters} -ac ${Channels}"
 
   return 0
-
 }
 
+# Selects the audio stream to use if multiple exist
 function subtitle_stream_selector {
-
-  # Selects the audio stream to use if multiple exist
-
   local SubtitleStream
   local SubtitleStreams
 
@@ -1035,13 +964,10 @@ function subtitle_stream_selector {
   echo "${SubtitleStream}"
 
   return 0
-
 }
 
+# Selects the video stream to use if multiple exist
 function video_stream_selector {
-
-  # Selects the video stream to use if multiple exist
-
   local VideoStream
   local VideoStreams
 
@@ -1074,11 +1000,9 @@ function video_stream_selector {
   echo "${VideoStream}"
 
   return 0
-
 }
 
 function video_source_height {
-
   local Height
   local Stream
 
@@ -1102,11 +1026,9 @@ function video_source_height {
   echo "${Height}"
 
   return 0
-
 }
 
 function video_source_width {
-
   local Width
   local Stream
 
@@ -1130,14 +1052,11 @@ function video_source_width {
   echo "${Width}"
 
   return 0
-
 }
 
+# Uses the ffmpeg cropdetect filter to check for blackbars at 5 second
+# intervals until 10 identical results for both width and height are found.
 function video_filter_black_bar_crop {
-
-  # Uses the ffmpeg cropdetect filter to check for blackbars at 5 second
-  # intervals until 10 identical results for both width and height are found.
-
   # TODO:
   # - fix setting crop rounding value dynamically
   #   h264: prefer multiples of 16 for compression efficiency, or multiple
@@ -1286,11 +1205,9 @@ function video_filter_black_bar_crop {
   echo "crop=${CropWidth}:${CropHeight}:${CropXOffset}:${CropYOffset}"
 
   return 0
-
 }
 
 function video_filters {
-
   local BlackBarCrop
   local Filter
   local FilterList
@@ -1315,11 +1232,9 @@ function video_filters {
   fi
 
   return 0
-
 }
 
 function video_source_frame_rate {
-
   local SourceFrameRate
 
   SourceFrameRate="$(
@@ -1339,13 +1254,10 @@ function video_source_frame_rate {
   echo "${SourceFrameRate}"
 
   return 0
-
 }
 
+# Use an interval of 10 seconds for keyframes
 function video_keyframe_interval {
-
-  # Use an interval of 10 seconds for keyframes
-
   local KeyInt
   local SourceFrameRate
   local Stream
@@ -1364,13 +1276,10 @@ function video_keyframe_interval {
   echo "${KeyInt}"
 
   return 0
-
 }
 
+# Use 1 keyframe per 20fps, e.g. 60fps = 3
 function video_min_keyframe_interval {
-
-  # Use 1 keyframe per 20fps, e.g. 60fps = 3
-
   local KeyFrames
   local MinKeyInt
   local SourceFrameRate
@@ -1406,13 +1315,10 @@ function video_min_keyframe_interval {
   echo "${MinKeyInt}"
 
   return 0
-
 }
 
+# Equivalent to 2 seconds of video
 function video_motion_estimation_range {
-
-  # Equivalent to 2 seconds of video
-
   local MeRange
   local SourceFrameRate
 
@@ -1428,15 +1334,11 @@ function video_motion_estimation_range {
   echo "${MeRange}"
 
   return 0
-
 }
 
+# Generates formatted ffmpeg x264-params key/values
 function video_codec_x264_params {
-
-  # Generates formatted ffmpeg x264-params key/values
-
   err_error 'x264 not implemented'
-
   return 1
 
   local Parameters
@@ -1484,13 +1386,10 @@ function video_codec_x264_params {
     # Analysis
     # Input/Output
   )
-
 }
 
+# Generates formatted ffmpeg x265-params key/values
 function video_codec_x265_params {
-
-  # Generates formatted ffmpeg x265-params key/values
-
   local Param
   local Parameters
   local ParamHasValue
@@ -1637,29 +1536,22 @@ function video_codec_x265_params {
   echo "-x265-params '${ParamList}'"
 
   return 0
-
 }
 
 function video_codec_vp9_params {
-
   err_error 'vp9 not implemented'
 
   return 1
-
 }
 
 function video_codec_vp10_params {
-
   err_error 'vp10 not implemented'
 
   return 1
-
 }
 
+# codec and codec parameters
 function video_codec {
-
-  # codec and codec parameters
-
   local CodecString
 
   case "${ARKIVE_VIDEO_CODEC}" in
@@ -1691,21 +1583,17 @@ function video_codec {
   echo "${CodecString}"
 
   return 0
-
 }
 
 function video_bitrate {
-
   # TODO: Calclate bitrate based off, bpp from cropped WIDTHxHEIGHT
 
   echo "-b:v 2048k"
 
   return 0
-
 }
 
 function video_pixel_format {
-
   local BitDepth
   local ChromaSubsampling
   local Endian
@@ -1742,11 +1630,9 @@ function video_pixel_format {
   echo "-pix_fmt yuv${ChromaSubsampling}p${BitDepth}${Endian}${Experimental}"
 
   return 0
-
 }
 
 function video_args {
-
   local VideoFilters
   local VideoBitrate
   local VideoCodec
@@ -1760,11 +1646,9 @@ function video_args {
   echo "${VideoBitrate} ${VideoCodec} ${VideoFilters} ${VideoPixelFormat}"
 
   return 0
-
 }
 
 function tmp_cleanup {
-
   local File
 
   for File in "${TMP_FILES[@]}" ; do
@@ -1782,7 +1666,6 @@ function tmp_cleanup {
   fi
 
   return 0
-
 }
 
 function run_arkive {
