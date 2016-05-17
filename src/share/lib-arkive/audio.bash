@@ -148,6 +148,17 @@ function Audio::SampleRate {
   echo "${SampleRate}"
 }
 
+function Audio::SampleFormat {
+  local SampleFormat
+  local Stream="${1}"
+
+  SampleFormat=$(FFprobe '-' "${Stream}" 'stream' 'sample_fmt')
+
+  String::NotNull "${SampleFormat}"
+
+  echo "${SampleFormat}"
+}
+
 function Audio::Bitrate {
   local Bitrate
   local Stream="${1}"
