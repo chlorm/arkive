@@ -35,8 +35,9 @@
 function FFmpeg::Video.motion_estimation_range {
   local MeRange
   local FrameRate
+  local Stream="${1}"
 
-  FrameRate="$(Video::FrameRate)"
+  FrameRate="$(Video::FrameRate "${Stream}")"
 
   MeRange=$(( ${FrameRate} * 2 ))
 
