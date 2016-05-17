@@ -38,7 +38,7 @@ function FFmpeg::Video.filters {
   local Stream="${1}"
 
   Filters+=(
-    "$(FFmpeg::Video.filters:black_bar_crop)"
+    "$(FFmpeg::Video.filters:black_bar_crop "${Stream}")"
   )
 
   for Filter in "${Filters[@]}" ; do
@@ -48,6 +48,6 @@ function FFmpeg::Video.filters {
   done
 
   if [ -n "${FilterList}" ] ; then
-    echo "-filter:v '${FilterList}'"
+    echo "-filter:${Stream} '${FilterList}'"
   fi
 }
