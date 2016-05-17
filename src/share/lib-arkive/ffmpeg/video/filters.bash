@@ -55,17 +55,3 @@ function FFmpeg::Video.filters {
     echo "-filter:v '${FilterList}'"
   fi
 }
-
-function FFmpeg::Video {
-  local VideoFilters
-  local VideoBitrate
-  local VideoCodec
-  local VideoPixelFormat
-
-  VideoFilters="$(FFmpeg::Video.filters)"
-  VideoBitrate="$(FFmpeg::Video.bitrate)"
-  VideoCodec="$(FFmpeg::Video.codec)"
-  VideoPixelFormat="$(FFmpeg::Video.pixel_format)"
-
-  echo "${VideoBitrate} ${VideoCodec} ${VideoFilters} ${VideoPixelFormat}"
-}
