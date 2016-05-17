@@ -53,7 +53,7 @@ FFprobe() {
   fi
 
   FFprobeOut="$(
-    ffprobe \
+    @FFPROBE_PATH@ \
       -v error \
       -select_streams "${StreamType}${StreamType:+${Stream:+:}}${Stream}" \
       -show_entries "${EntKey}=${EntVal}" \

@@ -65,7 +65,7 @@ ARKIVE_LIB_DIR="${ARKIVE_PREFIX}/share/lib-arkive"
 
 ################################ Load Libraries ################################
 
-source "$(lib-bash)"
+source "$(@LIB_BASH_PATH@)"
 
 # Load all libraries within the current shell
 eval "$(
@@ -73,7 +73,7 @@ eval "$(
   while read LoadLibrary ; do
     LoadLibrary="$(readlink -f "${LoadLibrary}")"
     #echo "echo \"loading: ${LoadLibrary}\""
-    echo "source ${LoadLibrary}"
+    echo "source \"${LoadLibrary}\""
   done
 )"
 
@@ -82,7 +82,7 @@ wait
 ################################### Profile ####################################
 
 # Debugging
-ARKIVE_DEBUG=false
+ARKIVE_DEBUG='false'
 # Container format (mkv,mp4,ogv,webm)
 ARKIVE_CONTAINER='mkv'
 # Video Codec (h264(x264),h265(x265),nvenc-h264,nvenc-h265,vp9)

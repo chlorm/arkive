@@ -95,7 +95,7 @@ function Arkive::Run {
     else
       AudioPass='-an'
     fi
-    eval "ffmpeg \
+    eval "@FFMPEG_PATH@ \
             -y \
             -nostdin \
             -hide_banner \
