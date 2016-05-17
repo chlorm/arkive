@@ -24,4 +24,4 @@ file(WRITE ${CMAKE_CURRENT_LIST_DIR}/src/share/lib-arkive/ffprobe.bash ${LIB_FFP
 install(PROGRAMS ${CMAKE_CURRENT_LIST_DIR}/src/bin/arkive DESTINATION bin)
 install(PROGRAMS ${CMAKE_CURRENT_LIST_DIR}/src/bin/arkive-remux DESTINATION bin)
 
-install(DIRS ${CMAKE_CURRENT_LIST_DIR}/src/share/lib-arkive DESTINATION share)
+install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/src/share/lib-arkive DESTINATION share)
