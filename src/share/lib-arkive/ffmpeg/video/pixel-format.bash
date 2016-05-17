@@ -33,11 +33,11 @@
 
 function FFmpeg::Video.pixel_format {
   local BitDepth
-  local ChromaSubsampling
+  local ChrSubSam
   local Endian
 
   BitDepth="${ARKIVE_VIDEO_BIT_DEPTH}"
-  ChromaSubsampling="${ARKIVE_VIDEO_CHROMA_SUBSAMPLING}"
+  ChrSubSam="${ARKIVE_VIDEO_CHROMA_SUBSAMPLING}"
 
   [[ ${ARKIVE_VIDEO_CHROMA_SUBSAMPLING} == +(420|422|444) ]]
 
@@ -54,5 +54,5 @@ function FFmpeg::Video.pixel_format {
     unset BitDepth
   fi
 
-  echo "-pix_fmt yuv${ChromaSubsampling}p${BitDepth}${Endian}"
+  echo "-pix_fmt yuv${ChrSubSam}p${BitDepth:+${BitDepth}}${Endian:+${Endian}}"
 }
