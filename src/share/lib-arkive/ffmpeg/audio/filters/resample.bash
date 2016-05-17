@@ -31,7 +31,6 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-# Resample source sample rate to 48000Hz
 function FFmpeg::Audio.filters:resample {
   local SampleFormat
   local SampleRate
@@ -44,7 +43,7 @@ function FFmpeg::Audio.filters:resample {
   [[ "${ARKIVE_AUDIO_SAMPLE_RATE}" == +(44100|48000|96000|192000) ]]
 
   # Refuse to upsample unless the codec is opus or the source sample rate
-  # is less than 44100khz. Opus natively uses 48000kHz.
+  # is less than 44100Hz. Opus natively uses 48000Hz.
   if ([ ${ARKIVE_AUDIO_SAMPLE_RATE} -gt ${SampleRate} ] && \
       [ ${SampleRate} -lt 44100 ]) || \
      ([ "${ARKIVE_AUDIO_CODEC}" == 'opus' ] && \
