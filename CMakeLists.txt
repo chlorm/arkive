@@ -13,12 +13,12 @@ endif()
 
 # Set path to ffmpeg at build time
 file(READ ${CMAKE_CURRENT_LIST_DIR}/src/share/lib-arkive/arkive.bash LIB_FFMPEG_IN)
-string(REPLACE "ffmpeg \" "${HAS_FFMPEG} \" LIB_FFMPEG_OUT ${LIB_FFMPEG_IN})
+string(REPLACE "ffmpeg \\" "${HAS_FFMPEG} \\" LIB_FFMPEG_OUT ${LIB_FFMPEG_IN})
 file(WRITE ${CMAKE_CURRENT_LIST_DIR}/src/share/lib-arkive/arkive.bash ${LIB_FFMPEG_OUT})
 
 # Set path to ffprobe at build time
 file(READ ${CMAKE_CURRENT_LIST_DIR}/src/share/lib-arkive/ffprobe.bash LIB_FFPROBE_IN)
-string(REPLACE "ffprobe \" "${HAS_FFPROBE} \" LIB_FFPROBE_OUT ${LIB_FFPROBE_IN})
+string(REPLACE "ffprobe \\" "${HAS_FFPROBE} \\" LIB_FFPROBE_OUT ${LIB_FFPROBE_IN})
 file(WRITE ${CMAKE_CURRENT_LIST_DIR}/src/share/lib-arkive/ffprobe.bash ${LIB_FFPROBE_OUT})
 
 install(PROGRAMS ${CMAKE_CURRENT_LIST_DIR}/src/bin/arkive DESTINATION bin)
