@@ -37,8 +37,9 @@ function FFmpeg::Video.min_keyframe_interval {
   local MinKeyInt
   local FrameRate
   local FrameRateRounded
+  local Stream="${1}"
 
-  FrameRate="$(Video::FrameRate)"
+  FrameRate="$(Video::FrameRate "${Stream}")"
 
   # Rounds SourceFrameRate to the nearest whole number
   FrameRateRounded=$(
@@ -67,7 +68,7 @@ function FFmpeg::Video.keyframe_interval {
   local KeyInt
   local FrameRate
 
-  FrameRate="$(Video::FrameRate)"
+  FrameRate="$(Video::FrameRate "${Stream}")"
 
   KeyInt=$(( ${FrameRate} * 10 ))
 
