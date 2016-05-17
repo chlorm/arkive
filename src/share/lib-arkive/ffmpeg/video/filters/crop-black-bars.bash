@@ -56,7 +56,7 @@ function FFmpeg::Video.filters:black_bar_crop {
   local Skip
   local SourceHeight
   local SourceWidth
-  local Stream
+  local Stream="${1}"
 
   CropHeight=0
   CropHeightArray=()
@@ -69,8 +69,8 @@ function FFmpeg::Video.filters:black_bar_crop {
   CropYOffsetArray=()
   CropYOffsetMatches=0
   LoopIter=1
-  SourceHeight=$(Video::Height)
-  SourceWidth=$(Video::Width)
+  SourceHeight=$(Video::Height "${Stream}")
+  SourceWidth=$(Video::Width "${Stream}")
 
   function mode {
     echo "${@}" |
@@ -104,7 +104,7 @@ function FFmpeg::Video.filters:black_bar_crop {
         -ss 0 \
         -t 1 \
         -an \
-        -filter:${__videostream__} cropdetect=30:0:0 \
+        -filter:${Stream} cropdetect=30:0:0 \
         -f null - 2>&1 |
         awk -F'=' '/crop/ { print $NF }' |
         tail -1
