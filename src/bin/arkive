@@ -1,0 +1,254 @@
+#!/usr/bin/env bash
+
+#                                  Arkive
+#
+# Copyright (c) 2013-2016, Cody Opel <codyopel@gmail.com>
+# All Rights Reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+#    this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+#
+# 3. Neither the name of the copyright holder nor the names of its contributors
+#    may be used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+# WARNING:
+# This mock-up implementation in shell is for testing and demonstration
+# purposes only.
+
+# Unrelated:
+# https://people.xiph.org/~xiphmont/demo/index.html
+
+################################################################################
+
+set -o errexit
+set -o errtrace
+# TODO: fix remaining undeclared variables in arkive and lib-bash
+#set -o nounset
+set -o pipefail
+
+trap -- 'Tmp::Cleanup' SIGINT SIGTERM
+trap -- 'Tmp::Cleanup ; Error::Trace ; exit 1' ERR
+
+TMP_FILES=()
+unset FAILURE
+
+################################################################################
+
+PROGRAM_NAME='arkive'
+
+ARKIVE_SCRIPT_VERSION=5
+ARKIVE_BIT_STREAM_VERSION=3
+ARKIVE_VERSION="${ARKIVE_SCRIPT_VERSION}.${ARKIVE_BIT_STREAM_VERSION}"
+
+ARKIVE_PREFIX="$(readlink -f "$(readlink -f "$(dirname "$(readlink -f "${0}")")")"/..)"
+ARKIVE_LIB_DIR="${ARKIVE_PREFIX}/share/lib-arkive"
+
+################################ Load Libraries ################################
+
+source "$(lib-bash)"
+
+# Load all libraries within the current shell
+eval "$(
+  find "${ARKIVE_LIB_DIR}" -type f -iname '*.bash' |
+  while read LoadLibrary ; do
+    LoadLibrary="$(readlink -f "${LoadLibrary}")"
+    #echo "echo \"loading: ${LoadLibrary}\""
+    echo "source ${LoadLibrary}"
+  done
+)"
+
+wait
+
+################################### Profile ####################################
+
+# Debugging
+ARKIVE_DEBUG=false
+# Container format (mkv,mp4,ogv,webm)
+ARKIVE_CONTAINER='mkv'
+# Video Codec (h264(x264),h265(x265),nvenc-h264,nvenc-h265,vp9)
+ARKIVE_VIDEO_CODEC='h265'
+# Bits Per Pixel (used to dynamically determine bitrate)
+# Based on ((1920 * 1080 * 24000/1001 * <bpp>) / 1000)
+ARKIVE_VIDEO_BITS_PER_PIXEL='' # Based on <bitrate>kbps @ 1080p
+# Bits per channel color (8,10,12)
+ARKIVE_VIDEO_BIT_DEPTH=10
+# Chroma Subsampling (420,422,444)
+ARKIVE_VIDEO_CHROMA_SUBSAMPLING=420
+# Multi-pass video encoding (1-3)
+ARKIVE_VIDEO_ENCODING_PASSES=2
+# Audio Codec (aac,ac3,flac,opus)
+ARKIVE_AUDIO_CODEC='opus'
+# Bitrate per audio channel in kbps (5.1 -> 6 * 64 = 384),
+# Ignored if `flac` codec is specified
+ARKIVE_AUDIO_CHANNEL_BITRATE=64
+# Streams with phrases from this list in their title are discarded
+ARKIVE_AUDIO_STREAM_DISCARD_KEYWORDS=(
+  'commentary'
+)
+# Audio default language (ISO 639-2/B)
+ARKIVE_AUDIO_LANG_DEFAULT='eng'
+#### Audio languages to include (ISO 639-2/B)
+###ARKIVE_SUBTITLES_LANGS=('eng')
+# Subtitles, NOT IMPLEMENTED
+ARKIVE_SUBTITLES=true
+# Subtitles default language (ISO 639-2/B)
+ARKIVE_SUBTITLES_LANG_DEFAULT='eng'
+# Subtitle languages to include (ISO 639-2/B)
+ARKIVE_SUBTITLES_LANGS=('eng')
+# Subtitle codec (ass,srt)
+ARKIVE_SUBTITLE_CODEC='ass'
+# Chapters, NOT IMPLEMENTED
+ARKIVE_CHAPTERS=true
+
+################################# Requirements #################################
+
+function Requires::Check.ffmpeg {
+  local ReqVersion='3.0.0'
+  local Version
+
+  Version="$(ffmpeg -version | awk -F' ' '/ffmpeg version/ {print $3 ; exit}')"
+
+  String::Version.atleast "${Version}" "${ReqVersion}"
+}
+
+# Required dependencies
+function Requires::Check {
+  # libx264 (compiled with target bit depth)
+  # libx265 >= 1.9 (compiled with multilib or at least target bit depth)
+  # libopus >= 1.1 (surround sound improvements)
+  Path::Check 'ffmpeg'
+  Path::Check 'ffprobe'
+  Requires::Check.ffmpeg
+
+  # Optional, used to convert bitmap subs to plain text
+  # if not available, bitmap subs are ignored
+  #Path::Check 'vobsub2srt'
+
+  [ $(Cpu::AddressSpace) -eq 64 ]
+}
+
+################################### Filename ###################################
+
+# Format filename w/ ext, w/ no path
+function Filename::Orginal {
+  basename "${__file__}"
+}
+
+# Format filename w/o ext, w/ no path
+function Filename::Original.base {
+  Filename::Orginal | sed -r 's/\.[[:alnum:]]+$//'
+}
+
+function Filename::Formatted {
+  local Filename
+  local ArkMark
+
+  # TODO: eventually this should handle more parsing, but for now,
+  #       fuck it, ship it
+  # - include appx resolution, e.g. 1080p/720p
+  # - include bits per channel color, e.g. 8bit 10bit
+  # - include codec
+  # - include audio channel layout
+  # - rip type (bluray/dvd/scene etc...)
+
+  Filename="$(Filename::Original.base)"
+  ArkMark='-ARK'
+
+  echo "${Filename}${ArkMark}"
+}
+
+################################### Subtitle ###################################
+
+# Selects the subtitle stream to use if multiple exist
+function Subtitle::StreamSelector {
+  local SubtitleStream
+  local SubtitleStreams
+
+  SubtitleStreams=($(FFprobe 's' '-' 'stream' 'index'))
+
+  #String::NotNull "${SubtitleStreams[0]}"
+
+  # If multiple subtitle streams exist
+  if [ ${#SubtitleStreams[@]} -gt 1 ] ; then
+    # FIXME: add support for multiple subtitle streams
+    Error::Message 'multiple subtitle streams not implemented'
+    return 1
+  else
+    SubtitleStream=${SubtitleStreams[1]}
+  fi
+
+  echo "${SubtitleStream}"
+}
+
+#################################### FFmpeg ####################################
+
+function FFmpeg::Audio {
+  # TODO: add stream mapping
+  local Bitrate
+  local Channels
+  local Filters
+  local Codec
+  local SampleRate='48000'
+  local Stream="${1}"
+
+  Bitrate="$(FFmpeg::Audio.bitrate "${Stream}")"
+  #Channels="$(FFmpeg::Audio.channels "${Stream}")"
+  Filters="$(FFmpeg::Audio.filters "${Stream}")"
+  Codec="$(FFmpeg::Audio.codec "${Stream}")"
+
+  echo "${Bitrate} ${Codec} ${Filters} -ar:${Stream} 48000" # -ac ${Channels}"
+}
+
+function FFmpeg::Video.x26x_params {
+  local Param
+  local ParamList
+  local ParamValue
+
+  for Param in ${Parameters[@]} ; do
+    # FFmpeg's key/value parser can't handle null values, make
+    # sure a value is set.
+    ParamValue="$(echo "${Param}" | awk -F'=' '{ print $2 ; exit }')"
+    String::NotNull "${ParamValue}"
+    # Allow true/false within codec parameters to make booleans more apparent.
+    if [ "${ParamValue}" == 'true' ] ; then
+      Param="$(echo "${Param}" | sed -e 's/=true/=1/')"
+    elif [ "${ParamValue}" == 'false' ] ; then
+      Param="$(echo "${Param}" | sed -e 's/=false/=0/')"
+    fi
+    ParamList="${ParamList:+${ParamList}:}${Param}"
+  done
+
+  echo "'${ParamList}'"
+}
+
+################################## Execution ###################################
+
+Requires::Check
+
+Input::Parser $@
+
+Arkive::Run
+
+Tmp::Cleanup
+
+exit 0
