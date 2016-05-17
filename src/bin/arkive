@@ -101,6 +101,8 @@ ARKIVE_AUDIO_CODEC='opus'
 # Bitrate per audio channel in kbps (5.1 -> 6 * 64 = 384),
 # Ignored if `flac` codec is specified
 ARKIVE_AUDIO_CHANNEL_BITRATE=64
+# Sample rate (44100,48000,96000,192000)
+ARKIVE_AUDIO_SAMPLE_RATE=48000
 # Streams with phrases from this list in their title are discarded
 ARKIVE_AUDIO_STREAM_DISCARD_KEYWORDS=(
   'commentary'

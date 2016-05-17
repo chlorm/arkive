@@ -37,8 +37,26 @@ function FFmpeg::Audio.filters:resample {
   local SampleRate
   local Stream="${1}"
 
-  SampleFormat="$(FFprobe '-' "${Stream}" 'stream' 'sample_fmt')"
-  SampleRate="$(FFprobe '-' "${Stream}" 'stream' 'sample_rate')"
+  SampleFormat="$(Audio::SampleFormat "${Stream}")"
+  SampleRate="$(Audio::SampleRate "${Stream}")"
 
-  echo "aresample=resampler=soxr:precision=28:cheby=1:isf=${SampleFormat}:osf=s16:tsf=s32:isr=${SampleRate}:osr=48000:cutoff=0.91:dither_method=0"
+  # Supported sample rates
+  [[ "${ARKIVE_AUDIO_SAMPLE_RATE}" == +(44100|48000|96000|192000) ]]
+
+  # Refuse to upsample unless the codec is opus or the source sample rate
+  # is less than 44100khz. Opus natively uses 48000kHz.
+  if ([ ${ARKIVE_AUDIO_SAMPLE_RATE} -gt ${SampleRate} ] && \
+      [ ${SampleRate} -lt 44100 ]) || \
+     ([ "${ARKIVE_AUDIO_CODEC}" == 'opus' ] && \
+      [ ${ARKIVE_AUDIO_SAMPLE_RATE} -ne 48000 ]) ; then
+    Error::Message 'upsampling is only allowed for < 44100kHz -> 44100kHz'
+    Error::Message 'and for opus anything < 48000kHz'
+    return 1
+  fi
+
+  # Only resample when converting sample rates or sample formats (bit depth)
+  if [ ${ARKIVE_AUDIO_SAMPLE_RATE} -ne ${SampleRate} ] || \
+     [ "${SampleFormat}" != 's16' ] ; then
+    echo "aresample=resampler=soxr:precision=28:cheby=1:isf=${SampleFormat}:osf=s16:tsf=s32:isr=${SampleRate}:osr=${ARKIVE_AUDIO_SAMPLE_RATE}:cutoff=0.91:dither_method=0"
+  fi
 }
