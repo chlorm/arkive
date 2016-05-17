@@ -11,8 +11,8 @@ endif()
 if(NOT FFMPEG_PATH)
     message(FATAL_ERROR "ffmpeg not found")
 endif()
-if(NOT HAS_FFPROBE)
-    message(FFPROBE_PATH "ffprobe not found")
+if(NOT FFPROBE_PATH)
+    message(FATAL_ERROR "ffprobe not found")
 endif()
 
 # Set path to lib-bash at build time
