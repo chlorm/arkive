@@ -51,8 +51,9 @@ function Video::StreamSelector {
 
 function Video::Height {
   local Height
+  local Stream="${1}"
 
-  Height=$(FFprobe '-' "${__videostream__}" 'stream' 'height')
+  Height=$(FFprobe '-' "${Stream}" 'stream' 'height')
 
   String::NotNull "${Height}"
 
@@ -60,9 +61,10 @@ function Video::Height {
 }
 
 function Video::Width {
+  local Stream="${1}"
   local Width
 
-  Width=$(FFprobe '-' "${__videostream__}" 'stream' 'width')
+  Width=$(FFprobe '-' "${Stream}" 'stream' 'width')
 
   String::NotNull "${Width}"
 
@@ -71,8 +73,9 @@ function Video::Width {
 
 function Video::FrameRate {
   local SourceFrameRate
+  local Stream="${1}"
 
-  SourceFrameRate="$(FFprobe '-' "${__videostream__}" 'stream' 'r_frame_rate')"
+  SourceFrameRate="$(FFprobe '-' "${Stream}" 'stream' 'r_frame_rate')"
 
   String::NotNull "${SourceFrameRate}"
 
