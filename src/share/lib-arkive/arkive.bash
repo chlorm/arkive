@@ -69,7 +69,7 @@ function Arkive::Run {
   __outputdir__="${OUTPUTDIR}"
 
   for as in ${asa[@]} ; do
-    Audio="${Audio:+${Audio} }$(FFmpeg::Audio "${as}")"
+    Audio="${Audio:+${Audio} }$(FFmpeg::Audio "${as}" "${File}")"
   done
   VideoFilters="$(FFmpeg::Video.filters "${vs}" "${File}")"
   VideoBitrate="$(FFmpeg::Video.bitrate "${vs}" "${File}")"
@@ -84,7 +84,7 @@ function Arkive::Run {
   #Metadata="$(FFmpeg::Metadata)"
 
   while [ ${Pass} -le ${ARKIVE_VIDEO_ENCODING_PASSES} ] ; do
-    Video="$(FFmpeg::Video "${vs}")"
+    Video="$(FFmpeg::Video "${vs}" "${File}")"
     if [ ${ARKIVE_VIDEO_ENCODING_PASSES} -gt 1 ] ; then
       PassArgs="-pass ${Pass} -passlogfile ${__tmpdir__}/${__filenamefmt__}.ffmpeg-passlog"
       # TODO: add to tmp files array

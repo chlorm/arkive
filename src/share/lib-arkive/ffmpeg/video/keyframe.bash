@@ -75,7 +75,7 @@ function FFmpeg::Video.keyframe_interval {
 
   KeyInt=$(( ${FrameRate} * 10 ))
 
-  [ ${KeyInt} -gt ${FrameRate} ]
+  [[ ${KeyInt} -gt ${FrameRate} ]]
 
   echo "${KeyInt}"
 }
