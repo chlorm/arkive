@@ -153,15 +153,23 @@ function Requires::Check {
 
 # Format filename w/ ext, w/ no path
 function Filename::Orginal {
-  basename "${__file__}"
+  [ $# -eq 1 ]
+  local File="${1}"
+
+  basename "${File}"
 }
 
 # Format filename w/o ext, w/ no path
 function Filename::Original.base {
-  Filename::Orginal | sed -r 's/\.[[:alnum:]]+$//'
+  [ $# -eq 1 ]
+  local File="${1}"
+
+  Filename::Orginal "${File}" | sed -r 's/\.[[:alnum:]]+$//'
 }
 
 function Filename::Formatted {
+  [ $# -eq 1 ]
+  local File="${1}"
   local Filename
   local ArkMark
 
@@ -173,7 +181,7 @@ function Filename::Formatted {
   # - include audio channel layout
   # - rip type (bluray/dvd/scene etc...)
 
-  Filename="$(Filename::Original.base)"
+  Filename="$(Filename::Original.base "${File}")"
   ArkMark='-ARK'
 
   echo "${Filename}${ArkMark}"
@@ -186,7 +194,7 @@ function Subtitle::StreamSelector {
   local SubtitleStream
   local SubtitleStreams
 
-  SubtitleStreams=($(FFprobe 's' '-' 'stream' 'index'))
+  SubtitleStreams=($(FFprobe 's' '-' 'stream' 'index' "${File}"))
 
   #String::NotNull "${SubtitleStreams[0]}"
 
@@ -208,29 +216,32 @@ function FFmpeg::Audio {
   # TODO: add stream mapping
   local Bitrate
   local Channels
+  local File="${2}"
   local Filters
   local Codec
   local SampleRate='48000'
   local Stream="${1}"
 
-  Bitrate="$(FFmpeg::Audio.bitrate "${Stream}")"
+  Bitrate="$(FFmpeg::Audio.bitrate "${Stream}" "${File}")"
   #Channels="$(FFmpeg::Audio.channels "${Stream}")"
-  Filters="$(FFmpeg::Audio.filters "${Stream}")"
-  Codec="$(FFmpeg::Audio.codec "${Stream}")"
+  Filters="$(FFmpeg::Audio.filters "${Stream}" "${File}")"
+  Codec="$(FFmpeg::Audio.codec "${Stream}" "${File}")"
 
   echo "${Bitrate} ${Codec} ${Filters} -ar:${Stream} 48000" # -ac ${Channels}"
 }
 
 function FFmpeg::Video {
+  local File="${2}"
+  local Stream="${2}"
   local VideoFilters
   local VideoBitrate
   local VideoCodec
   local VideoPixelFormat
 
-  VideoFilters="$(FFmpeg::Video.filters)"
-  VideoBitrate="$(FFmpeg::Video.bitrate)"
-  VideoCodec="$(FFmpeg::Video.codec)"
-  VideoPixelFormat="$(FFmpeg::Video.pixel_format)"
+  VideoFilters="$(FFmpeg::Video.filters "${Stream}" "${File}")"
+  VideoBitrate="$(FFmpeg::Video.bitrate "${Stream}" "${File}")"
+  VideoCodec="$(FFmpeg::Video.codec "${Stream}" "${File}")"
+  VideoPixelFormat="$(FFmpeg::Video.pixel_format "${Stream}" "${File}")"
 
   echo "${VideoBitrate} ${VideoCodec} ${VideoFilters} ${VideoPixelFormat}"
 }
