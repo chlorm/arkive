@@ -32,17 +32,15 @@
 # purposes only.
 
 function Arkive::Run {
-  local __audiostreams__
-  local __file__
   local __filename__
   local __filenamefmt__
   local __outputdir__
-  local __videostream__
   local __subtitlestreams__
   local __tmpdir__
 
   local Audio
   local AudioPass
+  local File
   local Subtitle
   local Chapter
   local Video
@@ -50,29 +48,33 @@ function Arkive::Run {
   local OutputFile
 
   local as
+  local asa
+  local cs
+  local ss
+  local vs
 
   # Initial pass number, DO NOT CHANGE VALUE
   local Pass=1
   local PassArgs
 
-  __file__="${INPUTFILE}"
-  __filename__="$(Filename::Original.base "${__file__}")"
-  __filenamefmt__="$(Filename::Formatted "${__file__}")"
-  __audiostreams__=($(Audio::StreamSelector "${__file__}"))
-  [[ ${#__audiostreams__[@]} == +(1|2) ]]
+  File="${INPUTFILE}"
+  __filename__="$(Filename::Original.base "${File}")"
+  __filenamefmt__="$(Filename::Formatted "${File}")"
+  asa=($(Audio::StreamSelector "${File}"))
+  [[ ${#asa[@]} == +(1|2) ]]
   #__subtitlestreams__=()
   #[[ ${#__subtitlestreams__[@]} == +(1|2) ]]
-  __videostream__="$(Video::StreamSelector "${__file__}")"
+  vs="$(Video::StreamSelector "${File}")"
   __tmpdir__="${TMPDIR}"
   __outputdir__="${OUTPUTDIR}"
 
-  for as in ${__audiostreams__[@]} ; do
+  for as in ${asa[@]} ; do
     Audio="${Audio:+${Audio} }$(FFmpeg::Audio "${as}")"
   done
-  VideoFilters="$(FFmpeg::Video.filters "${__videostream__}")"
-  VideoBitrate="$(FFmpeg::Video.bitrate "${__videostream__}")"
-  VideoCodec="$(FFmpeg::Video.codec "${__videostream__}")"
-  VideoPixelFormat="$(FFmpeg::Video.pixel_format "${__videostream__}")"
+  VideoFilters="$(FFmpeg::Video.filters "${vs}" "${File}")"
+  VideoBitrate="$(FFmpeg::Video.bitrate "${vs}" "${File}")"
+  VideoCodec="$(FFmpeg::Video.codec "${vs}" "${File}")"
+  VideoPixelFormat="$(FFmpeg::Video.pixel_format "${vs}" "${File}")"
   #Chapter="$(FFmpeg::Chapter)"
   #Subtitle="$(FFmpeg::Subtitle)"
 
@@ -82,7 +84,7 @@ function Arkive::Run {
   #Metadata="$(FFmpeg::Metadata)"
 
   while [ ${Pass} -le ${ARKIVE_VIDEO_ENCODING_PASSES} ] ; do
-    Video="$(FFmpeg::Video "${__videostream__}")"
+    Video="$(FFmpeg::Video "${vs}")"
     if [ ${ARKIVE_VIDEO_ENCODING_PASSES} -gt 1 ] ; then
       PassArgs="-pass ${Pass} -passlogfile ${__tmpdir__}/${__filenamefmt__}.ffmpeg-passlog"
       # TODO: add to tmp files array
@@ -101,7 +103,7 @@ function Arkive::Run {
             -hide_banner \
             -stats \
             -loglevel info \
-            -i \"${__file__}\" \
+            -i \"${File}\" \
             -threads 1 \
             ${PassArgs} \
             ${Video} \
