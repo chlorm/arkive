@@ -32,7 +32,7 @@
 # purposes only.
 
 FFprobe() {
-  [ $# -eq 4 ]
+  [ $# -eq 5 ]
   local StreamType="${1}"
   local Stream="${2}"
   local EntKey="${3}"
@@ -42,14 +42,18 @@ FFprobe() {
 
   if [ "${StreamType}" == '-' ] ; then
     unset StreamType
+  elif [[ ! "${StreamType}" == +('a'|'s'|'v') ]]; then
+    Error::Message "invalid stream type: ${StreamType}"
   fi
 
   if [ "${Stream}" == '-' ] ; then
     unset Stream
+  elif [ ! ${Stream} -ge 0 ] ; then
+    Error::Message "invalid stream id: ${Stream}"
   fi
 
   if [ ! -f "${File}" ] ; then
-    File="${__file__}"
+    Error::Message "invalid file: ${File}"
   fi
 
   FFprobeOut="$(
