@@ -42,6 +42,7 @@ function Audio::StreamSelector {
   local Channels
   local ChannelsAsocArray
   local ChannelsBest
+  local File="${1}"
   local Stream
   local Streams
   local SampleRate
@@ -54,7 +55,7 @@ function Audio::StreamSelector {
   SampleRateAsocArray=()
   typeset -A OptimumAsocArray
 
-  Streams=($(FFprobe 'a' '-' 'stream' 'index'))
+  Streams=($(FFprobe 'a' '-' 'stream' 'index' "${File}"))
 
   if [ ${#Streams[@]} -eq 1 ] ; then
     Stream=${Streams[0]}
@@ -72,7 +73,7 @@ function Audio::StreamSelector {
         FindKeyword="$(
           echo $(
             String::LowerCase $(
-              FFprobe 'a' "${Stream}" 'stream_tags' 'title'
+              FFprobe 'a' "${Stream}" 'stream_tags' 'title' "${File}"
             )
           ) | grep ${Keyword}
         )"
@@ -138,10 +139,11 @@ function Audio::StreamSelector {
 }
 
 function Audio::SampleRate {
+  local File="${2}"
   local SampleRate
   local Stream="${1}"
 
-  SampleRate=$(FFprobe '-' "${Stream}" 'stream' 'sample_rate')
+  SampleRate=$(FFprobe '-' "${Stream}" 'stream' 'sample_rate' "${File}")
 
   String::NotNull "${SampleRate}"
 
@@ -149,10 +151,11 @@ function Audio::SampleRate {
 }
 
 function Audio::SampleFormat {
+  local File="${2}"
   local SampleFormat
   local Stream="${1}"
 
-  SampleFormat=$(FFprobe '-' "${Stream}" 'stream' 'sample_fmt')
+  SampleFormat=$(FFprobe '-' "${Stream}" 'stream' 'sample_fmt' "${File}")
 
   String::NotNull "${SampleFormat}"
 
@@ -161,9 +164,10 @@ function Audio::SampleFormat {
 
 function Audio::Bitrate {
   local Bitrate
+  local File="${2}"
   local Stream="${1}"
 
-  Bitrate=$(FFprobe '-' "${Stream}" 'stream' 'bit_rate')
+  Bitrate=$(FFprobe '-' "${Stream}" 'stream' 'bit_rate' "${File}")
 
   String::NotNull "${Bitrate}"
 
@@ -172,9 +176,10 @@ function Audio::Bitrate {
 
 function Audio::Channels {
   local Channels
+  local File="${2}"
   local Stream="${1}"
 
-  Channels=$(FFprobe '-' "${Stream}" 'stream' 'channels')
+  Channels=$(FFprobe '-' "${Stream}" 'stream' 'channels' "${File}")
 
   String::NotNull "${Channels}"
 
@@ -183,9 +188,10 @@ function Audio::Channels {
 
 function Audio::ChannelLayout {
   local ChannelLayout
+  local File="${2}"
   local Stream="${1}"
 
-  ChannelLayout="$(FFprobe '-' "${Stream}" 'stream' 'channel_layout')"
+  ChannelLayout="$(FFprobe '-' "${Stream}" 'stream' 'channel_layout' "${File}")"
 
   String::NotNull "${ChannelLayout}"
 

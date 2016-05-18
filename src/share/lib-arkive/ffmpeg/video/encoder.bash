@@ -34,22 +34,23 @@
 function FFmpeg::Video.codec {
   local Encoder
   local EncoderParams
+  local File="${2}"
   local Stream="${1}"
 
   case "${ARKIVE_VIDEO_CODEC}" in
     'h264')
       Encoder='libx264'
-      EncoderParams="$(FFmpeg::Video.codec:x264_params "${Stream}")"
+      EncoderParams="$(FFmpeg::Video.codec:x264_params "${Stream}" "${File}")"
       ;;
     'h265')
       Encoder='libx265'
-      EncoderParams="$(FFmpeg::Video.codec:x265_params "${Stream}")"
+      EncoderParams="$(FFmpeg::Video.codec:x265_params "${Stream}" "${File}")"
       ;;
     'nvenc-h264') echo 'not implemented' ; return 1 ;;
     'nvenc-h265') echo 'not implemented' ; return 1 ;;
     'vp9')
       Encoder='libvpx-vp9'
-      EncoderParams="$(FFmpeg::Video.codec:vp9_params "${Stream}")"
+      EncoderParams="$(FFmpeg::Video.codec:vp9_params "${Stream}" "${File}")"
       ;;
     'vp10') echo 'not implemented' ; return 1 ;;
     *) return 1 ;;

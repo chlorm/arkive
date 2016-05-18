@@ -32,8 +32,8 @@
 # purposes only.
 
 function Input::Check.input {
-  local file="${1}"
-  [ -f "${file}" ]
+  local File="${1}"
+  [ -f "${File}" ]
   #[ "${file##*.}" == 'mkv' ]
   # FIXME: check requirements
   # audio streams (== 1/2 & lang codes)

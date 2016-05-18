@@ -32,11 +32,12 @@
 # purposes only.
 
 function FFmpeg::Audio.channels {
+  local File="${2}"
   local Channels
   local ChannelLayout
   local Stream="${1}"
 
-  ChannelLayout="$(Audio::ChannelLayout "${Stream}")"
+  ChannelLayout="$(Audio::ChannelLayout "${Stream}" "${File}")"
 
   # Determine output audio channel count
   # (these are all sperate arguments to allow restructuring in the future)

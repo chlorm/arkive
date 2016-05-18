@@ -52,6 +52,7 @@ function FFmpeg::Video.filters:black_bar_crop {
   local CropXOffsetArray
   local CropYOffset
   local CropYOffsetArray
+  local File="${2}"
   local LoopIter
   local Skip
   local SourceHeight
@@ -69,8 +70,8 @@ function FFmpeg::Video.filters:black_bar_crop {
   CropYOffsetArray=()
   CropYOffsetMatches=0
   LoopIter=1
-  SourceHeight=$(Video::Height "${Stream}")
-  SourceWidth=$(Video::Width "${Stream}")
+  SourceHeight=$(Video::Height "${Stream}" "${File}")
+  SourceWidth=$(Video::Width "${Stream}" "${File}")
 
   function mode {
     echo "${@}" |
@@ -100,7 +101,7 @@ function FFmpeg::Video.filters:black_bar_crop {
       ffmpeg \
         -threads "$(Cpu::Logical)" \
         -ss ${Skip} \
-        -i "${__file__}" \
+        -i "${File}" \
         -ss 0 \
         -t 1 \
         -an \

@@ -32,13 +32,14 @@
 # purposes only.
 
 function FFmpeg::Video.filters {
+  local File="${2}"
   local Filter
   local FilterList
   local Filters=()
   local Stream="${1}"
 
   Filters+=(
-    "$(FFmpeg::Video.filters:black_bar_crop "${Stream}")"
+    "$(FFmpeg::Video.filters:black_bar_crop "${Stream}" "${File}")"
   )
 
   for Filter in "${Filters[@]}" ; do

@@ -32,9 +32,11 @@
 # purposes only.
 
 function FFmpeg::Video.codec:vp9_params {
+  local File="${2}"
   local Key
   local Parameter
   local Parameters
+  local Stream="${1}"
   local Value
   local Vp9Params
 
@@ -42,7 +44,7 @@ function FFmpeg::Video.codec:vp9_params {
     'speed=4'
     #'g=9999'
     'g=250'
-    "keyint_min=$(FFmpeg::Video.min_keyframe_interval)"
+    "keyint_min=$(FFmpeg::Video.min_keyframe_interval "${Stream}" "${File}")"
     #'qmin'
     #'qmax'
     'bufsize=31250'

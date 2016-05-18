@@ -34,9 +34,10 @@
 function FFmpeg::Audio.bitrate {
   local Bitrate
   local Channels
+  local File="${2}"
   local Stream="${1}"
 
-  Channels="$(FFmpeg::Audio.channels "${Stream}")"
+  Channels="$(FFmpeg::Audio.channels "${Stream}" "${File}")"
 
   String::NotNull "${Channels}"
 

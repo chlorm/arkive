@@ -33,7 +33,9 @@
 
 # Generates formatted ffmpeg x264-params key/values
 function FFmpeg::Video.codec:x264_params {
+  local File="${2}"
   local Parameters
+  local Stream="${1}"
 
   # https://en.wikibooks.org/wiki/MeGUI/x264_Settings#Old_Settings
   # https://sites.google.com/site/linuxencoding/x264-ffmpeg-mapping

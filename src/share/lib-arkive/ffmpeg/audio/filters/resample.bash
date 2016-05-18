@@ -32,12 +32,13 @@
 # purposes only.
 
 function FFmpeg::Audio.filters:resample {
+  local File="${2}"
   local SampleFormat
   local SampleRate
   local Stream="${1}"
 
-  SampleFormat="$(Audio::SampleFormat "${Stream}")"
-  SampleRate="$(Audio::SampleRate "${Stream}")"
+  SampleFormat="$(Audio::SampleFormat "${Stream}" "${File}")"
+  SampleRate="$(Audio::SampleRate "${Stream}" "${File}")"
 
   # Supported sample rates
   [[ "${ARKIVE_AUDIO_SAMPLE_RATE}" == +(44100|48000|96000|192000) ]]

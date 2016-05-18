@@ -32,6 +32,7 @@
 # purposes only.
 
 function FFmpeg::Audio.codec {
+  local File="${2}"
   local codec
   local Stream="${1}"
 

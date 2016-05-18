@@ -33,13 +33,15 @@
 
 # Generates formatted ffmpeg x265-params key/values
 function FFmpeg::Video.codec:x265_params {
+  local File="${2}"
   local MeRange
   local Param
   local Parameters
   local ParamHasValue
   local ParamList
+  local Stream="${1}"
 
-  MeRange="$(FFmpeg::Video.motion_estimation_range)"
+  MeRange="$(FFmpeg::Video.motion_estimation_range "${Stream}" "${File}")"
   # Motion Estimation ranges below 57 reduce coding efficiency
   # http://forum.doom9.org/showthread.php?p=1713094#post1713094
   if [ ${MeRange} -lt 58 ] ; then
@@ -98,8 +100,8 @@ function FFmpeg::Video.codec:x265_params {
     #'psy-rd=0.3' # use < 0.9
     #'psy-rdoq=4.0' # use > 3 & < 5
     'open-gop=true'
-    "keyint=$(FFmpeg::Video.keyframe_interval)"
-    "min-keyint=$(FFmpeg::Video.min_keyframe_interval)"
+    "keyint=$(FFmpeg::Video.keyframe_interval "${Stream}" "${File}")"
+    "min-keyint=$(FFmpeg::Video.min_keyframe_interval "${Stream}" "${File}")"
     'scenecut=40'                # int
     #'intera-refresh' # bool?
     'rc-lookahead=60' # int (> bframes & < 250)

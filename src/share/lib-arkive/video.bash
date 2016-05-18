@@ -33,9 +33,10 @@
 
 # Selects the video stream to use if multiple exist
 function Video::StreamSelector {
+  local File="${1}"
   local VideoStreams=()
 
-  VideoStreams=( $(FFprobe 'v' '-' 'stream' 'index') )
+  VideoStreams=($(FFprobe 'v' '-' 'stream' 'index' "${File}"))
 
   # At least 1 video stream is required
   if [ ${#VideoStreams[@]} -eq 1 ] ; then
@@ -50,10 +51,11 @@ function Video::StreamSelector {
 }
 
 function Video::Height {
+  local File="${2}"
   local Height
   local Stream="${1}"
 
-  Height=$(FFprobe '-' "${Stream}" 'stream' 'height')
+  Height=$(FFprobe '-' "${Stream}" 'stream' 'height' "${File}")
 
   String::NotNull "${Height}"
 
@@ -61,10 +63,11 @@ function Video::Height {
 }
 
 function Video::Width {
+  local File="${2}"
   local Stream="${1}"
   local Width
 
-  Width=$(FFprobe '-' "${Stream}" 'stream' 'width')
+  Width=$(FFprobe '-' "${Stream}" 'stream' 'width' "${File}")
 
   String::NotNull "${Width}"
 
@@ -72,10 +75,11 @@ function Video::Width {
 }
 
 function Video::FrameRate {
+  local File="${2}"
   local SourceFrameRate
   local Stream="${1}"
 
-  SourceFrameRate="$(FFprobe '-' "${Stream}" 'stream' 'r_frame_rate')"
+  SourceFrameRate="$(FFprobe '-' "${Stream}" 'stream' 'r_frame_rate' "${File}")"
 
   String::NotNull "${SourceFrameRate}"
 

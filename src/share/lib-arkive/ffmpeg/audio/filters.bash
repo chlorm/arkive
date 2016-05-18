@@ -32,6 +32,7 @@
 # purposes only.
 
 function FFmpeg::Audio.filters {
+  local File="${2}"
   local Filter
   local FilterList
   local Filters=()
@@ -40,7 +41,7 @@ function FFmpeg::Audio.filters {
   Filters+=(
     "$(FFmpeg::Audio.filters:highpass)"
     "$(FFmpeg::Audio.filters:lowpass)"
-    "$(FFmpeg::Audio.filters:resample "${Stream}")"
+    "$(FFmpeg::Audio.filters:resample "${Stream}" "${File}")"
     #"$(FFmpeg::Audio.channel_layout_map)"
   )
 

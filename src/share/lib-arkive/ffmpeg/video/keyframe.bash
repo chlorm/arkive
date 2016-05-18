@@ -33,13 +33,14 @@
 
 # Use 1 keyframe per 20fps, e.g. 60fps = 3
 function FFmpeg::Video.min_keyframe_interval {
-  local KeyFrames
-  local MinKeyInt
+  local File="${2}"
   local FrameRate
   local FrameRateRounded
+  local KeyFrames
+  local MinKeyInt
   local Stream="${1}"
 
-  FrameRate="$(Video::FrameRate "${Stream}")"
+  FrameRate="$(Video::FrameRate "${Stream}" "${File}")"
 
   # Rounds SourceFrameRate to the nearest whole number
   FrameRateRounded=$(
@@ -65,10 +66,12 @@ function FFmpeg::Video.min_keyframe_interval {
 
 # Use an interval of 10 seconds for keyframes
 function FFmpeg::Video.keyframe_interval {
+  local File="${2}"
   local KeyInt
   local FrameRate
+  local Stream="${1}"
 
-  FrameRate="$(Video::FrameRate "${Stream}")"
+  FrameRate="$(Video::FrameRate "${Stream}" "${File}")"
 
   KeyInt=$(( ${FrameRate} * 10 ))
 

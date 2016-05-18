@@ -34,6 +34,7 @@
 # FIXME: rewite mappings
 # Enforce a consistent audio channel layout by remapping non-conformant streams.
 function FFmpeg::Audio.channel_layout_map {
+  local File="${2}"
   local Stream="${1}"
 
   # https://github.com/FFmpeg/FFmpeg/blob/master/libavutil/channel_layout.c
@@ -105,7 +106,7 @@ function FFmpeg::Audio.channel_layout_map {
   'pan=5.0(side)|SL<BL+BC+SL+LFE+LFE2|FL<FL+LFE+LFE2|FC<FC+LFE+LFE2|FR<FR+LFE+LFE2|SR<BR+BC+SR+LFE+LFE2'
   'pan=7.0|BL|SL|FL|FC|FR|SR|BR'
 
-  case "$(Audio::ChannelLayout "${Stream}")" in
+  case "$(Audio::ChannelLayout "${Stream}" "${File}")" in
     'mono') # FC -> stereo
       echo "pan=stereo|FL<FC|FR<FC"
       ;;
