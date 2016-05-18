@@ -46,39 +46,43 @@ function Arkive::Run {
   local Video
   local Metadata
   local OutputFile
+  # Initial pass number, DO NOT CHANGE VALUE
+  local PassArgs
+  local Pass=1
 
   local as
   local asa
   local cs
   local ss
+  local ssa
   local vs
-
-  # Initial pass number, DO NOT CHANGE VALUE
-  local Pass=1
-  local PassArgs
 
   File="${INPUTFILE}"
   __filename__="$(Filename::Original.base "${File}")"
   __filenamefmt__="$(Filename::Formatted "${File}")"
-  asa=($(Audio::StreamSelector "${File}"))
-  [[ ${#asa[@]} == +(1|2) ]]
-  #__subtitlestreams__=()
-  #[[ ${#__subtitlestreams__[@]} == +(1|2) ]]
-  vs="$(Video::StreamSelector "${File}")"
   __tmpdir__="${TMPDIR}"
   __outputdir__="${OUTPUTDIR}"
+  OutputFile="${__outputdir__}/${__filenamefmt__}.${ARKIVE_CONTAINER}"
 
+  asa=($(Audio::StreamSelector "${File}"))
+  [[ ${#asa[@]} == +(1|2) ]]
   for as in ${asa[@]} ; do
     Audio="${Audio:+${Audio} }$(FFmpeg::Audio "${as}" "${File}")"
   done
+
+  #ssa=($(Subtitle::StreamSelector "${File}"))
+  #[[ ${#ssa[@]} == +(1|2) ]]
+  #for ss in ${ssa[@]} ; do
+  #  Subtitle="${Subtitle:+${Subtitle} }$(FFmpeg::Subtitle "${ss}" "${File}")"
+  #done
+
+  vs="$(Video::StreamSelector "${File}")"
   VideoFilters="$(FFmpeg::Video.filters "${vs}" "${File}")"
   VideoBitrate="$(FFmpeg::Video.bitrate "${vs}" "${File}")"
   VideoCodec="$(FFmpeg::Video.codec "${vs}" "${File}")"
   VideoPixelFormat="$(FFmpeg::Video.pixel_format "${vs}" "${File}")"
-  #Chapter="$(FFmpeg::Chapter)"
-  #Subtitle="$(FFmpeg::Subtitle)"
 
-  OutputFile="${__outputdir__}/${__filenamefmt__}.${ARKIVE_CONTAINER}"
+  #Chapter="$(FFmpeg::Chapter)"
 
   # Metadata
   #Metadata="$(FFmpeg::Metadata)"
