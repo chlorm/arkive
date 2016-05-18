@@ -212,8 +212,6 @@ function Subtitle::StreamSelector {
 
 #################################### FFmpeg ####################################
 
-
-
 function FFmpeg::Video.x26x_params {
   local Param
   local ParamList
