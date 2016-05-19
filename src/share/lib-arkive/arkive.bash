@@ -77,10 +77,10 @@ function Arkive::Run {
   #done
 
   vs="$(Video::StreamSelector "${File}")"
-  VideoFilters="$(FFmpeg::Video.filters "${vs}" "${File}")"
-  VideoBitrate="$(FFmpeg::Video.bitrate "${vs}" "${File}")"
-  VideoCodec="$(FFmpeg::Video.codec "${vs}" "${File}")"
-  VideoPixelFormat="$(FFmpeg::Video.pixel_format "${vs}" "${File}")"
+  #VideoFilters="$(FFmpeg::Video.filters "${vs}" "${File}")"
+  #VideoBitrate="$(FFmpeg::Video.bitrate "${vs}" "${File}")"
+  #VideoCodec="$(FFmpeg::Video.codec "${vs}" "${File}")"
+  #VideoPixelFormat="$(FFmpeg::Video.pixel_format "${vs}" "${File}")"
 
   #Chapter="$(FFmpeg::Chapter)"
 
