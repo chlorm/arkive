@@ -37,16 +37,19 @@
 
 # Unrelated:
 # https://people.xiph.org/~xiphmont/demo/index.html
+ENABLE_DEBUGGING=true
 
 ################################################################################
 
 set -o errexit
 set -o errtrace
+set -o functrace
 # TODO: fix remaining undeclared variables in arkive and lib-bash
 #set -o nounset
 set -o pipefail
 
-trap -- 'Tmp::Cleanup' SIGINT SIGTERM
+trap 'Debug::Message' DEBUG
+trap 'Tmp::Cleanup' SIGINT SIGTERM
 trap -- 'Tmp::Cleanup ; Error::Trace ; exit 1' ERR
 
 TMP_FILES=()
@@ -67,12 +70,13 @@ ARKIVE_LIB_DIR="${ARKIVE_PREFIX}/share/lib-arkive"
 
 source "$(@LIB_BASH_PATH@)"
 
+wait
+
 # Load all libraries within the current shell
 eval "$(
   find "${ARKIVE_LIB_DIR}" -type f -iname '*.bash' |
   while read LoadLibrary ; do
     LoadLibrary="$(readlink -f "${LoadLibrary}")"
-    #echo "echo \"loading: ${LoadLibrary}\""
     echo "source \"${LoadLibrary}\""
   done
 )"
