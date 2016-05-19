@@ -46,5 +46,5 @@ function FFmpeg::Audio {
   Codec="$(FFmpeg::Audio.codec "${Stream}" "${File}")"
   SampleRate="$(FFmpeg::Audio.sample_rate)"
 
-  echo "${Bitrate} ${Codec} ${Filters} -ar:${Stream} 48000" # -ac ${Channels}"
+  echo "${Bitrate} ${Codec} ${Filters} -ar:${Stream} ${SampleRate}" # -ac ${Channels}"
 }
