@@ -32,19 +32,19 @@
 # purposes only.
 
 function FFmpeg::Audio {
-  # TODO: add stream mapping
   local Bitrate
   local Channels
   local File="${2}"
   local Filters
   local Codec
-  local SampleRate='48000'
+  local SampleRate
   local Stream="${1}"
 
   Bitrate="$(FFmpeg::Audio.bitrate "${Stream}" "${File}")"
   #Channels="$(FFmpeg::Audio.channels "${Stream}")"
   Filters="$(FFmpeg::Audio.filters "${Stream}" "${File}")"
   Codec="$(FFmpeg::Audio.codec "${Stream}" "${File}")"
+  SampleRate="$(FFmpeg::Audio.sample_rate)"
 
   echo "${Bitrate} ${Codec} ${Filters} -ar:${Stream} 48000" # -ac ${Channels}"
 }
