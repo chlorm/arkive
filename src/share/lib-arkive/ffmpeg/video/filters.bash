@@ -40,6 +40,7 @@ function FFmpeg::Video.filters {
 
   Filters+=(
     "$(FFmpeg::Video.filters:black_bar_crop "${Stream}" "${File}")"
+    "$(FFmpeg::Video.filters:de_interlace "${Stream}" "${File}")"
   )
 
   for Filter in "${Filters[@]}" ; do
