@@ -39,10 +39,10 @@ function FFmpeg::Audio.filters {
   local Stream="${1}"
 
   Filters+=(
+    #"$(FFmpeg::Audio.channel_layout_map)"
     "$(FFmpeg::Audio.filters:highpass)"
     "$(FFmpeg::Audio.filters:lowpass)"
     "$(FFmpeg::Audio.filters:resample "${Stream}" "${File}")"
-    #"$(FFmpeg::Audio.channel_layout_map)"
   )
 
   for Filter in "${Filters[@]}" ; do
