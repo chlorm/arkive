@@ -48,7 +48,6 @@ set -o pipefail
 
 ################################################################################
 
-PROGRAM_NAME='arkive'
 ENABLE_DEBUGGING=true
 
 ARKIVE_SCRIPT_VERSION=5
