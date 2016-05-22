@@ -53,6 +53,13 @@ FFmpeg::Video.filters:de_interlace() {
   local Skip=1
   local Stream="${1}"
 
+  CheckMinFrames="$(FFprobe '-' "${Stream}" 'stream' 'nb_frames' "${File}")"
+
+  if [ ${CheckMinFrames} -lt 5000 ] ; then
+    Debug::Message "skipping interlace detection, not enough frames: ${CheckMinFrames}"
+    return 0
+  fi
+
   # Require 90% of the frames to be interlaced/progressive and a minimum
   # of 5 iterations.
   # TODO: test more content to figure out a better base-line percentage
