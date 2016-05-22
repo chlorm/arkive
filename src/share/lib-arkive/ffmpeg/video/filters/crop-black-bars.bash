@@ -111,6 +111,8 @@ function FFmpeg::Video.filters:black_bar_crop {
         tail -1
     )"
 
+    Debug::Message "${LoopIter}: ${CropDetect}"
+
     # Find crop height
     CropHeight=$(echo "${CropDetect}" | awk -F':' '{ print $2 ; exit }')
     # Find crop width
@@ -128,11 +130,15 @@ function FFmpeg::Video.filters:black_bar_crop {
       CropWidthArray+=("${CropWidth}")
     fi
 
+    Debug::Message "${LoopIter} - W:${CropWidth} H:${CropHeight} X:${CropXOffsetArray[-1]} Y:${CropYOffsetArray[-1]}"
+
     # Find count of mode values
     CropWidthMatches=$(mode_count "${CropWidthArray[@]}")
     CropHeightMatches=$(mode_count "${CropHeightArray[@]}")
     CropXOffsetMatches=$(mode_count "${CropXOffsetArray[@]}")
     CropYOffsetMatches=$(mode_count "${CropYOffsetArray[@]}")
+
+    Debug::Message "MODE - W:${CropWidthMatches} H:${CropHeightMatches} X:${CropXOffsetMatches} Y:${CropYOffsetMatches}"
 
     LoopIter=$(( ${LoopIter} + 1 ))
 
@@ -155,6 +161,8 @@ function FFmpeg::Video.filters:black_bar_crop {
   # Find Y offset mode
   CropYOffset=$(mode "${CropYOffsetArray[@]}")
   String::NotNull "${CropYOffset}"
+
+  Debug::Message "FINAL: W:${CropWidth} H:${CropHeight} X:${CropXOffset} Y:${CropYOffset}"
 
   echo "crop=${CropWidth}:${CropHeight}:${CropXOffset}:${CropYOffset}"
 }
