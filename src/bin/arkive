@@ -57,9 +57,6 @@ ARKIVE_VERSION="${ARKIVE_SCRIPT_VERSION}.${ARKIVE_BIT_STREAM_VERSION}"
 ARKIVE_PREFIX="$(readlink -f "$(readlink -f "$(dirname "$(readlink -f "${0}")")")"/..)"
 ARKIVE_LIB_DIR="${ARKIVE_PREFIX}/share/lib-arkive"
 
-TMP_FILES=()
-unset FAILURE
-
 ################################ Load Libraries ################################
 
 source "$(@LIB_BASH_PATH@)"
