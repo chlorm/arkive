@@ -31,21 +31,9 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio {
-  local Bitrate
-  local Channels
-  local File="${2}"
-  local Filters
-  local Encoder
-  local SampleRate
+function FFmpeg::Audio.cutoff {
   local Stream="${1}"
-
-  Filters="$(FFmpeg::Audio.filters "${Stream}" "${File}")"
-  Cutoff="$(FFmpeg::Audio.cutoff "${Stream}")"
-  Bitrate="$(FFmpeg::Audio.bitrate "${Stream}" "${File}")"
-  #Channels="$(FFmpeg::Audio.channels "${Stream}")"
-  Encoder="$(FFmpeg::Audio.encoder "${Stream}" "${File}")"
-  SampleRate="$(FFmpeg::Audio.sample_rate "${Stream}")"
-
-  echo "${Bitrate} ${Encoder} ${Filters} ${SampleRate}" # -ac ${Channels}"
+  if [ "${ARKIVE_AUDIO_CODEC}" != 'flac' ] ; then
+    echo "-cutoff:${Stream} 20000"
+  fi
 }
