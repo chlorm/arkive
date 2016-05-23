@@ -45,7 +45,10 @@ function FFmpeg::Audio.encoder {
       EncoderParams="$(FFmpeg::Audio.encoder:opus "${Stream}")"
       ;;
     'flac') Encoder='flac' ;;
-    *) return 1 ;;
+    *)
+      Error::Message "invalid audio encoder: ${ARKIVE_AUDIO_ENCODER}"
+      return 1
+      ;;
   esac
 
   echo "-c:${Stream} ${Encoder}${EncoderParams:+ ${EncoderParams}}"

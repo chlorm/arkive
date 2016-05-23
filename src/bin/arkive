@@ -98,7 +98,7 @@ ARKIVE_VIDEO_CHROMA_SUBSAMPLING=420
 # Multi-pass video encoding (1-3)
 ARKIVE_VIDEO_ENCODING_PASSES=2
 # Audio Codec (aac,ac3,flac,opus)
-ARKIVE_AUDIO_CODEC='opus'
+ARKIVE_AUDIO_ENCODER='opus'
 # Bitrate per audio channel in kbps (5.1 -> 6 * 64 = 384),
 # Ignored if `flac` codec is specified
 ARKIVE_AUDIO_CHANNEL_BITRATE=64
