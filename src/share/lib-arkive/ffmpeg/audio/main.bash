@@ -44,7 +44,7 @@ function FFmpeg::Audio {
   #Channels="$(FFmpeg::Audio.channels "${Stream}")"
   Filters="$(FFmpeg::Audio.filters "${Stream}" "${File}")"
   Encoder="$(FFmpeg::Audio.encoder "${Stream}" "${File}")"
-  SampleRate="$(FFmpeg::Audio.sample_rate)"
+  SampleRate="$(FFmpeg::Audio.sample_rate "${Stream}")"
 
-  echo "${Bitrate} ${Encoder} ${Filters} -ar:${Stream} ${SampleRate}" # -ac ${Channels}"
+  echo "${Bitrate} ${Encoder} ${Filters} ${SampleRate}" # -ac ${Channels}"
 }
