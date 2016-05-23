@@ -31,19 +31,22 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio.codec {
+function FFmpeg::Audio.encoder {
+  local Encoder EncoderParams
   local File="${2}"
-  local codec
   local Stream="${1}"
 
-  case "${ARKIVE_AUDIO_CODEC}" in
-    'ac3') codec='ac3' ;;
-    'aac') codec='libfdk_aac' ;;
-    'ffaac') codec='aac' ;;
-    'opus') codec='libopus' ;;
-    'flac') codec='flac' ;;
+  case "${ARKIVE_AUDIO_ENCODER}" in
+    'ac3') Encoder='ac3' ;;
+    'aac') Encoder='libfdk_aac' ;;
+    'ffaac') Encoder='aac' ;;
+    'opus')
+      Encoder='libopus'
+      EncoderParams="$(FFmpeg::Audio.encoder:opus "${Stream}")"
+      ;;
+    'flac') Encoder='flac' ;;
     *) return 1 ;;
   esac
 
-  echo "-c:${Stream} ${codec}"
+  echo "-c:${Stream} ${Encoder}${EncoderParams:+ ${EncoderParams}}"
 }
