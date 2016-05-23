@@ -123,33 +123,6 @@ ARKIVE_SUBTITLE_CODEC='ass'
 # Chapters, NOT IMPLEMENTED
 ARKIVE_CHAPTERS=true
 
-################################# Requirements #################################
-
-function Requires::Check.ffmpeg {
-  local ReqVersion='3.0.0'
-  local Version
-
-  Version="$(ffmpeg -version | awk -F' ' '/ffmpeg version/ {print $3 ; exit}')"
-
-  String::Version.atleast "${Version}" "${ReqVersion}"
-}
-
-# Required dependencies
-function Requires::Check {
-  # libx264 (compiled with target bit depth)
-  # libx265 >= 1.9 (compiled with multilib or at least target bit depth)
-  # libopus >= 1.1 (surround sound improvements)
-  Path::Check 'ffmpeg'
-  Path::Check 'ffprobe'
-  Requires::Check.ffmpeg
-
-  # Optional, used to convert bitmap subs to plain text
-  # if not available, bitmap subs are ignored
-  #Path::Check 'vobsub2srt'
-
-  [ $(Cpu::AddressSpace) -eq 64 ]
-}
-
 ################################### Filename ###################################
 
 # Format filename w/ ext, w/ no path
