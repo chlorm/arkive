@@ -36,15 +36,15 @@ function FFmpeg::Audio {
   local Channels
   local File="${2}"
   local Filters
-  local Codec
+  local Encoder
   local SampleRate
   local Stream="${1}"
 
   Bitrate="$(FFmpeg::Audio.bitrate "${Stream}" "${File}")"
   #Channels="$(FFmpeg::Audio.channels "${Stream}")"
   Filters="$(FFmpeg::Audio.filters "${Stream}" "${File}")"
-  Codec="$(FFmpeg::Audio.codec "${Stream}" "${File}")"
+  Encoder="$(FFmpeg::Audio.encoder "${Stream}" "${File}")"
   SampleRate="$(FFmpeg::Audio.sample_rate)"
 
-  echo "${Bitrate} ${Codec} ${Filters} -ar:${Stream} ${SampleRate}" # -ac ${Channels}"
+  echo "${Bitrate} ${Encoder} ${Filters} -ar:${Stream} ${SampleRate}" # -ac ${Channels}"
 }
