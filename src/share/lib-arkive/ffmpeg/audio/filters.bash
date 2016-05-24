@@ -35,7 +35,7 @@ function FFmpeg::Audio.filters {
   local File="${2}"
   local Filter
   local FilterList
-  local -A Filters
+  local -a Filters
   local Stream="${1}"
 
   Filters=(
