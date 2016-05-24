@@ -38,9 +38,11 @@ function FFmpeg::Video.filters {
   local -a Filters
   local Stream="${1}"
 
+  # XXX: the order of filters here is the order in which they are applied
   Filters=(
-    "$(FFmpeg::Video.filters:black_bar_crop "${Stream}" "${File}")"
     "$(FFmpeg::Video.filters:de_interlace "${Stream}" "${File}")"
+    "$(FFmpeg::Video.filters:black_bar_crop "${Stream}" "${File}")"
+    #"$(FFmpeg::Video.filters:scale "${Stream}" "${File}")"
   )
 
   for Filter in "${Filters[@]}" ; do
