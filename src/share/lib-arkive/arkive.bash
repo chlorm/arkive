@@ -64,19 +64,19 @@ function Arkive::Run {
   __outputdir__="${OUTPUTDIR}"
   OutputFile="${__outputdir__}/${__filenamefmt__}.${ARKIVE_CONTAINER}"
 
-  asa=($(Audio::StreamSelector "${File}"))
+  asa=($(Stream::Select 'audio' "${File}"))
   [[ ${#asa[@]} == +(1|2) ]]
   for as in ${asa[@]} ; do
     Audio="${Audio:+${Audio} }$(FFmpeg::Audio "${as}" "${File}")"
   done
 
-  #ssa=($(Subtitle::StreamSelector "${File}"))
+  #ssa=($(Stream::Select 'subtitle' "${File}"))
   #[[ ${#ssa[@]} == +(1|2) ]]
   #for ss in ${ssa[@]} ; do
   #  Subtitle="${Subtitle:+${Subtitle} }$(FFmpeg::Subtitle "${ss}" "${File}")"
   #done
 
-  vs="$(Video::StreamSelector "${File}")"
+  vs="$(Stream::Select 'video' "${File}")"
   #VideoFilters="$(FFmpeg::Video.filters "${vs}" "${File}")"
   #VideoBitrate="$(FFmpeg::Video.bitrate "${vs}" "${File}")"
   #VideoCodec="$(FFmpeg::Video.codec "${vs}" "${File}")"
@@ -91,7 +91,6 @@ function Arkive::Run {
     Video="$(FFmpeg::Video "${vs}" "${File}")"
     if [ ${ARKIVE_VIDEO_ENCODING_PASSES} -gt 1 ] ; then
       PassArgs="-pass ${Pass} -passlogfile ${__tmpdir__}/${__filenamefmt__}.ffmpeg-passlog"
-      # TODO: add to tmp files array
     else
       unset PassArgs
     fi

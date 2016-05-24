@@ -31,25 +31,6 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-# Selects the video stream to use if multiple exist
-function Video::StreamSelector {
-  local File="${1}"
-  local VideoStreams=()
-
-  VideoStreams=($(FFprobe 'v' '-' 'stream' 'index' "${File}"))
-
-  # At least 1 video stream is required
-  if [ ${#VideoStreams[@]} -eq 1 ] ; then
-    echo "${VideoStreams[0]}"
-  elif [ ${#VideoStreams[@]} -gt 1 ] ; then
-    # FIXME: Add support for source with multiple video streams
-    return 1
-  else
-    Error::Message 'no video stream found'
-    return 1
-  fi
-}
-
 function Video::Height {
   local File="${2}"
   local Height
