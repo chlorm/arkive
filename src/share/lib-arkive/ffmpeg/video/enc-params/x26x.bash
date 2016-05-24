@@ -31,22 +31,27 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
+# XXX: this function inherits an array (Parameters) from a parent function
 function FFmpeg::Video.x26x_params {
   local Param
   local ParamList
   local ParamValue
 
   for Param in ${Parameters[@]} ; do
-    # FFmpeg's key/value parser can't handle null values, make
-    # sure a value is set.
+    # FFmpeg's key/value parser can't handle null values and will fail
+    # silently, make sure a value is set to prevent this behavior.
+    ParamKey="$(echo "${Param}" | awk -F'=' '{ print $1 ; exit }')"
+    String::NotNull "${ParamKey}"
     ParamValue="$(echo "${Param}" | awk -F'=' '{ print $2 ; exit }')"
     String::NotNull "${ParamValue}"
+
     # Allow true/false within codec parameters to make booleans more apparent.
     if [ "${ParamValue}" == 'true' ] ; then
       Param="$(echo "${Param}" | sed -e 's/=true/=1/')"
     elif [ "${ParamValue}" == 'false' ] ; then
       Param="$(echo "${Param}" | sed -e 's/=false/=0/')"
     fi
+
     ParamList="${ParamList:+${ParamList}:}${Param}"
   done
 
