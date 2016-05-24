@@ -37,13 +37,15 @@ function FFmpeg::Audio.bitrate {
   local File="${2}"
   local Stream="${1}"
 
-  Channels="$(FFmpeg::Audio.channels "${Stream}" "${File}")"
+  if [ "${ARKIVE_AUDIO_ENCODER}" != 'flac' ] ; then
+    Channels="$(FFmpeg::Audio.channels "${Stream}" "${File}")"
 
-  String::NotNull "${Channels}"
+    String::NotNull "${Channels}"
 
-  Bitrate=$(( ${Channels} * ${ARKIVE_AUDIO_CHANNEL_BITRATE} ))
+    Bitrate=$(( ${Channels} * ${ARKIVE_AUDIO_CHANNEL_BITRATE} ))
 
-  [ ${Bitrate} -ge 16 ]
+    [ ${Bitrate} -ge 16 ]
 
-  echo "-b:${Stream} ${Bitrate}k"
+    echo "-b:${Stream} ${Bitrate}k"
+  fi
 }
