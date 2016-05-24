@@ -35,10 +35,10 @@ function FFmpeg::Video.filters {
   local File="${2}"
   local Filter
   local FilterList
-  local Filters=()
+  local -a Filters
   local Stream="${1}"
 
-  Filters+=(
+  Filters=(
     "$(FFmpeg::Video.filters:black_bar_crop "${Stream}" "${File}")"
     "$(FFmpeg::Video.filters:de_interlace "${Stream}" "${File}")"
   )
