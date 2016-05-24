@@ -78,7 +78,7 @@ Stream::Select() {
         FindKeyword="$(
           echo $(
             String::LowerCase $(
-              FFprobe 'a' "${Stream}" 'stream_tags' 'title' "${File}"
+              FFprobe '-' "${Stream}" 'stream_tags' 'title' "${File}"
             )
           ) | grep ${Keyword}
         )"
@@ -92,48 +92,7 @@ Stream::Select() {
         Streams=( ${Streams[@]/${Stream}} )
       fi
     done
-    unset FindMatch
-    unset Stream
 
-      # Check number of channels
-      Channels=$(audio_channels "${Stream}") || {
-        Channels=0
-      }
-      OptimumAsocArray["channels${Stream}"]=${Channels}
-
-      # Check channel layout
-      ChannelLayout=$(audio_channel_layout "${Stream}") || {
-        layout=0
-      }
-      #OptimumAsocArray+=("channel_layout${Stream}" "${ChannelLayout}")
-
-      # Check language
-        # add function for manguage code
-      # Check bitrate
-      Bitrate=$(audio_bitrate) || {
-        bitrate=0
-      }
-      #OptimumAsocArray+=("bit_rate${Stream}" "${Bitrate}")
-
-      # Check audio codec
-      # Check duration
-   #done
-
-    echo "${OptimumAsocArray["channels1"]}"
-
-    for Stream in "${Streams[@]}" ; do
-
-      key="channel${Stream}"
-
-    done
-    #BitrateBest=
-    #SampleRateBest
-    #ChannelsBest
-    #ChannelLayoutBest
-    #StreamOrginalIndex
-    #StreamLanguage
-
-    # Pick optimal stream
     Error::Message 'multiple streams not implemented'
     return 1
   fi
