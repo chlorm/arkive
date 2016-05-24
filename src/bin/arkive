@@ -161,29 +161,6 @@ function Filename::Formatted {
   echo "${Filename}${ArkMark}"
 }
 
-################################### Subtitle ###################################
-
-# Selects the subtitle stream to use if multiple exist
-function Subtitle::StreamSelector {
-  local SubtitleStream
-  local SubtitleStreams
-
-  SubtitleStreams=($(FFprobe 's' '-' 'stream' 'index' "${File}"))
-
-  #String::NotNull "${SubtitleStreams[0]}"
-
-  # If multiple subtitle streams exist
-  if [ ${#SubtitleStreams[@]} -gt 1 ] ; then
-    # FIXME: add support for multiple subtitle streams
-    Error::Message 'multiple subtitle streams not implemented'
-    return 1
-  else
-    SubtitleStream=${SubtitleStreams[1]}
-  fi
-
-  echo "${SubtitleStream}"
-}
-
 ################################## Execution ###################################
 
 Requires::Check
