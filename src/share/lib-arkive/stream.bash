@@ -67,12 +67,8 @@ Stream::Select() {
   # If multiple audio streams exist, select the correct one(s)
   elif [ ${#Streams[@]} -gt 1 ] ; then
 
-    # FIXME: implement support for multiple streams
-    return 1
-
     # Remove streams that contain matching keywords in the stream title
     for Stream in ${Streams[@]} ; do
-      #ARKIVE_AUDIO_STREAM_DISCARD_KEYWORDS
       FindMatch=false
       for Keyword in "${ARKIVE_AUDIO_STREAM_DISCARD_KEYWORDS[@]}" ; do
         FindKeyword="$(
@@ -82,7 +78,7 @@ Stream::Select() {
             )
           ) | grep ${Keyword}
         )"
-        if [[ -n "${FindKeyword}" ]] ; then
+        if [ -n "${FindKeyword}" ] ; then
           FindMatch=true
         fi
       done
