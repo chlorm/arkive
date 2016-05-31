@@ -38,6 +38,7 @@ function Arkive::Run {
   local __subtitlestreams__
   local __tmpdir__
 
+  local AllowOverwrite
   local Audio
   local AudioPass
   local File
@@ -56,6 +57,15 @@ function Arkive::Run {
   local ss
   local ssa
   local vs
+
+  if ${ARKIVE_ALLOW_OVERWRITING_FILES} ; then
+    AllowOverwrite='-y'
+  elif ! ${ARKIVE_ALLOW_OVERWRITING_FILES} ; then
+    AllowOverwrite='-n'
+  else
+    Error::Message "ARKIVE_ALLOW_OVERWRITING_FILES must be true/false: ${ARKIVE_ALLOW_OVERWRITING_FILES}"
+    return 1
+  fi
 
   File="${INPUTFILE}"
   __filename__="$(Filename::Original.base "${File}")"
@@ -100,8 +110,12 @@ function Arkive::Run {
     else
       AudioPass='-an'
     fi
+    # Overwrite the file for multipass encodes
+    if [ ${Pass} -gt 1 ] ; then
+      AllowOverwrite='-y'
+    fi
     eval "@FFMPEG_PATH@ \
-            -y \
+            ${AllowOverwrite} \
             -nostdin \
             -hide_banner \
             -stats \

@@ -122,6 +122,8 @@ ARKIVE_SUBTITLES_LANGS=('eng')
 ARKIVE_SUBTITLE_CODEC='ass'
 # Chapters, NOT IMPLEMENTED
 ARKIVE_CHAPTERS=true
+# Allow overwriting existing files
+ARKIVE_ALLOW_OVERWRITING_FILES=false
 
 ################################### Filename ###################################
 
