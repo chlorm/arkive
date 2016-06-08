@@ -8,6 +8,7 @@ This mock-up implementation in shell is for testing and demonstration
 purposes only.
 
 Dependencies:
+  * bc
   * [lib-bash](https://github.com/chlorm/lib-bash)
   * ffmpeg >= 3.0.0
     - libopus >= 1.1.0
