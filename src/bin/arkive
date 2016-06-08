@@ -169,6 +169,11 @@ Requires::Check
 
 Input::Parser $@
 
+if [ -n "${RAW_BITPERPIXEL}" ] ; then
+  FFmpeg::Video.bpp "${RAW_BITPERPIXEL}"
+  exit 0
+fi
+
 Arkive::Run
 
 Tmp::Cleanup

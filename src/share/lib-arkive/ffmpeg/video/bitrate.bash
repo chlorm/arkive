@@ -31,8 +31,44 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
+# Bitrate from a fixed bpp value:
+# bitrate = (w * h * fps * bpp) / 1024
 function FFmpeg::Video.bitrate {
-  # FIXME: Calclate bitrate based off the cropped WIDTHxHEIGHT from a fixed
-  #        bpp value. (maybe take coded resolution into consideration)
-  echo "-b:v 1048k"
+  local Bpp="${ARKIVE_VIDEO_BITS_PER_PIXEL}"
+  local File="${2}"
+  local FrameRate
+  local Height
+  local Stream="${1}"
+  local Width
+
+  FrameRate="$(Video::FrameRate "${Stream}" "${File}")"
+  Height="$(Video::Height "${Stream}" "${File}")"
+  Width="$(Video::Width "${Stream}" "${File}")"
+
+  Var::Type.float "${Bpp}" || Var::Type.integer "${Bpp}"
+
+  Bitrate="$(echo "((${Width}*${Height}*${FrameRate}*${Bpp})/1024)")"
+
+  Var::Type.float "${Bitrate}" || Var::Type.integer "${Bitrate}"
+
+  echo "${Bitrate}"
+}
+
+# Calculate the bits per pixel value based on a fixed resolution and fps
+# This formula uses 1920x1080@23.976
+# bpp = (bitrate * 1024) / (1920 * 1080 * (24000 / 1001))
+function FFmpeg::Video.bpp {
+  local Bitrate="${1}"
+  local Bpp
+
+  Bpp="$(echo "((${Bitrate}*1024)/(1920*1080*(24000/1001)))" | bc -l)"
+
+  # BC truncates leading zeros, make sure to add one if necessary
+  if [[ "${Bpp}" =~ ^. ]] ; then
+    Bpp="0${Bpp}"
+  fi
+
+  Var::Type.float "${Bpp}"
+
+  echo "${Bpp}"
 }

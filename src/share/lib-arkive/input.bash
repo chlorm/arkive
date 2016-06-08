@@ -59,6 +59,7 @@ function Input::Parser {
 
   Args::Define 'short=i' 'long=input'  'variable=RAW_INPUTFILE' 'desc=Input video file'
   Args::Define 'short=o' 'long=output' 'variable=RAW_OUTPUTDIR' 'desc=Output directory'
+  Args::Define 'short=b' 'long=bpp' 'variable=RAW_BITPERPIXEL' 'desc=Calculate bits per pixel'
   source "$(Args::Build)"
 
   if [ -z "${input}" ] ; then
@@ -67,20 +68,22 @@ function Input::Parser {
     return 1
   fi
 
-  Input::Check.input "${RAW_INPUTFILE}"
-  pushd "$(dirname "${RAW_INPUTFILE}")" > /dev/null
-    export INPUTFILE="$(pwd)/$(basename "${RAW_INPUTFILE}")"
-    export INPUTDIR="$(pwd)"
-  popd > /dev/null
-
-  if Input::Check.output "${RAW_OUTPUTDIR}" ; then
-    pushd "${RAW_OUTPUTDIR}" > /dev/null
-      export OUTPUTDIR="$(pwd)"
+  if [ -z "${RAW_BITPERPIXEL}" ] ; then
+    Input::Check.input "${RAW_INPUTFILE}"
+    pushd "$(dirname "${RAW_INPUTFILE}")" > /dev/null
+      export INPUTFILE="$(pwd)/$(basename "${RAW_INPUTFILE}")"
+      export INPUTDIR="$(pwd)"
     popd > /dev/null
-  else
-    export OUTPUTDIR="${INPUTDIR}"
-  fi
 
-  Input::Check.tmp
-  export TMPDIR="${INPUTDIR}/.arktmp"
+    if Input::Check.output "${RAW_OUTPUTDIR}" ; then
+      pushd "${RAW_OUTPUTDIR}" > /dev/null
+        export OUTPUTDIR="$(pwd)"
+      popd > /dev/null
+    else
+      export OUTPUTDIR="${INPUTDIR}"
+    fi
+
+    Input::Check.tmp
+    export TMPDIR="${INPUTDIR}/.arktmp"
+  fi
 }
