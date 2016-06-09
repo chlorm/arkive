@@ -45,13 +45,11 @@ function FFmpeg::Video.bitrate {
   Height="$(Video::Height "${Stream}" "${File}")"
   Width="$(Video::Width "${Stream}" "${File}")"
 
-  Var::Type.float "${Bpp}" || Var::Type.integer "${Bpp}"
+  Bitrate="$(echo "((${Width}*${Height}*${FrameRate}*${Bpp})/1024)" | bc)"
 
-  Bitrate="$(echo "((${Width}*${Height}*${FrameRate}*${Bpp})/1024)")"
+  Var::Type.integer "${Bitrate}"
 
-  Var::Type.float "${Bitrate}" || Var::Type.integer "${Bitrate}"
-
-  echo "${Bitrate}"
+  echo "-b:${Stream} ${Bitrate}k"
 }
 
 # Calculate the bits per pixel value based on a fixed resolution and fps
