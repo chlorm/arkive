@@ -33,29 +33,44 @@
 
 Stream::Select() {
   local FFtype
-  local -A FFtypes
+  local -a FFtypes
   local File="${2}"
   local ReqMaxStm
-  local -A ReqMaxsStm
+  local -a ReqMaxsStm
   local ReqMinStm
-  local -A ReqMinsStm
+  local -a ReqMinsStm
   local -a Streams
   local Type="${1}"
 
   # Translate strings to ffmpeg stream type identifiers
-  FFtypes=(['audio']='a' ['chapter']='c' ['subtitle']='s' ['video']='v')
+  FFtypes=(
+    ['audio']='a'
+    ['chapter']='c'
+    ['subtitle']='s'
+    ['video']='v'
+  )
   FFtype="${FFtypes[${Type}]}"
 
   Streams=($(FFprobe "${FFtype}" '-' 'stream' 'index' "${File}"))
 
   # Minimum number of streams allowed for each type
-  ReqMinsStm=(['audio']=1 ['chapter']=0 ['subtitle']=0 ['video']=1)
+  ReqMinsStm=(
+    ['audio']=1
+    ['chapter']=0
+    ['subtitle']=0
+    ['video']=1
+  )
   ReqMinStm=${ReqMinsStm[${Type}]}
 
   [ ${#Streams[@]} -ge ${ReqMinStm} ]
 
   # Maximum number of streams allowed for each type
-  ReqMaxsStm=(['audio']=2 ['chapter']=1 ['subtitle']=2 ['video']=1)
+  ReqMaxsStm=(
+    ['audio']=2
+    ['chapter']=1
+    ['subtitle']=2
+    ['video']=1
+  )
   ReqMaxStm=${ReqMaxsStm[${Type}]}
 
   [ ${#Streams[@]} -le ${ReqMaxStm} ]
