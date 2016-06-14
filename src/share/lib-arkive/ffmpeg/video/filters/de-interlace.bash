@@ -70,6 +70,9 @@ FFmpeg::Video.filters:de_interlace() {
 
     IdetResults="$(
       ffmpeg \
+        -nostdin \
+        -hide_banner \
+        -loglevel info \
         -threads "$(Cpu::Logical)" \
         -ss ${Skip} \
         -i "${File}" \
@@ -81,7 +84,8 @@ FFmpeg::Video.filters:de_interlace() {
         egrep 'idet|Input' |
         grep 'Multi frame detection'
     )"
-    Debug::Message "$IdetResults"
+    String::NotNull "${IdetResults}"
+
     # Top Field First frames
     IdetTFF=$(
       echo "${IdetResults}" |
@@ -91,6 +95,7 @@ FFmpeg::Video.filters:de_interlace() {
               print $(i+1)
         }'
     )
+    Var::Type.integer "${IdetTFF}"
     # Bottom Field First frames
     IdetBFF=$(
       echo "${IdetResults}" |
@@ -100,6 +105,7 @@ FFmpeg::Video.filters:de_interlace() {
               print $(i+1)
         }'
     )
+    Var::Type.integer "${IdetBFF}"
     # Progressive frames
     IdetProg=$(
       echo "${IdetResults}" |
@@ -109,6 +115,7 @@ FFmpeg::Video.filters:de_interlace() {
               print $(i+1)
         }'
     )
+    Var::Type.integer "${IdetProg}"
     # Undetermined frames
     IdetUnd=$(
       echo "${IdetResults}" |
@@ -118,13 +125,25 @@ FFmpeg::Video.filters:de_interlace() {
               print $(i+1)
         }'
     )
-    # Assume all TFF & BFF frames are interlaced
-    IdetInterlaced=$(( ${IdetBFF} + ${IdetTFF} ))
-    # If a frame is undetermined, make the assumption that it is progressive
-    IdetProgressive=$(( ${IdetProgressive} + ${IdetUnd} ))
+    Var::Type.integer "${IdetUnd}"
 
-    # Something is wrong if no frames were deteceted at all 
-    [[ "${IdetInterlaced}" -gt 0 && "${IdetProgressive}" -gt 0 ]] || {
+    # Assume all TFF & BFF frames are interlaced
+    if [ ${IdetBFF} -eq 0 ] && [ ${IdetTFF} -eq 0 ] ; then
+      # Adding zeros in shell may fail, so set it manually
+      IdetInterlaced=0
+    else
+      IdetInterlaced=$(( ${IdetBFF} + ${IdetTFF} ))
+    fi
+    # If a frame is undetermined, make the assumption that it is progressive
+    if [ ${IdetProg} -eq 0 ] && [ ${IdetUnd} -eq 0 ] ; then
+      # Adding zeros in shell may fail, so set it manually
+      IdetProgressive=0
+    else
+      IdetProgressive=$(( ${IdetProg} + ${IdetUnd} ))
+    fi
+
+    # Something is wrong if no frames were detected at all 
+    [ $(( ${IdetInterlaced} + ${IdetProgressive} )) -gt 0 ] || {
       Error::Message 'no frames detected'
       return 1
     }
@@ -146,11 +165,11 @@ FFmpeg::Video.filters:de_interlace() {
     LoopIter=$(( ${LoopIter} + 1 ))
 
     # Exit if idet is probably failing to prevent infinite loops
-    [ ${LoopIter} -le 20 ]
+    [ ${LoopIter} -le 10 ]
   done
 
   if [ ${IdetInterlacedPercentage} -ge 90 ] ; then
-    # TODO: figure out proper settings
+    # FIXME: figure out proper settings
     echo "yadif=1:-1:0,mcdeint=0:0:10"
     return 0
   fi
