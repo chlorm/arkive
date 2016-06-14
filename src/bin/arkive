@@ -84,19 +84,35 @@ trap -- 'Tmp::Cleanup ; Error::Trace ; exit 1' ERR
 
 # Debugging
 ARKIVE_DEBUG='false'
+# Allow overwriting existing files
+ARKIVE_ALLOW_OVERWRITING_FILES=true
+
+#
+## Container
+#
+
 # Container format (mkv,mp4,ogv,webm)
 ARKIVE_CONTAINER='mkv'
-# Video Codec (h264(x264),h265(x265),nvenc-h264,nvenc-h265,vp9)
-ARKIVE_VIDEO_CODEC='h265'
+
+#
+## Video
+#
+
+# Video Codec (h264(x264),h265(x265),nvenc-h264,nvenc-h265,vp9,vp10)
+ARKIVE_VIDEO_CODEC='h264'
 # Bits Per Pixel (used to dynamically determine bitrate)
-# Based on ((1920 * 1080 * 24000/1001 * <bpp>) / 1000)
-ARKIVE_VIDEO_BITS_PER_PIXEL='' # Based on <bitrate>kbps @ 1080p
+ARKIVE_VIDEO_BITS_PER_PIXEL='0.04218205761316872427'
 # Bits per channel color (8,10,12)
-ARKIVE_VIDEO_BIT_DEPTH=10
+ARKIVE_VIDEO_BIT_DEPTH=8
 # Chroma Subsampling (420,422,444)
 ARKIVE_VIDEO_CHROMA_SUBSAMPLING=420
 # Multi-pass video encoding (1-3)
 ARKIVE_VIDEO_ENCODING_PASSES=2
+
+#
+## Audio
+#
+
 # Audio Codec (aac,ac3,flac,opus)
 ARKIVE_AUDIO_ENCODER='opus'
 # Bitrate per audio channel in kbps (5.1 -> 6 * 64 = 384),
@@ -111,6 +127,11 @@ ARKIVE_AUDIO_STREAM_DISCARD_KEYWORDS=(
 # Audio default language (ISO 639-2/B)
 ARKIVE_AUDIO_LANG_DEFAULT='eng'
 #### Audio languages to include (ISO 639-2/B)
+
+#
+## Subtitles
+#
+
 ###ARKIVE_SUBTITLES_LANGS=('eng')
 # Subtitles, NOT IMPLEMENTED
 ARKIVE_SUBTITLES=true
@@ -120,10 +141,13 @@ ARKIVE_SUBTITLES_LANG_DEFAULT='eng'
 ARKIVE_SUBTITLES_LANGS=('eng')
 # Subtitle codec (ass,srt)
 ARKIVE_SUBTITLE_CODEC='ass'
+
+#
+## Chapters
+#
+
 # Chapters, NOT IMPLEMENTED
 ARKIVE_CHAPTERS=true
-# Allow overwriting existing files
-ARKIVE_ALLOW_OVERWRITING_FILES=false
 
 ################################### Filename ###################################
 
