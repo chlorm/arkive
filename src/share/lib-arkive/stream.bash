@@ -33,12 +33,12 @@
 
 Stream::Select() {
   local FFtype
-  local -a FFtypes
+  local -A FFtypes
   local File="${2}"
   local ReqMaxStm
-  local -a ReqMaxsStm
+  local -A ReqMaxsStm
   local ReqMinStm
-  local -a ReqMinsStm
+  local -A ReqMinsStm
   local -a Streams
   local Type="${1}"
 
