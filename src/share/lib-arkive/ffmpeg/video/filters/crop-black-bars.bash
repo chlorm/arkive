@@ -106,8 +106,8 @@ function FFmpeg::Video.filters:black_bar_crop {
         -ss ${Skip} \
         -i "${File}" \
         -ss 0 \
+        -t 1 \
         -filter:${Stream} cropdetect=30:0:0 \
-        -frames:${Stream} 10 \
         -an \
         -f null - 2>&1 |
         awk -F'=' '/crop/ { print $NF }' |
