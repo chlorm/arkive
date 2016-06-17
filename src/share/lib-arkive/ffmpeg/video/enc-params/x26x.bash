@@ -55,5 +55,5 @@ function FFmpeg::Video.x26x_params {
     ParamList="${ParamList:+${ParamList}:}${Param}"
   done
 
-  echo "'${ParamList}'"
+  echo "${ParamList}"
 }
