@@ -33,13 +33,35 @@
 
 # Generates formatted ffmpeg x265-params key/values
 function FFmpeg::Video.codec:x265_params {
+  local Bitrate
+  local BufSize
+  local DecoderLevel
   local File="${2}"
+  local FrameRate
+  local KeyInt
   local MeRange
   local Param
   local Parameters
   local ParamHasValue
   local ParamList
+  local RcLookahead
   local Stream="${1}"
+
+  Bitrate="$(FFmpeg::Video.bitrate "${Stream}" "${File}")"
+
+  # Buffer size is bitrate +10%
+  BufSize=$(echo "${Bitrate}+(${Bitrate}*0.1)" | bc)
+
+  DecoderLevel="$(FFmpeg::Video.level:h265 "${Stream}" "${File}")"
+
+  FrameRate="$(echo "$(FFmpeg::Video.frame_rate "${Stream}" "${File}")" | bc)"
+  if [ ${FrameRate} -gt 125 ] ; then
+    RcLookahead=250
+  else
+    RcLookahead=${FrameRate}
+  fi
+
+  KeyInt="$(FFmpeg::Video.keyframe_interval "${Stream}" "${File}")"
 
   MeRange="$(FFmpeg::Video.motion_estimation_range "${Stream}" "${File}")"
   # Motion Estimation ranges below 57 reduce coding efficiency
@@ -48,114 +70,123 @@ function FFmpeg::Video.codec:x265_params {
     MeRange=58
   fi
 
+  MinKeyInt=$(FFmpeg::Video.min_keyframe_interval "${Stream}" "${File}")
+
   Parameters=(
     'log-level=info'
-    "frame-threads=1" # FIXME
-    #"frame-threads=1"
+    # Use a single frame thread to prevent ghosting artifacts in some cases
+    "frame-threads=1"
     "pools=$(Cpu::Logical)" # FIXME
     #numa-pools # char
-    'wpp=true' # FIXME: disable is cpu threads=1
-    'pmode=true'
+    'wpp=true' # FIXME: disable if cpu threads=1
+    'pmode=false'
     'pme=false'
     #'dither'
     #fps # float/int/fraction
     'interlace=false'
-    #'level-idc' # int/flost
+    "level-idc=${DecoderLevel}"
     #'high-tier' # bool
-    'ref=6' # <=6 due to b-frames & b-pyramid
+    'ref=3' # value <= 6 due to b-frames & b-pyramid
     'allow-non-conformance=false'
     #'uhd-bd' # bool?
-    'rd=5'
+    'rd=3'
     'ctu=64'
     'min-cu-size=8'
-    #'limit-refs' # int
+    'limit-refs=3'
     'limit-modes=false'
-    'rect=true'
-    'amp=true'
+    'rect=false'
+    'amp=false'
     'early-skip=false'
+    'recursion-skip=true'
     'fast-intra=false'
-    'b-intra=true'
+    # Disable b-intra for performance & to prevent serial decoding limitations
+    'b-intra=false'
     'cu-lossless=false'
     'tskip-fast=false'
     #'rd-refine=true'
-    # Use rdoq-level 1
+    # Use rdoq-level <= 1 for grain retention
     # http://forum.doom9.org/showthread.php?p=1713406#post1713406
-    'rdoq-level=1' # int
-    'tu-intra-depth=2' # int
-    'tu-inter-depth=2' # int
-    'nr-intra=0' # int
-    'nr-inter=0' # int
+    'rdoq-level=1'
+    # Performance penalty for > 1 and only small quality improvement
+    'tu-intra-depth=1'
+    'tu-inter-depth=1'
+    'nr-intra=0'
+    'nr-inter=0'
     'tskip=false'
-    'rdpenalty=0' # int
+    'rdpenalty=0' # int TODO
     'max-tu-size=32'
-    'max-merge=5' # int
-    'me=3'
-    'subme=5' # int
+    'max-merge=2' # int TODO
+    # star(3) seems to be producing artifacts
+    'me=2'
+    'subme=2' # int TODO
     "merange=${MeRange}"
-    'temporal-mvp=true'
+    'temporal-mvp=true' # TODO
     'weightp=true'
+    # Segfault if weightb is disabled (possibly only when in combination
+    # with another flag)
     'weightb=true'
     'strong-intra-smoothing=false'
-    'constrained-intra=false'
-    #'psy-rd=0.3' # use < 0.9
-    #'psy-rdoq=4.0' # use > 3 & < 5
-    'open-gop=true'
-    "keyint=$(FFmpeg::Video.keyframe_interval "${Stream}" "${File}")"
-    "min-keyint=$(FFmpeg::Video.min_keyframe_interval "${Stream}" "${File}")"
-    'scenecut=40'                # int
-    #'intera-refresh' # bool?
-    'rc-lookahead=60' # int (> bframes & < 250)
-    'lookahead-slices=0' # int
-    'b-adapt=0'
-    # bframes 3 gets better performance than 4
-    'bframes=3'
-    'bframe-bias=0'
+    'constrained-intra=false' # TODO test this
+    'psy-rd=4.0' # use < 0.9
+    'psy-rdoq=10.0' # use > 3 & < 5
+    'open-gop=true' # TODO
+    "keyint=${KeyInt}"
+    "min-keyint=${MinKeyInt}"
+    'scenecut=40' # int TODO
+    #'intera-refresh' # bool? TODO
+    # Set lookahead to same as key-frame interval to make sure the encoder
+    # has the entire GOP for decision making.
+    "rc-lookahead=${RcLookahead}" # int (> bframes & < 250)
+    'lookahead-slices=0'
+    'b-adapt=2'
+    'bframes=3' # values > 3 have a large performance penalty
+    'bframe-bias=0' # TODO
     'b-pyramid=true'
-    #'bitrate' # int
-    'vbv-bufsize=31250' # int
-    'vbv-maxrate=31250' # int
+    "vbv-bufsize=${BufSize%.*}"
+    "vbv-maxrate=${BufSize%.*}"
     'vbv-init=0.9' # float
     'lossless=false'
-    'aq-mode=0' # something with aq is causing crashes on 2nd pass encodes
+    # x265's aq causes significant blocking artifacts, negating any usefulness
+    'aq-mode=0' # something with aq is causing crashes on 2nd pass encodes,
     'aq-strength=0' # maybe the crash is caused by aq-strength >2.0
     #'qg-size' # int
-    'cutree=true'
+    'cutree=false'
     'strict-cbr=false'
     'cbqpoffs=0' # int
     'crqpoffs=0' # int
-    'ipratio=1.4' # float
-    'pbratio=1.3' # float
+    'ipratio=1.1' # float
+    'pbratio=1.0' # float
     'qcomp=0.6' # values < 0.5 segfault, use 0.6, > values blur
     #'qpstep=4'
-    #'rc-grain=true'
+    'rc-grain=true'
     #'qblur=0.8'
-    #'cplxblur=10.0' # <=20
+    'cplxblur=2.0' # <=20
     #'zones'
     #'signhide=false'
-    #'qpfile'                  # char
-    #'scaling-list'            # char
-    #'lambda-file'             # char
-    #'deblock=1\\:1'
-    #'sao=true'
+    #'qpfile' # char
+    #'scaling-list' # char
+    #'lambda-file' # char
+    'deblock=\-3\:0'
+    'sao=false'
     #'sao-non-deblock=true'
     #'sar'
     #'display-window'
     #'overscan'
     #'videoformat'
     #'range'
-    #'colorprim'
-    #'transfer'
-    #'colormatrix'
+    'colorprim=bt709'
+    'transfer=bt709'
+    'colormatrix=bt709'
     #'chromaloc'
     #'master-display'
     #'max-cll'
     #'min-luma'
     #'max-luma'
     #'annexb=false'
-    #'repeat-headers=false'
+    'repeat-headers=false'
     #'aud=false'
     #'hrd=false'
-    #'info=false'
+    'info=false'
     #'hash=2'
     #'temporal-layers=false'
   )
@@ -166,10 +197,6 @@ function FFmpeg::Video.codec:x265_params {
       'slow-firstpass=false'
       "stats=${__tmpdir__}/${__filenamefmt__}.stats"
       "analysis-file=${__tmpdir__}/${__filenamefmt__}.analysis"
-    )
-    TMP_FILES+=(
-      "${__tmpdir__}/${__filenamefmt__}.stats"
-      "${__tmpdir__}/${__filenamefmt__}.analysis"
     )
     # Determine analysis-mode
     if [ ${Pass} -eq 1 ] ; then
