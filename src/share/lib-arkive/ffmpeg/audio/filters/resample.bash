@@ -54,6 +54,11 @@ function FFmpeg::Audio.filters:resample {
     return 1
   fi
 
+  # Assume `Planar Floating point format` is 16bit
+  if [ "${SampleFormat}" == 'fltp' ] ; then
+    SampleFormat='s16'
+  fi
+
   # Only resample when converting sample rates or sample formats (bit depth)
   if [ ${ARKIVE_AUDIO_SAMPLE_RATE} -ne ${SampleRate} ] || \
      [ "${SampleFormat}" != 's16' ] ; then
