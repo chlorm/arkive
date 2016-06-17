@@ -34,15 +34,36 @@
 function FFmpeg::Video {
   local File="${2}"
   local Stream="${1}"
-  local VideoFilters
-  local VideoBitrate
-  local VideoCodec
-  local VideoPixelFormat
+  local VideoArg
+  local -a VideoArgs
+  local VideoArgsBitrate
+  local VideoArgsCodec
+  local VideoArgsFilters
+  local VideoArgsFrameRate
+  local VideoArgsList
+  local VideoArgsPixelFormat
 
-  VideoFilters="$(FFmpeg::Video.filters "${Stream}" "${File}")"
-  VideoBitrate="$(FFmpeg::Video.bitrate "${Stream}" "${File}")"
-  VideoCodec="$(FFmpeg::Video.codec "${Stream}" "${File}")"
-  VideoPixelFormat="$(FFmpeg::Video.pixel_format "${Stream}" "${File}")"
+  VideoArgsBitrate="-b:${Stream} $(FFmpeg::Video.bitrate "${Stream}" "${File}")k"
+  VideoArgsCodec="$(FFmpeg::Video.codec "${Stream}" "${File}")"
+  VideoArgsFilters="$(FFmpeg::Video.filters "${Stream}" "${File}")"
+  VideoArgsFrameRate="-r:${Stream} $(FFmpeg::Video.frame_rate "${Stream}" "${File}")"
+  VideoArgsPixelFormat="$(FFmpeg::Video.pixel_format "${Stream}" "${File}")"
 
-  echo "${VideoBitrate} ${VideoCodec} ${VideoFilters} ${VideoPixelFormat}"
+  VideoArgs=(
+    "${VideoArgsBitrate}"
+    "${VideoArgsCodec}"
+    "${VideoArgsFilters}"
+    "${VideoArgsFrameRate}"
+    "${VideoArgsPixelFormat}"
+  )
+
+  for VideoArg in "${VideoArgs[@]}" ; do
+    if [ -n "${VideoArg}" ] ; then
+      VideoArgsList="${VideoArgsList}${VideoArgsList:+ }${VideoArg}"
+    fi
+  done
+
+  if [ -n "${VideoArgsList}" ] ; then
+    echo "${VideoArgsList}"
+  fi
 }
