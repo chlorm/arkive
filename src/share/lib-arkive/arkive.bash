@@ -41,6 +41,9 @@ function Arkive::Run {
   local AllowOverwrite
   local Audio
   local AudioPass
+  local FFmpegArg
+  local -a FFmpegArgs
+  local FFmpegArgsList
   local File
   local Subtitle
   local Chapter
@@ -114,18 +117,33 @@ function Arkive::Run {
     if [ ${Pass} -gt 1 ] ; then
       AllowOverwrite='-y'
     fi
-    eval "@FFMPEG_PATH@ \
-            ${AllowOverwrite} \
-            -nostdin \
-            -hide_banner \
-            -stats \
-            -loglevel info \
-            -i \"${File}\" \
-            -threads 1 \
-            ${PassArgs} \
-            ${Video} \
-            ${AudioPass} \
-            ${OutputFile}"
+    FFmpegArgs=(
+      "${AllowOverwrite}"
+      '-nostdin'
+      '-hide_banner'
+      '-stats'
+      '-loglevel info'
+      "-r $(Video::FrameRate "${vs}" "${File}")"
+      "-i ${File}"
+      '-threads 1'
+      "${PassArgs}"
+      "${Video}"
+      '-movflags faststart'
+      '-movflags frag_keyframe'
+      "${AudioPass}"
+      "${OutputFile}"
+    )
+
+    for FFmpegArg in "${FFmpegArgs[@]}" ; do
+      if [ -n "${FFmpegArg}" ] ; then
+        FFmpegArgsList="${FFmpegArgsList}${FFmpegArgsList:+ }${FFmpegArg}"
+      fi
+    done
+
+    echo "ffmpeg ${FFmpegArgsList}"
+    @FFMPEG_PATH@ ${FFmpegArgsList}
+
+    unset FFmpegArg FFmpegArgs FFmpegArgsList
     Pass=$(( ${Pass} + 1 ))
   done
 }

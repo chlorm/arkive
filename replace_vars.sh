@@ -8,7 +8,7 @@ if [ "${1}" == '--revert' ] ; then
     -e 's/ffprobe \\/@FFPROBE_PATH@ \\/'
 
   sed -i src/share/lib-arkive/arkive.bash \
-    -e 's/ffmpeg \\/@FFMPEG_PATH@ \\/'
+    -e 's/ffmpeg ${FFmpegArgsList}/@FFMPEG_PATH@ ${FFmpegArgsList}/'
 else
   if [ "${1}" == '--local-lib-bash' ] ; then
     file="$(readlink -f "$(pwd)/../lib-bash/src/bin/lib-bash")"
@@ -25,5 +25,5 @@ else
     -e 's/@FFPROBE_PATH@/ffprobe/'
 
   sed -i src/share/lib-arkive/arkive.bash \
-    -e 's/@FFMPEG_PATH@/ffmpeg/'
+    -e 's/@FFMPEG_PATH@ ${FFmpegArgsList}/ffmpeg ${FFmpegArgsList}/'
 fi
