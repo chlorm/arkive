@@ -42,15 +42,15 @@ function FFmpeg::Video.filters {
   local Scale
   local Stream="${1}"
 
-  DeInterlace="$(FFmpeg::Video.filters:de_interlace "${Stream}" "${File}")"
+  #DeInterlace="$(FFmpeg::Video.filters:de_interlace "${Stream}" "${File}")"
   BlackBars="$(FFmpeg::Video.filters:black_bar_crop "${Stream}" "${File}")"
-  Scale="$(FFmpeg::Video.filters:scale "${Stream}" "${File}")"
-  DeNoise="$(FFmpeg::Video.filters:denoise)"
+  #Scale="$(FFmpeg::Video.filters:scale "${Stream}" "${File}")"
+  #DeNoise="$(FFmpeg::Video.filters:denoise)"
 
   # NOTE: the order of filters here is the order in which they are applied
-  # XXX: Do not call functions wh
+  # XXX: Do not call functions within arrays
   Filters=(
-    "${DeInterlace}"
+    #"${DeInterlace}"
     "${BlackBars}"
     #"${Scale}"
     #"${DeNoise}"
@@ -63,6 +63,6 @@ function FFmpeg::Video.filters {
   done
 
   if [ -n "${FilterList}" ] ; then
-    echo "-filter:${Stream} '${FilterList}'"
+    echo "-filter:${Stream} ${FilterList}"
   fi
 }
