@@ -32,20 +32,42 @@
 # purposes only.
 
 function FFmpeg::Audio {
-  local Bitrate
-  local Channels
+  local AudioArg
+  local -a AudioArgs
+  local AudioArgsBitrate
+  local AudioArgsChannels
+  local AudioArgsEncoder
+  local AudioArgsFilters
+  local AudioArgsList
+  local AudioArgsSampleRate
   local File="${2}"
-  local Filters
-  local Encoder
-  local SampleRate
   local Stream="${1}"
 
-  Filters="$(FFmpeg::Audio.filters "${Stream}" "${File}")"
-  Cutoff="$(FFmpeg::Audio.cutoff "${Stream}")"
-  Bitrate="$(FFmpeg::Audio.bitrate "${Stream}" "${File}")"
-  #Channels="$(FFmpeg::Audio.channels "${Stream}")"
-  Encoder="$(FFmpeg::Audio.encoder "${Stream}" "${File}")"
-  SampleRate="$(FFmpeg::Audio.sample_rate "${Stream}")"
+  AudioArgsFilters="$(FFmpeg::Audio.filters "${Stream}" "${File}")"
+  AudioArgsCutoff="$(FFmpeg::Audio.cutoff "${Stream}")"
+  AudioArgsBitrate="$(FFmpeg::Audio.bitrate "${Stream}" "${File}")"
+  #AudioArgsChannels="$(FFmpeg::Audio.channels "${Stream}")"
+  AudioArgsEncoder="$(FFmpeg::Audio.encoder "${Stream}" "${File}")"
+  AudioArgsSampleRate="$(FFmpeg::Audio.sample_rate "${Stream}")"
 
-  echo "${Bitrate} ${Encoder} ${Filters} ${SampleRate}" # -ac ${Channels}"
+  # -ac ${Channels}"
+
+  AudioArgs=(
+    "${AudioArgsBitrate}"
+    #"${AudioArgsChannels}"
+    "${AudioArgsCutoff}"
+    "${AudioArgsEncoder}"
+    "${AudioArgsFilters}"
+    "${AudioArgsSampleRate}"
+  )
+
+  for AudioArg in "${AudioArgs[@]}" ; do
+    if [ -n "${AudioArg}" ] ; then
+      AudioArgsList="${AudioArgsList}${AudioArgsList:+ }${AudioArg}"
+    fi
+  done
+
+  if [ -n "${AudioArgsList}" ] ; then
+    echo "${AudioArgsList}"
+  fi
 }
