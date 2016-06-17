@@ -41,7 +41,9 @@ function FFmpeg::Video.bitrate {
   local Stream="${1}"
   local Width
 
+  # FIXME: use user specified frame rate
   FrameRate="$(Video::FrameRate "${Stream}" "${File}")"
+  # FIXME: use cropped width/height
   Height="$(Video::Height "${Stream}" "${File}")"
   Width="$(Video::Width "${Stream}" "${File}")"
 
@@ -49,7 +51,7 @@ function FFmpeg::Video.bitrate {
 
   Var::Type.integer "${Bitrate}"
 
-  echo "-b:${Stream} ${Bitrate}k"
+  echo "${Bitrate}"
 }
 
 # Calculate the bits per pixel value based on a fixed resolution and fps
