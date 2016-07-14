@@ -134,8 +134,8 @@ function Arkive::Run {
       fi
     done
 
-    echo "ffmpeg ${FFmpegArgsList}"
-    ffmpeg ${FFmpegArgsList}
+    echo "@FFMPEG_PATH@ ${FFmpegArgsList}"
+    @FFMPEG_PATH@ ${FFmpegArgsList}
 
     unset FFmpegArg FFmpegArgs FFmpegArgsList
     __pass__=$(( ${__pass__} + 1 ))

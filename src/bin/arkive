@@ -61,7 +61,7 @@ ARKIVE_LIB_DIR="${ARKIVE_PREFIX}/share/lib-arkive"
 
 ################################ Load Libraries ################################
 
-source "$(/home/cwopel/Projects/lib-bash/src/bin/lib-bash)"
+source "$(@LIB_BASH_PATH@)"
 
 wait
 
