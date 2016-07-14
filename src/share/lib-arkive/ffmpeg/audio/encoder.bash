@@ -46,7 +46,7 @@ function FFmpeg::Audio.encoder {
       ;;
     'flac') Encoder='flac' ;;
     *)
-      Error::Message "invalid audio encoder: ${ARKIVE_AUDIO_ENCODER}"
+      Debug::Message 'error' "invalid audio encoder: ${ARKIVE_AUDIO_ENCODER}"
       return 1
       ;;
   esac

@@ -54,7 +54,7 @@ function FFmpeg::Audio.channels {
     '7.0'|'7.1'|'7.1(wide)'|'octagonal')
       Channels=7 ;;
     *)
-      Error::Message "Unsupported channel layout: ${ChannelLayout}"
+      Debug::Message 'error' "Unsupported channel layout: ${ChannelLayout}"
       return 1
       ;;
   esac

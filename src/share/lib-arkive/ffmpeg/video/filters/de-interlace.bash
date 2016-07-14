@@ -34,7 +34,7 @@
 # TODO: require video to contain at least 5000 frames (at least > 1000)
 # FIXME: these values need to be refined further
 
-FFmpeg::Video.filters:de_interlace() {
+function FFmpeg::Video.filters:de_interlace {
   local File="${2}"
   local IdetAprox=0
   local IdetBFF
@@ -56,7 +56,7 @@ FFmpeg::Video.filters:de_interlace() {
   CheckMinFrames="$(FFprobe '-' "${Stream}" 'stream' 'nb_frames' "${File}")"
 
   if [ ${CheckMinFrames} -lt 5000 ] ; then
-    Debug::Message "skipping interlace detection, not enough frames: ${CheckMinFrames}"
+    Debug::Message 'warn' "skipping interlace detection, not enough frames: ${CheckMinFrames}"
     return 0
   fi
 
@@ -144,7 +144,7 @@ FFmpeg::Video.filters:de_interlace() {
 
     # Something is wrong if no frames were detected at all 
     [ $(( ${IdetInterlaced} + ${IdetProgressive} )) -gt 0 ] || {
-      Error::Message 'no frames detected'
+      Debug::Message 'error' 'no frames detected'
       return 1
     }
 
@@ -152,15 +152,15 @@ FFmpeg::Video.filters:de_interlace() {
     IdetProgressiveTotal=$(( ${IdetProgressiveTotal} + ${IdetProgressive} ))
     TotalFrames=$(( ${IdetInterlacedTotal} + ${IdetProgressiveTotal} ))
 
-    Debug::Message "Interlaced frames: ${IdetInterlacedTotal}"
-    Debug::Message "Progressive frames: ${IdetProgressiveTotal}"
-    Debug::Message "Total frames: ${TotalFrames}"
+    Debug::Message 'info' "Interlaced frames: ${IdetInterlacedTotal}"
+    Debug::Message 'info' "Progressive frames: ${IdetProgressiveTotal}"
+    Debug::Message 'info' "Total frames: ${TotalFrames}"
 
     IdetInterlacedPercentage=$(( ${IdetInterlacedTotal} * 100 / ${TotalFrames} ))
     IdetProgressivePercentage=$(( ${IdetProgressiveTotal} * 100 / ${TotalFrames} ))
 
-    Debug::Message "Percentage interlaced: ${IdetInterlacedPercentage}"
-    Debug::Message "Percentage progressive: ${IdetProgressivePercentage}"
+    Debug::Message 'info' "Percentage interlaced: ${IdetInterlacedPercentage}"
+    Debug::Message 'info' "Percentage progressive: ${IdetProgressivePercentage}"
 
     LoopIter=$(( ${LoopIter} + 1 ))
 

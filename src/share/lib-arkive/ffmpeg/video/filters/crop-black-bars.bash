@@ -42,6 +42,9 @@ function FFmpeg::Video.filters:black_bar_crop {
   #   vp9: multiple of 16, cite bug
 
   local CropDetect
+  local CropDetectArg
+  local CropDetectArgs
+  local -a CropDetectArgsList
   local CropHeight
   local CropHeightArray
   local CropHeightMatches
@@ -71,7 +74,9 @@ function FFmpeg::Video.filters:black_bar_crop {
   CropYOffsetMatches=0
   LoopIter=1
   SourceHeight=$(Video::Height "${Stream}" "${File}")
+  Debug::Message 'info' "source height: ${SourceHeight}"
   SourceWidth=$(Video::Width "${Stream}" "${File}")
+  Debug::Message 'info' "source width: ${SourceWidth}"
 
   function mode {
     echo "${@}" |
@@ -97,24 +102,37 @@ function FFmpeg::Video.filters:black_bar_crop {
     # https://ffmpeg.org/pipermail/ffmpeg-user/2011-July/001795.html
     # https://ffmpeg.org/pipermail/ffmpeg-user/2012-August/008767.html
     # -ss before -i uses seeking, -ss after -i uses skipping and is very slow
+    CropDetectArgsList=(
+      '-nostdin'
+      '-hide_banner'
+      '-loglevel info'
+      "-threads $(Cpu::Logical)"
+      "-ss ${Skip}"
+      "-i ${File}"
+      '-ss 0'
+      '-t 1'
+      # The file index must be specified or cropdetect with fail when the
+      # video stream index is not 0.
+      "-filter:0:${Stream} cropdetect=30:0:0"
+      '-an'
+      '-f null -'
+    )
+
+    for CropDetectArg in "${CropDetectArgsList[@]}" ; do
+      if [ -n "${CropDetectArg}" ] ; then
+        CropDetectArgs="${CropDetectArgs}${CropDetectArgs:+ }${CropDetectArg}"
+      fi
+    done
+
+    Debug::Message 'info' "ffmpeg ${CropDetectArgs}"
+
     CropDetect="$(
-      ffmpeg \
-        -nostdin \
-        -hide_banner \
-        -loglevel info \
-        -threads "$(Cpu::Logical)" \
-        -ss ${Skip} \
-        -i "${File}" \
-        -ss 0 \
-        -t 1 \
-        -filter:${Stream} cropdetect=30:0:0 \
-        -an \
-        -f null - 2>&1 |
+      ffmpeg ${CropDetectArgs} 2>&1 |
         awk -F'=' '/crop/ { print $NF }' |
         tail -1
     )"
 
-    Debug::Message "${LoopIter}: ${CropDetect}"
+    Debug::Message 'info' "${LoopIter}: ${CropDetect}"
 
     # Find crop height
     CropHeight=$(echo "${CropDetect}" | awk -F':' '{ print $2 ; exit }')
@@ -133,7 +151,7 @@ function FFmpeg::Video.filters:black_bar_crop {
       CropWidthArray+=("${CropWidth}")
     fi
 
-    Debug::Message "${LoopIter} - W:${CropWidth} H:${CropHeight} X:${CropXOffsetArray[-1]} Y:${CropYOffsetArray[-1]}"
+    Debug::Message 'info' "${LoopIter} - W:${CropWidth} H:${CropHeight} X:${CropXOffsetArray[-1]} Y:${CropYOffsetArray[-1]}"
 
     # Find count of mode values
     CropWidthMatches=$(mode_count "${CropWidthArray[@]}")
@@ -141,9 +159,11 @@ function FFmpeg::Video.filters:black_bar_crop {
     CropXOffsetMatches=$(mode_count "${CropXOffsetArray[@]}")
     CropYOffsetMatches=$(mode_count "${CropYOffsetArray[@]}")
 
-    Debug::Message "MODE - W:${CropWidthMatches} H:${CropHeightMatches} X:${CropXOffsetMatches} Y:${CropYOffsetMatches}"
+    Debug::Message 'info' "MODE - W:${CropWidthMatches} H:${CropHeightMatches} X:${CropXOffsetMatches} Y:${CropYOffsetMatches}"
 
     LoopIter=$(( ${LoopIter} + 1 ))
+
+    unset CropDetectArg CropDetectArgs CropDetectArgsList
 
     # Exit if cropdetect is probably failing to prevent infinite loops
     [ ${LoopIter} -le 50 ]
@@ -165,7 +185,7 @@ function FFmpeg::Video.filters:black_bar_crop {
   CropYOffset=$(mode "${CropYOffsetArray[@]}")
   String::NotNull "${CropYOffset}"
 
-  Debug::Message "FINAL: W:${CropWidth} H:${CropHeight} X:${CropXOffset} Y:${CropYOffset}"
+  Debug::Message 'info' "FINAL: W:${CropWidth} H:${CropHeight} X:${CropXOffset} Y:${CropYOffset}"
 
   echo "crop=${CropWidth}:${CropHeight}:${CropXOffset}:${CropYOffset}"
 }

@@ -35,24 +35,22 @@ function Arkive::Run {
   local __filename__
   local __filenamefmt__
   local __outputdir__
+  # Initial pass number, DO NOT CHANGE VALUE
+  local __pass__=1
   local __subtitlestreams__
   local __tmpdir__
 
-  local AllowOverwrite
   local Audio
   local AudioPass
   local FFmpegArg
   local -a FFmpegArgs
   local FFmpegArgsList
   local File
+  local Index=0
   local Subtitle
   local Chapter
-  local Video
   local Metadata
   local OutputFile
-  # Initial pass number, DO NOT CHANGE VALUE
-  local PassArgs
-  local Pass=1
 
   local as
   local asa
@@ -60,15 +58,6 @@ function Arkive::Run {
   local ss
   local ssa
   local vs
-
-  if ${ARKIVE_ALLOW_OVERWRITING_FILES} ; then
-    AllowOverwrite='-y'
-  elif ! ${ARKIVE_ALLOW_OVERWRITING_FILES} ; then
-    AllowOverwrite='-n'
-  else
-    Error::Message "ARKIVE_ALLOW_OVERWRITING_FILES must be true/false: ${ARKIVE_ALLOW_OVERWRITING_FILES}"
-    return 1
-  fi
 
   File="${INPUTFILE}"
   __filename__="$(Filename::Original.base "${File}")"
@@ -80,7 +69,8 @@ function Arkive::Run {
   asa=($(Stream::Select 'audio' "${File}"))
   [[ ${#asa[@]} == +(1|2) ]]
   for as in ${asa[@]} ; do
-    Audio="${Audio:+${Audio} }$(FFmpeg::Audio "${as}" "${File}")"
+    Index=$(( ${Index} + 1 ))
+    Audio="${Audio:+${Audio} }$(FFmpeg::Audio "${as}" "${File}" "${Index}")"
   done
 
   #ssa=($(Stream::Select 'subtitle' "${File}"))
@@ -89,7 +79,7 @@ function Arkive::Run {
   #  Subtitle="${Subtitle:+${Subtitle} }$(FFmpeg::Subtitle "${ss}" "${File}")"
   #done
 
-  vs="$(Stream::Select 'video' "${File}")"
+  vs="$(Stream::Select 'video' "${File}" '0')"
   #VideoFilters="$(FFmpeg::Video.filters "${vs}" "${File}")"
   #VideoBitrate="$(FFmpeg::Video.bitrate "${vs}" "${File}")"
   #VideoCodec="$(FFmpeg::Video.codec "${vs}" "${File}")"
@@ -100,39 +90,43 @@ function Arkive::Run {
   # Metadata
   #Metadata="$(FFmpeg::Metadata)"
 
-  while [ ${Pass} -le ${ARKIVE_VIDEO_ENCODING_PASSES} ] ; do
-    Video="$(FFmpeg::Video "${vs}" "${File}")"
-    if [ ${ARKIVE_VIDEO_ENCODING_PASSES} -gt 1 ] ; then
-      PassArgs="-pass ${Pass} -passlogfile ${__tmpdir__}/${__filenamefmt__}.ffmpeg-passlog"
+  while [ ${__pass__} -le ${ARKIVE_VIDEO_ENCODING_PASSES} ] ; do
+    # Always overwrite the file for multipass encodes
+    if [ ${__pass__} -gt 1 ] || ${ARKIVE_ALLOW_OVERWRITING_FILES} ; then
+      FFmpegArgs+=('-y')
     else
-      unset PassArgs
+      FFmpegArgs+=('-n')
     fi
-    # Only encode audio on last pass
-    if [ ${Pass} -eq ${ARKIVE_VIDEO_ENCODING_PASSES} ] ; then
-      AudioPass="${Audio}"
-    else
-      AudioPass='-an'
-    fi
-    # Overwrite the file for multipass encodes
-    if [ ${Pass} -gt 1 ] ; then
-      AllowOverwrite='-y'
-    fi
-    FFmpegArgs=(
-      "${AllowOverwrite}"
+    FFmpegArgs+=(
       '-nostdin'
       '-hide_banner'
       '-stats'
       '-loglevel info'
-      "-r $(Video::FrameRate "${vs}" "${File}")"
+    )
+    FFmpegArgs+=("-r $(Video::FrameRate "${vs}" "${File}")")
+    FFmpegArgs+=(
       "-i ${File}"
       '-threads 1'
-      "${PassArgs}"
-      "${Video}"
+    )
+    if [ ${ARKIVE_VIDEO_ENCODING_PASSES} -gt 1 ] ; then
+      FFmpegArgs+=(
+        "-pass ${__pass__}"
+        "-passlogfile ${__tmpdir__}/${__filenamefmt__}.ffmpeg-passlog"
+      )
+    fi
+    FFmpegArgs+=("$(FFmpeg::Video "${vs}" "${File}")")
+    FFmpegArgs+=(
       '-movflags faststart'
       '-movflags frag_keyframe'
-      "${AudioPass}"
-      "${OutputFile}"
     )
+    # Only encode audio on last pass
+    if [ ${__pass__} -eq ${ARKIVE_VIDEO_ENCODING_PASSES} ] ; then
+      FFmpegArgs+=("${Audio}")
+    else
+      FFmpegArgs+=('-an')
+    fi
+    FFmpegArgs+=('-c:s copy')
+    FFmpegArgs+=("${OutputFile}")
 
     for FFmpegArg in "${FFmpegArgs[@]}" ; do
       if [ -n "${FFmpegArg}" ] ; then
@@ -141,9 +135,9 @@ function Arkive::Run {
     done
 
     echo "ffmpeg ${FFmpegArgsList}"
-    @FFMPEG_PATH@ ${FFmpegArgsList}
+    ffmpeg ${FFmpegArgsList}
 
     unset FFmpegArg FFmpegArgs FFmpegArgsList
-    Pass=$(( ${Pass} + 1 ))
+    __pass__=$(( ${__pass__} + 1 ))
   done
 }

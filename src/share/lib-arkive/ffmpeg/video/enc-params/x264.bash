@@ -33,35 +33,33 @@
 
 # Generates formatted ffmpeg x264-params key/values
 function FFmpeg::Video.codec:x264_params {
+  local Bitrate
+  local BufSize
   local File="${2}"
   local FrameRate
-  local KeyInt
-  local MeRange
-  local MinKeyInt
-  local -a Parameters
-  local RcLookahead
+  local -a __parameters
   local Stream="${1}"
+  local X26xParams
 
   Bitrate="$(FFmpeg::Video.bitrate "${Stream}" "${File}")"
   # Buffer size is bitrate +10%
-  BufSize=$(echo "${Bitrate}+(${Bitrate}*0.1)" | bc)
-
-  DecoderLevel="$(FFmpeg::Video.level:h264 "${Stream}" "${File}")"
+  # Setting the buffer size much higher than the bitrate becomes counter
+  # productive and can lower visual quality.
+  BufSize=$(Math::RoundFloat "$(echo "${Bitrate}+(${Bitrate}*0.1)" | bc -l)")
 
   FrameRate="$(FFmpeg::Video.frame_rate "${Stream}" "${File}")"
-  RcLookahead=$(( ${FrameRate} * 2 ))
 
-  MeRange=$(FFmpeg::Video.motion_estimation_range "${Stream}" "${File}")
 
-  MinKeyInt=$(FFmpeg::Video.min_keyframe_interval "${Stream}" "${File}")
 
-  KeyInt=$(FFmpeg::Video.keyframe_interval "${Stream}" "${File}")
-
-  Parameters=(
-    ### Frame-type opions ###
-    "keyint=${KeyInt}"
-    "min-keyint=${MinKeyInt}"
-    'scenecut=60' # FIXME
+  ### Frame-type opions ###
+  __parameters+=(
+    "keyint=$(FFmpeg::Video.keyframe_interval "${Stream}" "${File}")"
+  )
+  __parameters+=(
+    "min-keyint=$(FFmpeg::Video.min_keyframe_interval "${Stream}" "${File}")"
+  )
+  __parameters+=(
+    'scenecut=0'
     'intra-refresh=false'
     'bframes=2'
     'b-adapt=1'
@@ -84,14 +82,13 @@ function FFmpeg::Video.codec:x264_params {
     'interlaced=false'
     # TODO: support alternative frame-packing for 3D sources
     'frame-packing=6'
-    ### Ratecontrol ###
-    "rc-lookahead=${RcLookahead}" # FIXME: limit value to <= 250
-    # For whatever reason bc's scale=0 wasn't supressing floating points,
-    # so drop them here if any.
-    "vbv-maxrate=${BufSize%.*}"
-    # Setting the buffer size much higher than the bitrate becomes counter
-    # productive and can lower visual quality.
-    "vbv-bufsize=${BufSize%.*}"
+  )
+  ### Ratecontrol ###
+  # FIXME: limit value to <= 250
+  __parameters+=("rc-lookahead=$(( ${FrameRate} * 2 ))")
+  __parameters+=("vbv-maxrate=${BufSize}")
+  __parameters+=("vbv-bufsize=${BufSize}")
+  __parameters+=(
     'vbv-init=0.9'
     'qpmin=0'
     'qpmax=69' # XXX
@@ -111,27 +108,31 @@ function FFmpeg::Video.codec:x264_params {
     'cplxblur=20.0'
     'qblur=0.5'
     #'qpfile'
-    ### Analysis ###
+  ### Analysis ###
     'partitions=all'
     'direct=auto'
     'weightb=true'
     'weightp=2'
     'me=umh'
-    "merange=${MeRange}"
+  )
+  __parameters+=(
+    "merange=$(FFmpeg::Video.motion_estimation_range "${Stream}" "${File}")"
+  )
+  __parameters+=(
     'subme=9'
     'psy-rd=1.0\:0.25' # FIXME
     'psy=true'
     'mixed-refs=true'
     'chroma-me=true'
     '8x8dct=true'
-    'trellis=1' 
+    'trellis=1'
     'fast-pskip=false'
     'dct-decimate=false'
     'nr=0'
     'deadzone-inter=21'
     'deadzone-intra=11'
     #"cqmfile=${ARKIVE_PREFIX}/share/lib-arkive/ffmpeg/video/enc-params/cqm-matrices/eqm_avc_hr_matrix"
-    ### Video Usability Info ###
+  ### Video Usability Info ###
     #'overscan'
     #'videoformat'
     #'range'
@@ -145,16 +146,22 @@ function FFmpeg::Video.codec:x264_params {
     #'crop-rect'
     ### Input/Output ###
     #'sar'
+  )
+  __parameters+=(
     # Without specifing the level some decoders such as Chromium's incorrectly
     # detect the level which results in stuttering playback (chromium falls
     # back to 3.0).
-    "level=${DecoderLevel}"
+    "level=$(FFmpeg::Video.level:h264 "${Stream}" "${File}")"
+  )
+  __parameters+=(
     'bluray-compat=false'
     'avcintra-class=false'
     #'stitchable'
     'psnr=false'
     'ssim=false'
-    "threads=$(Cpu::Logical)"
+  )
+  __parameters+=("threads=$(Cpu::Logical)")
+  __parameters+=(
     #'lookahead-threads'
     'sliced-threads=false'
     #'sync-lookahead'
@@ -174,11 +181,13 @@ function FFmpeg::Video.codec:x264_params {
   )
 
   if [ ${ARKIVE_VIDEO_ENCODING_PASSES} -gt 1 ] ; then
-    Parameters+=(
-      "pass=${Pass}"
+    __parameters+=(
+      "pass=${__pass__}"
       "stats=${__tmpdir__}/${__filenamefmt__}.stats"
     )
   fi
 
-  echo "-x264-params $(FFmpeg::Video.x26x_params)"
+  X26xParams="$(FFmpeg::Video.x26x_params)"
+
+  echo "-x264-params ${X26xParams}"
 }

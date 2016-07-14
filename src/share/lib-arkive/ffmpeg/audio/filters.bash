@@ -32,27 +32,16 @@
 # purposes only.
 
 function FFmpeg::Audio.filters {
-  local ChannelLayoutMap
   local File="${2}"
   local Filter
   local FilterList
   local -a Filters
-  local Highpass
-  local Lowpass
-  local Resample
   local Stream="${1}"
 
-  #ChannelLayoutMap="$(FFmpeg::Audio.channel_layout_map)"
-  Highpass="$(FFmpeg::Audio.filters:highpass)"
-  Lowpass="$(FFmpeg::Audio.filters:lowpass)"
-  Resample="$(FFmpeg::Audio.filters:resample "${Stream}" "${File}")"
-
-  Filters=(
-    #"${ChannelLayoutMap}"
-    "${Highpass}"
-    "${Lowpass}"
-    "${Resample}"
-  )
+  #Filters+=("$(FFmpeg::Audio.channel_layout_map)")
+  Filters+=("$(FFmpeg::Audio.filters:highpass)")
+  Filters+=("$(FFmpeg::Audio.filters:lowpass)")
+  Filters+=("$(FFmpeg::Audio.filters:resample "${Stream}" "${File}")")
 
   for Filter in "${Filters[@]}" ; do
     if [ -n "${Filter}" ] ; then

@@ -57,7 +57,7 @@ function FFmpeg::Video.level:h264 {
   elif [ ${FrameWidth} -le 4096 ] && [ ${FrameRate} -le 60 ] ; then
     echo "5.2"
   else
-    Error::Message 'failed to detect decoder level'
+    Debug::Message 'Error' 'failed to detect decoder level'
     return 1
   fi
 }

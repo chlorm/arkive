@@ -31,14 +31,14 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-FFmpeg::Audio.sample_rate() {
+function FFmpeg::Audio.sample_rate {
   local Stream="${1}"
 
   [[ ${ARKIVE_AUDIO_SAMPLE_RATE} == +(44100|48000|96000|192000) ]]
 
   if [ "${ARKIVE_AUDIO_CODEC}" == 'opus' ] && \
      [ ${ARKIVE_AUDIO_SAMPLE_RATE} -ne 48000 ] ; then
-     Error::Message "opus only support 48000Hz sample rate"
+     Debug::Message 'error' "opus only support 48000Hz sample rate"
   fi
 
   echo "-ar:${Stream} ${ARKIVE_AUDIO_SAMPLE_RATE}"

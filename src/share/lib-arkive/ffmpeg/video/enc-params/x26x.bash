@@ -37,7 +37,7 @@ function FFmpeg::Video.x26x_params {
   local ParamList
   local ParamValue
 
-  for Param in ${Parameters[@]} ; do
+  for Param in ${__parameters[@]} ; do
     # FFmpeg's key/value parser can't handle null values and will fail
     # silently, make sure a value is set to prevent this behavior.
     ParamKey="$(echo "${Param}" | awk -F'=' '{ print $1 ; exit }')"

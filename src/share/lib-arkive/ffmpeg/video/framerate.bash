@@ -37,10 +37,20 @@ function FFmpeg::Video.frame_rate {
   local Stream="${1}"
 
   if [ "${ARKIVE_VIDEO_FRAMERATE}" != 'source' ] ; then
-    echo "-r ${ARKIVE_VIDEO_FRAMERATE}"
+    echo "${ARKIVE_VIDEO_FRAMERATE}"
   else
     SourceFrameRate="$(Video::FrameRate "${Stream}" "${File}")"
     String::NotNull "${SourceFrameRate}"
     echo "${SourceFrameRate}"
   fi
+}
+
+function FFmpeg::Video.frame_rate:float {
+  local File="${2}"
+  local FrameRateFloat
+  local Stream="${1}"
+
+  FrameRateFloat="$(FFmpeg::Video.frame_rate "${Stream}" "${File}" | bc -l)"
+
+  echo "${FrameRateFloat}"
 }

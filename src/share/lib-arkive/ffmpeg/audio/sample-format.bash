@@ -31,30 +31,9 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Video {
+function FFmpeg::Audio. {
   local File="${2}"
-  local Index="${3}"
   local Stream="${1}"
-  local VideoArg
-  local -a VideoArgs
-  local VideoArgsList
 
-  VideoArgs+=("-map 0:${Stream}")
-  VideoArgs+=("-b:${Stream} $(FFmpeg::Video.bitrate "${Stream}" "${File}")k")
-  VideoArgs+=("$(FFmpeg::Video.codec "${Stream}" "${File}")")
-  VideoArgs+=("$(FFmpeg::Video.filters "${Stream}" "${File}")")
-  VideoArgs+=(
-    "-r:${Stream} $(FFmpeg::Video.frame_rate "${Stream}" "${File}")"
-  )
-  VideoArgs+=("$(FFmpeg::Video.pixel_format "${Stream}" "${File}")")
-
-  for VideoArg in "${VideoArgs[@]}" ; do
-    if [ -n "${VideoArg}" ] ; then
-      VideoArgsList="${VideoArgsList}${VideoArgsList:+ }${VideoArg}"
-    fi
-  done
-
-  if [ -n "${VideoArgsList}" ] ; then
-    echo "${VideoArgsList}"
-  fi
+  # if flac use native, else 16bit
 }

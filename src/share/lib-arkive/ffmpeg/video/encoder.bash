@@ -56,5 +56,5 @@ function FFmpeg::Video.codec {
     *) return 1 ;;
   esac
 
-  echo "-c:${Stream} ${Encoder}${EncoderParams:+ ${EncoderParams}}"
+  echo "-c:0:v:${Stream} ${Encoder}${EncoderParams:+ ${EncoderParams}}"
 }

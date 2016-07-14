@@ -63,7 +63,7 @@ function Input::Parser {
   source "$(Args::Build)"
 
   if [ -z "${input}" ] ; then
-    Error::Message 'no input'
+    Debug::Message 'error' 'no input'
     arkive::Usage
     return 1
   fi

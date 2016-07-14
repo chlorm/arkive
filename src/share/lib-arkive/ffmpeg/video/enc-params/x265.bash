@@ -35,13 +35,11 @@
 function FFmpeg::Video.codec:x265_params {
   local Bitrate
   local BufSize
-  local DecoderLevel
   local File="${2}"
   local FrameRate
-  local KeyInt
   local MeRange
   local Param
-  local Parameters
+  local -a __parameters
   local ParamHasValue
   local ParamList
   local RcLookahead
@@ -52,16 +50,12 @@ function FFmpeg::Video.codec:x265_params {
   # Buffer size is bitrate +10%
   BufSize=$(echo "${Bitrate}+(${Bitrate}*0.1)" | bc)
 
-  DecoderLevel="$(FFmpeg::Video.level:h265 "${Stream}" "${File}")"
-
   FrameRate="$(echo "$(FFmpeg::Video.frame_rate "${Stream}" "${File}")" | bc)"
-  if [ ${FrameRate} -gt 125 ] ; then
+  if [ ${FrameRate} -gt 250 ] ; then
     RcLookahead=250
   else
     RcLookahead=${FrameRate}
   fi
-
-  KeyInt="$(FFmpeg::Video.keyframe_interval "${Stream}" "${File}")"
 
   MeRange="$(FFmpeg::Video.motion_estimation_range "${Stream}" "${File}")"
   # Motion Estimation ranges below 57 reduce coding efficiency
@@ -70,25 +64,29 @@ function FFmpeg::Video.codec:x265_params {
     MeRange=58
   fi
 
-  MinKeyInt=$(FFmpeg::Video.min_keyframe_interval "${Stream}" "${File}")
-
-  Parameters=(
+  __parameters+=(
     'log-level=info'
     # Use a single frame thread to prevent ghosting artifacts in some cases
     "frame-threads=1"
-    "pools=$(Cpu::Logical)" # FIXME
+  )
+  __parameters+=("pools=$(Cpu::Logical)") # FIXME
     #numa-pools # char
-    'wpp=true' # FIXME: disable if cpu threads=1
+  __parameters+=(
+    "wpp=$(if [ $(Cpu::Logical) -gt 1 ] ; then echo 'true' ; else echo 'false' ; fi)"
+  )
+  __parameters+=(
     'pmode=false'
     'pme=false'
     #'dither'
-    #fps # float/int/fraction
     'interlace=false'
-    "level-idc=${DecoderLevel}"
+  )
+  __parameters+=("level-idc=$(FFmpeg::Video.level:h265 "${Stream}" "${File}")")
+  __parameters+=(
     #'high-tier' # bool
-    'ref=3' # value <= 6 due to b-frames & b-pyramid
+    # value <= 6 due to b-frames & b-pyramid
+    'ref=3'
     'allow-non-conformance=false'
-    #'uhd-bd' # bool?
+    'uhd-bd=false'
     'rd=3'
     'ctu=64'
     'min-cu-size=8'
@@ -113,62 +111,82 @@ function FFmpeg::Video.codec:x265_params {
     'nr-intra=0'
     'nr-inter=0'
     'tskip=false'
-    'rdpenalty=0' # int TODO
+    'rdpenalty=0' # TODO
     'max-tu-size=32'
-    'max-merge=2' # int TODO
-    # star(3) seems to be producing artifacts
+    'max-merge=3'
+    # me:star(3) seems to be producing artifacts
     'me=2'
-    'subme=2' # int TODO
-    "merange=${MeRange}"
+    'subme=2'
+  )
+  __parameters+=("merange=${MeRange}")
+  __parameters+=(
     'temporal-mvp=true' # TODO
     'weightp=true'
     # Segfault if weightb is disabled (possibly only when in combination
     # with another flag)
     'weightb=true'
     'strong-intra-smoothing=false'
-    'constrained-intra=false' # TODO test this
-    'psy-rd=4.0' # use < 0.9
-    'psy-rdoq=10.0' # use > 3 & < 5
-    'open-gop=true' # TODO
-    "keyint=${KeyInt}"
-    "min-keyint=${MinKeyInt}"
-    'scenecut=40' # int TODO
-    #'intera-refresh' # bool? TODO
+    'constrained-intra=false'
+    'psy-rd=2.3'
+    'psy-rdoq=0.1'
+    'open-gop=true'
+  )
+  __parameters+=(
+    # Ensure 1 keyframe per GOP
+    "keyint=$(FFmpeg::Video.keyframe_interval "${Stream}" "${File}")"
+  )
+  __parameters+=(
+    # For high frame rates ensure multiple keyframes per second
+    "min-keyint=$(FFmpeg::Video.min_keyframe_interval "${Stream}" "${File}")"
+  )
+  __parameters+=(
+    ###############'scenecut=40'
+    'scenecut=0'
+    'intra-refresh=false'
+  )
+  __parameters+=(
     # Set lookahead to same as key-frame interval to make sure the encoder
     # has the entire GOP for decision making.
-    "rc-lookahead=${RcLookahead}" # int (> bframes & < 250)
+    "rc-lookahead=${RcLookahead}" # (> bframes & < 250)
+  )
+  __parameters+=(
     'lookahead-slices=0'
     'b-adapt=2'
-    'bframes=3' # values > 3 have a large performance penalty
-    'bframe-bias=0' # TODO
+    # Using > 3 bframes has a large performance penalty
+    'bframes=3'
+    'bframe-bias=0'
     'b-pyramid=true'
+  )
+  __parameters+=(
     "vbv-bufsize=${BufSize%.*}"
     "vbv-maxrate=${BufSize%.*}"
+  )
+  __parameters+=(
     'vbv-init=0.9' # float
     'lossless=false'
-    # x265's aq causes significant blocking artifacts, negating any usefulness
+    # x265's aq causes significant blocking artifacts, negating any usefulness.
     'aq-mode=0' # something with aq is causing crashes on 2nd pass encodes,
-    'aq-strength=0' # maybe the crash is caused by aq-strength >2.0
+    'aq-strength=0' # maybe the crash is caused by aq-strength > 2.0
     #'qg-size' # int
     'cutree=false'
     'strict-cbr=false'
-    'cbqpoffs=0' # int
-    'crqpoffs=0' # int
-    'ipratio=1.1' # float
-    'pbratio=1.0' # float
+    'cbqpoffs=-4'
+    'crqpoffs=-4'
+    'ipratio=1.4'
+    'pbratio=1.0'
     'qcomp=0.6' # values < 0.5 segfault, use 0.6, > values blur
-    #'qpstep=4'
+    'qpstep=4'
     'rc-grain=true'
-    #'qblur=0.8'
-    'cplxblur=2.0' # <=20
-    #'zones'
-    #'signhide=false'
-    #'qpfile' # char
-    #'scaling-list' # char
-    #'lambda-file' # char
-    'deblock=\-3\:0'
+    'qblur=0.5'
+    'cplxblur=20.0'
+    #'zones=0,250,b=2.0'
+    'signhide=true'
+    #'qpfile'
+    #'scaling-list'
+    #'lambda-file'
+    'deblock=0'
     'sao=false'
-    #'sao-non-deblock=true'
+    'sao-non-deblock=false'
     #'sar'
     #'display-window'
     #'overscan'
@@ -182,30 +200,30 @@ function FFmpeg::Video.codec:x265_params {
     #'max-cll'
     #'min-luma'
     #'max-luma'
-    #'annexb=false'
+    'annexb=true'
     'repeat-headers=false'
-    #'aud=false'
-    #'hrd=false'
+    'aud=false'
+    #'hrd=false' # XXX
     'info=false'
-    #'hash=2'
-    #'temporal-layers=false'
+    'hash=2'
+    'temporal-layers=false'
   )
 
   if [ ${ARKIVE_VIDEO_ENCODING_PASSES} -gt 1 ] ; then
-    Parameters+=(
-      "pass=${Pass}"
+    __parameters+=(
+      "pass=${__pass__}"
       'slow-firstpass=false'
       "stats=${__tmpdir__}/${__filenamefmt__}.stats"
       "analysis-file=${__tmpdir__}/${__filenamefmt__}.analysis"
     )
     # Determine analysis-mode
-    if [ ${Pass} -eq 1 ] ; then
-      Parameters+=('analysis-mode=1')
+    if [ ${__pass__} -eq 1 ] ; then
+      __parameters+=('analysis-mode=1')
     else
-      Parameters+=('analysis-mode=2')
+      __parameters+=('analysis-mode=2')
     fi
   else
-    Parameters+=('analysis-mode=0')
+    __parameters+=('analysis-mode=0')
   fi
 
   echo "-x265-params $(FFmpeg::Video.x26x_params)"

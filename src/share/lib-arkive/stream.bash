@@ -31,13 +31,10 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-Stream::Select() {
-  local FFtype
+function Stream::Select {
   local -A FFtypes
   local File="${2}"
-  local ReqMaxStm
   local -A ReqMaxsStm
-  local ReqMinStm
   local -A ReqMinsStm
   local -a Streams
   local Type="${1}"
@@ -49,9 +46,8 @@ Stream::Select() {
     ['subtitle']='s'
     ['video']='v'
   )
-  FFtype="${FFtypes[${Type}]}"
 
-  Streams=($(FFprobe "${FFtype}" '-' 'stream' 'index' "${File}"))
+  Streams=($(FFprobe "${FFtypes[${Type}]}" '-' 'stream' 'index' "${File}"))
 
   # Minimum number of streams allowed for each type
   ReqMinsStm=(
@@ -60,9 +56,8 @@ Stream::Select() {
     ['subtitle']=0
     ['video']=1
   )
-  ReqMinStm=${ReqMinsStm[${Type}]}
 
-  [ ${#Streams[@]} -ge ${ReqMinStm} ]
+  [ ${#Streams[@]} -ge ${ReqMinsStm[${Type}]} ]
 
   # Maximum number of streams allowed for each type
   ReqMaxsStm=(
@@ -71,9 +66,8 @@ Stream::Select() {
     ['subtitle']=2
     ['video']=1
   )
-  ReqMaxStm=${ReqMaxsStm[${Type}]}
 
-  [ ${#Streams[@]} -le ${ReqMaxStm} ]
+  [ ${#Streams[@]} -le ${ReqMaxsStm[${Type}]} ]
 
   if [ ${#Streams[@]} -eq 1 ] ; then
     # FIXME: make sure stream meets requirements
@@ -104,7 +98,7 @@ Stream::Select() {
       fi
     done
 
-    Error::Message 'multiple streams not implemented'
+    Debug::Message 'error' 'multiple streams not implemented'
     return 1
   fi
 

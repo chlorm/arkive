@@ -32,29 +32,17 @@
 # purposes only.
 
 function FFmpeg::Video.filters {
-  local BlackBars
-  local DeInterlace
-  local DeNoise
   local File="${2}"
   local Filter
   local FilterList
   local -a Filters
-  local Scale
   local Stream="${1}"
 
-  #DeInterlace="$(FFmpeg::Video.filters:de_interlace "${Stream}" "${File}")"
-  BlackBars="$(FFmpeg::Video.filters:black_bar_crop "${Stream}" "${File}")"
-  #Scale="$(FFmpeg::Video.filters:scale "${Stream}" "${File}")"
-  #DeNoise="$(FFmpeg::Video.filters:denoise)"
-
   # NOTE: the order of filters here is the order in which they are applied
-  # XXX: Do not call functions within arrays
-  Filters=(
-    #"${DeInterlace}"
-    "${BlackBars}"
-    #"${Scale}"
-    #"${DeNoise}"
-  )
+  #Filters+=("$(FFmpeg::Video.filters:de_interlace "${Stream}" "${File}")")
+  Filters+=("$(FFmpeg::Video.filters:black_bar_crop "${Stream}" "${File}")")
+  #Filters+=("$(FFmpeg::Video.filters:scale "${Stream}" "${File}")")
+  #Filters+=("$(FFmpeg::Video.filters:denoise)")
 
   for Filter in "${Filters[@]}" ; do
     if [ -n "${Filter}" ] ; then

@@ -31,6 +31,6 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-FFmpeg::Video.filters:denoise() {
-  echo "hqdn3d=1:1:4:4"
+function FFmpeg::Video.filters:denoise {
+  echo 'hqdn3d=1:1:4:4'
 }

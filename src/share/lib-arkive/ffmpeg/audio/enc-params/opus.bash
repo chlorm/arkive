@@ -32,6 +32,24 @@
 # purposes only.
 
 function FFmpeg::Audio.encoder:opus {
+  local Parameter
+  local ParameterList
+  local -a Parameters
   local Stream="${1}"
-  echo "-frame_duration:${Stream} 60 -compression_level:${Stream} 10 -vbr:${Stream} on"
+
+  Parameters=(
+    "-frame_duration:${Stream} 60"
+    "-compression_level:${Stream} 10"
+    "-vbr:${Stream} on"
+  )
+
+  for Parameter in "${Parameters[@]}" ; do
+    if [ -n "${Parameter}" ] ; then
+      ParameterList="${ParameterList}${ParameterList:+ }${Parameter}"
+    fi
+  done
+
+  if [ -n "${ParameterList}" ] ; then
+    echo "${ParameterList}"
+  fi
 }

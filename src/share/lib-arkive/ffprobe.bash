@@ -31,39 +31,50 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-FFprobe() {
+function FFprobe {
   [ $# -eq 5 ]
   local StreamType="${1}"
   local Stream="${2}"
   local EntKey="${3}"
   local EntVal="${4}"
   local File="${5}"
+  local FFprobeArg
+  local FFprobeArgs
+  local -a FFprobeArgsList
   local FFprobeOut
+
+  Debug::Message 'info' "1:${1}, 2:${2}, 3:${3}, 4:${4}, 5:${5},"
 
   if [ "${StreamType}" == '-' ] ; then
     unset StreamType
   elif [[ ! "${StreamType}" == +('a'|'s'|'v') ]]; then
-    Error::Message "invalid stream type: ${StreamType}"
+    Debug::Message 'error' "invalid stream type: ${StreamType}"
   fi
 
   if [ "${Stream}" == '-' ] ; then
     unset Stream
   elif [ ! ${Stream} -ge 0 ] ; then
-    Error::Message "invalid stream id: ${Stream}"
+    Debug::Message 'error' "invalid stream id: ${Stream}"
   fi
 
   if [ ! -f "${File}" ] ; then
-    Error::Message "invalid file: ${File}"
+    Debug::Message 'error' "invalid file: ${File}"
   fi
 
-  FFprobeOut="$(
-    @FFPROBE_PATH@ \
-      -v error \
-      -select_streams "${StreamType}${StreamType:+${Stream:+:}}${Stream}" \
-      -show_entries "${EntKey}=${EntVal}" \
-      -of 'default=noprint_wrappers=1:nokey=1' \
-      "${File}"
-  )"
+  FFprobeArgsList=(
+    '-v error'
+    "-select_streams ${StreamType}${StreamType:+${Stream:+:}}${Stream}"
+    "-show_entries ${EntKey}=${EntVal}"
+    '-of default=noprint_wrappers=1:nokey=1'
+    "${File}"
+  )
+  for FFprobeArg in "${FFprobeArgsList[@]}" ; do
+    if [ -n "${FFprobeArg}" ] ; then
+      FFprobeArgs="${FFprobeArgs}${FFprobeArgs:+ }${FFprobeArg}"
+    fi
+  done
+  Debug::Message 'info' "ffprobe ${FFprobeArgs}"
+  FFprobeOut="$(ffprobe ${FFprobeArgs})"
 
   String::NotNull "${FFprobeOut}"
 

@@ -31,30 +31,43 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Video {
+function Subtitle::Codec {
+  local Codec
   local File="${2}"
-  local Index="${3}"
   local Stream="${1}"
-  local VideoArg
-  local -a VideoArgs
-  local VideoArgsList
 
-  VideoArgs+=("-map 0:${Stream}")
-  VideoArgs+=("-b:${Stream} $(FFmpeg::Video.bitrate "${Stream}" "${File}")k")
-  VideoArgs+=("$(FFmpeg::Video.codec "${Stream}" "${File}")")
-  VideoArgs+=("$(FFmpeg::Video.filters "${Stream}" "${File}")")
-  VideoArgs+=(
-    "-r:${Stream} $(FFmpeg::Video.frame_rate "${Stream}" "${File}")"
-  )
-  VideoArgs+=("$(FFmpeg::Video.pixel_format "${Stream}" "${File}")")
+  Codec="$(FFprobe '-' "${Stream}" 'stream' 'codec_name' "${File}")"
 
-  for VideoArg in "${VideoArgs[@]}" ; do
-    if [ -n "${VideoArg}" ] ; then
-      VideoArgsList="${VideoArgsList}${VideoArgsList:+ }${VideoArg}"
-    fi
-  done
+  String::NotNull "${Codec}"
 
-  if [ -n "${VideoArgsList}" ] ; then
-    echo "${VideoArgsList}"
-  fi
+  echo "${Codec}"
+}
+
+# Return true is the codec is a bitmap format, false if plaintext
+function Subtitle::IsBitmap {
+  local Codec
+  local File="${2}"
+  local IsBitmap='null'
+  local Stream="${1}"
+
+  Codec="$(Subtitle::Codec "${Stream}" "${File}")"
+
+  case "${Codec}" in
+    'ass'|'jacosub'|'microdvd'|'mov_text'|'mpl2'|'pjs'|'realtext'|'sami'|\
+    'srt'|'stl'|'ssa'|'subrip'|'subviewer'|'subviewer1'|'text'|'vplayer'|\
+    'webvtt')
+      IsBitmap='false'
+      ;;
+    'dvb_subtitle'|'dvb_teletext'|'dvd_subtitle'|'hdmv_pgs_subtitle'|'xsub')
+      IsBitmap='true'
+      ;;
+    *)
+      Debug::Message 'error' "unsupported subtitle codec: ${Codec}"
+      return 1
+      ;;
+  esac
+
+  [[ "${IsBitmap}" == 'true' || "${IsBitmap}" == 'false' ]]
+
+  echo "${IsBitmap}"
 }

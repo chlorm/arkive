@@ -46,7 +46,7 @@ function FFmpeg::Video.pixel_format {
   elif [ ${ARKIVE_VIDEO_BIT_DEPTH} -eq 8 ] ; then
     unset Endian
   else
-    Error::Message "unsupported bit depth: ${BitDepth}"
+    Debug::Message 'error' "unsupported bit depth: ${BitDepth}"
     return 1
   fi
 

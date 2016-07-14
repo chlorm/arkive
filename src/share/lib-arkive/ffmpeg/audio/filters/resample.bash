@@ -49,8 +49,8 @@ function FFmpeg::Audio.filters:resample {
       [ ${SampleRate} -lt 44100 ]) || \
      ([ "${ARKIVE_AUDIO_CODEC}" == 'opus' ] && \
       [ ${ARKIVE_AUDIO_SAMPLE_RATE} -ne 48000 ]) ; then
-    Error::Message 'upsampling is only allowed for < 44100kHz -> 44100kHz'
-    Error::Message 'and for opus anything that != 48000kHz'
+    Debug::Message 'error' 'upsampling is only allowed for < 44100kHz -> 44100kHz'
+    Debug::Message 'error' 'and for opus anything that != 48000kHz'
     return 1
   fi
 

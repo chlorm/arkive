@@ -33,41 +33,29 @@
 
 function FFmpeg::Audio {
   local AudioArg
-  local -a AudioArgs
-  local AudioArgsBitrate
-  local AudioArgsChannels
-  local AudioArgsEncoder
-  local AudioArgsFilters
-  local AudioArgsList
-  local AudioArgsSampleRate
+  local AudioArgs
+  local -a AudioArgsList
   local File="${2}"
+  local Index="${3}"
   local Stream="${1}"
-
-  AudioArgsFilters="$(FFmpeg::Audio.filters "${Stream}" "${File}")"
-  AudioArgsCutoff="$(FFmpeg::Audio.cutoff "${Stream}")"
-  AudioArgsBitrate="$(FFmpeg::Audio.bitrate "${Stream}" "${File}")"
-  #AudioArgsChannels="$(FFmpeg::Audio.channels "${Stream}")"
-  AudioArgsEncoder="$(FFmpeg::Audio.encoder "${Stream}" "${File}")"
-  AudioArgsSampleRate="$(FFmpeg::Audio.sample_rate "${Stream}")"
 
   # -ac ${Channels}"
 
-  AudioArgs=(
-    "${AudioArgsBitrate}"
-    #"${AudioArgsChannels}"
-    "${AudioArgsCutoff}"
-    "${AudioArgsEncoder}"
-    "${AudioArgsFilters}"
-    "${AudioArgsSampleRate}"
-  )
+  AudioArgsList+=("-map 0:${Stream}")
+  AudioArgsList+=("$(FFmpeg::Audio.filters "${Stream}" "${File}")")
+  AudioArgsList+=("$(FFmpeg::Audio.cutoff "${Stream}")")
+  AudioArgsList+=("$(FFmpeg::Audio.bitrate "${Stream}" "${File}")")
+  #AudioArgsList+=("$(FFmpeg::Audio.channels "${Stream}")")
+  AudioArgsList+=("$(FFmpeg::Audio.encoder "${Stream}" "${File}")")
+  AudioArgsList+=("$(FFmpeg::Audio.sample_rate "${Stream}")")
 
-  for AudioArg in "${AudioArgs[@]}" ; do
+  for AudioArg in "${AudioArgsList[@]}" ; do
     if [ -n "${AudioArg}" ] ; then
-      AudioArgsList="${AudioArgsList}${AudioArgsList:+ }${AudioArg}"
+      AudioArgs="${AudioArgs}${AudioArgs:+ }${AudioArg}"
     fi
   done
 
-  if [ -n "${AudioArgsList}" ] ; then
-    echo "${AudioArgsList}"
+  if [ -n "${AudioArgs}" ] ; then
+    echo "${AudioArgs}"
   fi
 }

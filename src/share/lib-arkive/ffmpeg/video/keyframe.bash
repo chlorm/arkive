@@ -40,15 +40,9 @@ function FFmpeg::Video.min_keyframe_interval {
   local MinKeyInt
   local Stream="${1}"
 
-  FrameRate="$(Video::FrameRate "${Stream}" "${File}")"
+  FrameRate="$(FFmpeg::Video.frame_rate:float "${Stream}" "${File}")"
 
-  # Rounds SourceFrameRate to the nearest whole number
-  FrameRateRounded=$(
-    printf %.0f $(
-      echo ${FrameRate} |
-      bc -l
-    )
-  )
+  FrameRateRounded=$(Math::RoundFloat "${FrameRate}")
 
   # Make sure we end up with at least 1 keyframe
   if [ ${FrameRateRounded} -lt 20 ] ; then
@@ -59,7 +53,11 @@ function FFmpeg::Video.min_keyframe_interval {
 
   [ ${KeyFrames} -ge 1 ]
 
-  MinKeyInt=$(( ${FrameRate} / ${KeyFrames} ))
+  MinKeyInt="$(echo "${FrameRate}/${KeyFrames}" | bc -l)"
+
+  MinKeyInt=$(Math::RoundFloat "${MinKeyInt}")
+
+  Var::Type.integer "${MinKeyInt}"
 
   echo "${MinKeyInt}"
 }
@@ -71,11 +69,9 @@ function FFmpeg::Video.keyframe_interval {
   local FrameRate
   local Stream="${1}"
 
-  FrameRate="$(Video::FrameRate "${Stream}" "${File}")"
+  FrameRate="$(FFmpeg::Video.frame_rate:float "${Stream}" "${File}")"
 
-  KeyInt=$(( ${FrameRate} * 10 ))
-
-  [[ ${KeyInt} -gt ${FrameRate} ]]
+  KeyInt=$(Math::RoundFloat "${FrameRate}")
 
   echo "${KeyInt}"
 }
