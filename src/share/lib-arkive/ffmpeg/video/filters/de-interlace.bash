@@ -84,7 +84,7 @@ function FFmpeg::Video.filters:de_interlace {
         egrep 'idet|Input' |
         grep 'Multi frame detection'
     )"
-    String::NotNull "${IdetResults}"
+    Var::Type.string "${IdetResults}"
 
     # Top Field First frames
     IdetTFF=$(

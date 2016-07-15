@@ -40,8 +40,6 @@ function FFmpeg::Audio.bitrate {
   if [ "${ARKIVE_AUDIO_ENCODER}" != 'flac' ] ; then
     Channels="$(FFmpeg::Audio.channels "${Stream}" "${File}")"
 
-    String::NotNull "${Channels}"
-
     Bitrate=$(( ${Channels} * ${ARKIVE_AUDIO_CHANNEL_BITRATE} ))
 
     [ ${Bitrate} -ge 16 ]

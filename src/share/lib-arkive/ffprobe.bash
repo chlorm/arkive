@@ -76,7 +76,7 @@ function FFprobe {
   Debug::Message 'info' "ffprobe ${FFprobeArgs}"
   FFprobeOut="$(ffprobe ${FFprobeArgs})"
 
-  String::NotNull "${FFprobeOut}"
+  Var::Type.string "${FFprobeOut}"
 
   echo "${FFprobeOut}"
 }

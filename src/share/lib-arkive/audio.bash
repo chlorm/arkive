@@ -38,7 +38,7 @@ function Audio::SampleRate {
 
   SampleRate=$(FFprobe '-' "${Stream}" 'stream' 'sample_rate' "${File}")
 
-  String::NotNull "${SampleRate}"
+  Var::Type.integer "${SampleRate}"
 
   echo "${SampleRate}"
 }
@@ -50,7 +50,7 @@ function Audio::SampleFormat {
 
   SampleFormat=$(FFprobe '-' "${Stream}" 'stream' 'sample_fmt' "${File}")
 
-  String::NotNull "${SampleFormat}"
+  Var::Type.string "${SampleFormat}"
 
   echo "${SampleFormat}"
 }
@@ -62,7 +62,7 @@ function Audio::Bitrate {
 
   Bitrate=$(FFprobe '-' "${Stream}" 'stream' 'bit_rate' "${File}")
 
-  String::NotNull "${Bitrate}"
+  Var::Type.integer "${Bitrate}"
 
   echo "${Bitrate}"
 }
@@ -74,7 +74,7 @@ function Audio::Channels {
 
   Channels=$(FFprobe '-' "${Stream}" 'stream' 'channels' "${File}")
 
-  String::NotNull "${Channels}"
+  Var::Type.integer "${Channels}"
 
   echo "${Channels}"
 }
@@ -86,7 +86,7 @@ function Audio::ChannelLayout {
 
   ChannelLayout="$(FFprobe '-' "${Stream}" 'stream' 'channel_layout' "${File}")"
 
-  String::NotNull "${ChannelLayout}"
+  Var::Type.string "${ChannelLayout}"
 
   echo "${ChannelLayout}"
 }

@@ -42,7 +42,7 @@ function FFmpeg::Video.motion_estimation_range {
 
   MeRange=$(( ${FrameRate} * 2 ))
 
-  String::NotNull "${MeRange}"
+  Var::Type.integer "${MeRange}"
 
   echo "${MeRange}"
 }

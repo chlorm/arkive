@@ -38,7 +38,7 @@ function Video::Height {
 
   Height=$(FFprobe '-' "${Stream}" 'stream' 'height' "${File}")
 
-  String::NotNull "${Height}"
+  Var::Type.integer "${Height}"
 
   echo "${Height}"
 }
@@ -50,7 +50,7 @@ function Video::Width {
 
   Width=$(FFprobe '-' "${Stream}" 'stream' 'width' "${File}")
 
-  String::NotNull "${Width}"
+  Var::Type.integer "${Width}"
 
   echo "${Width}"
 }
@@ -62,7 +62,7 @@ function Video::FrameRate {
 
   SourceFrameRate="$(FFprobe '-' "${Stream}" 'stream' 'r_frame_rate' "${File}")"
 
-  String::NotNull "${SourceFrameRate}"
+  Var::Type.string "${SourceFrameRate}"
 
   echo "${SourceFrameRate}"
 }

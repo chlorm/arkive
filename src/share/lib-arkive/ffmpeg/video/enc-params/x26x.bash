@@ -41,9 +41,9 @@ function FFmpeg::Video.x26x_params {
     # FFmpeg's key/value parser can't handle null values and will fail
     # silently, make sure a value is set to prevent this behavior.
     ParamKey="$(echo "${Param}" | awk -F'=' '{ print $1 ; exit }')"
-    String::NotNull "${ParamKey}"
+    Var::Type.string "${ParamKey}"
     ParamValue="$(echo "${Param}" | awk -F'=' '{ print $2 ; exit }')"
-    String::NotNull "${ParamValue}"
+    Var::Type.string "${ParamValue}"
 
     # Allow true/false within codec parameters to make booleans more apparent.
     if [ "${ParamValue}" == 'true' ] ; then

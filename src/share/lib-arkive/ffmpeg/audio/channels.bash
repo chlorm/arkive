@@ -59,7 +59,7 @@ function FFmpeg::Audio.channels {
       ;;
   esac
 
-  String::NotNull "${Channels}"
+  Var::Type.integer "${Channels}"
 
   echo "${Channels}"
 }

@@ -38,7 +38,7 @@ function Subtitle::Codec {
 
   Codec="$(FFprobe '-' "${Stream}" 'stream' 'codec_name' "${File}")"
 
-  String::NotNull "${Codec}"
+  Var::Type.string "${Codec}"
 
   echo "${Codec}"
 }

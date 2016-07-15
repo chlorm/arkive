@@ -171,19 +171,19 @@ function FFmpeg::Video.filters:black_bar_crop {
 
   # Find crop width mode
   CropWidth=$(mode "${CropWidthArray[@]}")
-  String::NotNull "${CropWidth}"
+  Var::Type.integer "${CropWidth}"
 
   # Find crop height mode
   CropHeight=$(mode "${CropHeightArray[@]}")
-  String::NotNull "${CropHeight}"
+  Var::Type.integer "${CropHeight}"
 
   # Find X offset mode
   CropXOffset=$(mode "${CropXOffsetArray[@]}")
-  String::NotNull "${CropXOffset}"
+  Var::Type.integer "${CropXOffset}"
 
   # Find Y offset mode
   CropYOffset=$(mode "${CropYOffsetArray[@]}")
-  String::NotNull "${CropYOffset}"
+  Var::Type.integer "${CropYOffset}"
 
   Debug::Message 'info' "FINAL: W:${CropWidth} H:${CropHeight} X:${CropXOffset} Y:${CropYOffset}"
 

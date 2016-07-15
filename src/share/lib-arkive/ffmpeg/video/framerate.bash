@@ -40,7 +40,7 @@ function FFmpeg::Video.frame_rate {
     echo "${ARKIVE_VIDEO_FRAMERATE}"
   else
     SourceFrameRate="$(Video::FrameRate "${Stream}" "${File}")"
-    String::NotNull "${SourceFrameRate}"
+    Var::Type.string "${SourceFrameRate}"
     echo "${SourceFrameRate}"
   fi
 }
