@@ -41,5 +41,5 @@ function FFmpeg::Audio.sample_rate {
      Debug::Message 'error' "opus only support 48000Hz sample rate"
   fi
 
-  echo "-ar:${Stream} ${ARKIVE_AUDIO_SAMPLE_RATE}"
+  echo "-ar:a:${Stream} ${ARKIVE_AUDIO_SAMPLE_RATE}"
 }

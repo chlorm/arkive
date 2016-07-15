@@ -51,6 +51,6 @@ function FFmpeg::Video.filters {
   done
 
   if [ -n "${FilterList}" ] ; then
-    echo "-filter:${Stream} ${FilterList}"
+    echo "-filter:v:${Stream} ${FilterList}"
   fi
 }

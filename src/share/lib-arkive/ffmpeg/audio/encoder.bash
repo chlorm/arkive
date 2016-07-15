@@ -51,5 +51,5 @@ function FFmpeg::Audio.encoder {
       ;;
   esac
 
-  echo "-c:${Stream} ${Encoder}${EncoderParams:+ ${EncoderParams}}"
+  echo "-c:a:${Stream} ${Encoder}${EncoderParams:+ ${EncoderParams}}"
 }

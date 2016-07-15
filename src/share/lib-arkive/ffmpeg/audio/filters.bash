@@ -50,6 +50,6 @@ function FFmpeg::Audio.filters {
   done
 
   if [ -n "${FilterList}" ] ; then
-    echo "-filter:${Stream} ${FilterList}"
+    echo "-filter:a:${Stream} ${FilterList}"
   fi
 }

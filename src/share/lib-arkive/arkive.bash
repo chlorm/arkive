@@ -125,7 +125,7 @@ function Arkive::Run {
     else
       FFmpegArgs+=('-an')
     fi
-    FFmpegArgs+=('-c:s copy')
+    FFmpegArgs+=('-sn')
     FFmpegArgs+=("${OutputFile}")
 
     for FFmpegArg in "${FFmpegArgs[@]}" ; do

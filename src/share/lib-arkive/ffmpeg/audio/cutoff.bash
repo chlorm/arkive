@@ -34,6 +34,6 @@
 function FFmpeg::Audio.cutoff {
   local Stream="${1}"
   if [ "${ARKIVE_AUDIO_CODEC}" != 'flac' ] ; then
-    echo "-cutoff:${Stream} 20000"
+    echo "-cutoff:a:${Stream} 20000"
   fi
 }

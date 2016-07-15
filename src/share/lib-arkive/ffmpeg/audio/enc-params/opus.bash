@@ -38,9 +38,9 @@ function FFmpeg::Audio.encoder:opus {
   local Stream="${1}"
 
   Parameters=(
-    "-frame_duration:${Stream} 60"
-    "-compression_level:${Stream} 10"
-    "-vbr:${Stream} on"
+    "-frame_duration:a:${Stream} 60"
+    "-compression_level:a:${Stream} 10"
+    "-vbr:a:${Stream} on"
   )
 
   for Parameter in "${Parameters[@]}" ; do

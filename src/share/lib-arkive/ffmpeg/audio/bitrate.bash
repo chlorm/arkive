@@ -46,6 +46,6 @@ function FFmpeg::Audio.bitrate {
 
     [ ${Bitrate} -ge 16 ]
 
-    echo "-b:${Stream} ${Bitrate}k"
+    echo "-b:a:${Stream} ${Bitrate}k"
   fi
 }

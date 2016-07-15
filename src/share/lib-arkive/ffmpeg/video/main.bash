@@ -40,11 +40,11 @@ function FFmpeg::Video {
   local VideoArgsList
 
   VideoArgs+=("-map 0:${Stream}")
-  VideoArgs+=("-b:${Stream} $(FFmpeg::Video.bitrate "${Stream}" "${File}")k")
+  VideoArgs+=("-b:v:${Stream} $(FFmpeg::Video.bitrate "${Stream}" "${File}")k")
   VideoArgs+=("$(FFmpeg::Video.codec "${Stream}" "${File}")")
   VideoArgs+=("$(FFmpeg::Video.filters "${Stream}" "${File}")")
   VideoArgs+=(
-    "-r:${Stream} $(FFmpeg::Video.frame_rate "${Stream}" "${File}")"
+    "-r:v:${Stream} $(FFmpeg::Video.frame_rate "${Stream}" "${File}")"
   )
   VideoArgs+=("$(FFmpeg::Video.pixel_format "${Stream}" "${File}")")
 
