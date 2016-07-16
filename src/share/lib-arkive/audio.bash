@@ -31,30 +31,6 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function Audio::SampleRate {
-  local File="${2}"
-  local SampleRate
-  local Stream="${1}"
-
-  SampleRate=$(FFprobe '-' "${Stream}" 'stream' 'sample_rate' "${File}")
-
-  Var::Type.integer "${SampleRate}"
-
-  echo "${SampleRate}"
-}
-
-function Audio::SampleFormat {
-  local File="${2}"
-  local SampleFormat
-  local Stream="${1}"
-
-  SampleFormat=$(FFprobe '-' "${Stream}" 'stream' 'sample_fmt' "${File}")
-
-  Var::Type.string "${SampleFormat}"
-
-  echo "${SampleFormat}"
-}
-
 function Audio::Bitrate {
   local Bitrate
   local File="${2}"
@@ -65,6 +41,18 @@ function Audio::Bitrate {
   Var::Type.integer "${Bitrate}"
 
   echo "${Bitrate}"
+}
+
+function Audio::ChannelLayout {
+  local ChannelLayout
+  local File="${2}"
+  local Stream="${1}"
+
+  ChannelLayout="$(FFprobe '-' "${Stream}" 'stream' 'channel_layout' "${File}")"
+
+  Var::Type.string "${ChannelLayout}"
+
+  echo "${ChannelLayout}"
 }
 
 function Audio::Channels {
@@ -79,14 +67,26 @@ function Audio::Channels {
   echo "${Channels}"
 }
 
-function Audio::ChannelLayout {
-  local ChannelLayout
+function Audio::SampleFormat {
   local File="${2}"
+  local SampleFormat
   local Stream="${1}"
 
-  ChannelLayout="$(FFprobe '-' "${Stream}" 'stream' 'channel_layout' "${File}")"
+  SampleFormat=$(FFprobe '-' "${Stream}" 'stream' 'sample_fmt' "${File}")
 
-  Var::Type.string "${ChannelLayout}"
+  Var::Type.string "${SampleFormat}"
 
-  echo "${ChannelLayout}"
+  echo "${SampleFormat}"
+}
+
+function Audio::SampleRate {
+  local File="${2}"
+  local SampleRate
+  local Stream="${1}"
+
+  SampleRate=$(FFprobe '-' "${Stream}" 'stream' 'sample_rate' "${File}")
+
+  Var::Type.integer "${SampleRate}"
+
+  echo "${SampleRate}"
 }

@@ -31,6 +31,18 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
+function Video::FrameRate {
+  local File="${2}"
+  local SourceFrameRate
+  local Stream="${1}"
+
+  SourceFrameRate="$(FFprobe '-' "${Stream}" 'stream' 'r_frame_rate' "${File}")"
+
+  Var::Type.string "${SourceFrameRate}"
+
+  echo "${SourceFrameRate}"
+}
+
 function Video::Height {
   local File="${2}"
   local Height
@@ -53,16 +65,4 @@ function Video::Width {
   Var::Type.integer "${Width}"
 
   echo "${Width}"
-}
-
-function Video::FrameRate {
-  local File="${2}"
-  local SourceFrameRate
-  local Stream="${1}"
-
-  SourceFrameRate="$(FFprobe '-' "${Stream}" 'stream' 'r_frame_rate' "${File}")"
-
-  Var::Type.string "${SourceFrameRate}"
-
-  echo "${SourceFrameRate}"
 }
