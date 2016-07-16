@@ -94,7 +94,7 @@ function Stream::Select {
       unset Keyword
       # Discard matches
       if ${FindMatch} ; then
-        Streams=( ${Streams[@]/${Stream}} )
+        Streams=(${Streams[@]/${Stream}})
       fi
     done
 
