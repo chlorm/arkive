@@ -34,7 +34,7 @@
 function FFmpeg::Audio.sample_rate {
   local Stream="${1}"
 
-  [[ ${ARKIVE_AUDIO_SAMPLE_RATE} == +(44100|48000|96000|192000) ]]
+  [[ ${ARKIVE_AUDIO_SAMPLE_RATE} == +(44100|48000|88200|96000|192000) ]]
 
   if [ "${ARKIVE_AUDIO_CODEC}" == 'opus' ] && \
      [ ${ARKIVE_AUDIO_SAMPLE_RATE} -ne 48000 ] ; then
