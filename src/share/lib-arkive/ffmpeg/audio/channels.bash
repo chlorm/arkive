@@ -37,26 +37,24 @@ function FFmpeg::Audio.channels {
   local ChannelLayout
   local Stream="${1}"
 
-  ChannelLayout="$(Audio::ChannelLayout "${Stream}" "${File}")"
+  ChannelLayout="${ARKIVE_CHANNEL_LAYOUT_MAPS_LIST[${ChannelLayout}]}" || :
 
-  # Determine output audio channel count
-  # (these are all sperate arguments to allow restructuring in the future)
+  if [ -z "${ChannelLayout}" ] ; then
+    # Force channel count if input has a non-standard channel layout
+    ChannelLayout="${ARKIVE_AUDIO_CHANNEL_LAYOUT_FALLBACK}"
+  fi
+
   case "${ChannelLayout}" in
-    # -> 2 (2.0)
-    'mono'|'stereo'|'2.1'|'3.0'|'3.0(back)'|'3.1'|'downmix'|'4.1')
-      Channels=2 ;;
-    # -> 5 (5.0(side))
-    '4.0'|'quad(side)'|'5.0(side)'|'5.1(side)'|\
-    '6.0(front)'|'6.1(front)'|'7.0(front)'|'7.1(wide-side)')
-      Channels=5 ;;
-    # -> 7 (7.0)
-    'quad'|'5.0'|'5.1'|'6.0'|'hexagonal'|'6.1'|'6.1(back)'|\
-    '7.0'|'7.1'|'7.1(wide)'|'octagonal')
-      Channels=7 ;;
-    *)
-      Debug::Message 'error' "Unsupported channel layout: ${ChannelLayout}"
-      return 1
-      ;;
+    'mono') Channels=1 ;;
+    'stereo'|'downmix') Channels=2 ;;
+    '2.1'|'3.0'|'3.0(back)') Channels=3 ;;
+    '4.0'|'quad'|'quad(side)'|'3.1') Channels=4 ;;
+    '4.1'|'5.0'|'5.0(side)') Channels=5 ;;
+    '5.1'|'5.1(side)'|'6.0'|'6.0(front)'|'hexagonal') Channels=6 ;;
+    '6.1'|'6.1(back)'|'6.1(front)'|'7.0'|'7.0(front)') Channels=7 ;;
+    '7.1'|'7.1(wide)'|'7.1(wide-side)'|'octagonal') Channels=8 ;;
+    'hexadecagonal') Channels=16 ;;
+    *) return 1 ;;
   esac
 
   Var::Type.integer "${Channels}"
