@@ -31,9 +31,17 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio. {
+function FFmpeg::Audio.sample_format {
   local File="${2}"
+  local SampleFormat
   local Stream="${1}"
 
-  # if flac use native, else 16bit
+  SampleFormat="$(Audio::SampleFormat "${Stream}" "${File}")"
+
+  # Assume `Planar Floating point format` is 16bit
+  if [ "${SampleFormat}" == 'fltp' ] ; then
+    SampleFormat='s16'
+  fi
+
+  echo "${SampleFormat}"
 }
