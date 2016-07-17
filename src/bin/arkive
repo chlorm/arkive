@@ -140,6 +140,38 @@ ARKIVE_AUDIO_STREAM_DISCARD_KEYWORDS=(
 # Audio default language (ISO 639-2/B)
 ARKIVE_AUDIO_LANG_DEFAULT='eng'
 #### Audio languages to include (ISO 639-2/B)
+# Channel layout mappings
+ARKIVE_CHANNEL_LAYOUT_MAPS_LIST=(
+  ['mono']='stereo'
+  ['stereo']='stereo'
+  ['2.1']='stereo'
+  ['3.0']='stereo'
+  ['3.0(back)']=''
+  ['4.0']=''
+  ['quad']='7.0'
+  ['quad(side)']='5.0(side)'
+  ['3.1']='stereo'
+  ['5.0']='7.0'
+  ['5.0(side)']='5.0(side)'
+  ['4.1']='stereo'
+  ['5.1']='7.0'
+  ['5.1(side)']='5.0(side)'
+  ['6.0']=''
+  ['6.0(front)']=''
+  ['hexagonal']=''
+  ['6.1']=''
+  ['6.1(back)']=''
+  ['6.1(front)']=''
+  ['7.0']=''
+  ['7.0(front)']=''
+  ['7.1']=''
+  ['7.1(wide)']=''
+  ['7.1(wide-side)']=''
+  ['octagonal']=''
+  ['hexadecagonal']='7.0'
+  ['downmix']='stereo'
+)
+ARKIVE_AUDIO_CHANNEL_LAYOUT_FALLBACK='stereo'
 
 #
 ## Subtitles
