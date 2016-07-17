@@ -46,7 +46,7 @@ function FFmpeg::Audio.filters:resample {
   # Refuse to upsample unless the codec is opus or the source sample rate
   # is less than 44100Hz. Opus natively uses 48000Hz.
   if ([ ${ARKIVE_AUDIO_SAMPLE_RATE} -gt ${SampleRate} ] && \
-      [ ${SampleRate} -lt 44100 ]) || \
+      [ ${SampleRate} -gt 44100 ]) || \
      ([ "${ARKIVE_AUDIO_CODEC}" == 'opus' ] && \
       [ ${ARKIVE_AUDIO_SAMPLE_RATE} -ne 48000 ]) ; then
     Debug::Message 'error' 'upsampling is only allowed for < 44100kHz -> 44100kHz'
