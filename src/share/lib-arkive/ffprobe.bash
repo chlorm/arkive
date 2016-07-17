@@ -73,8 +73,8 @@ function FFprobe {
       FFprobeArgs="${FFprobeArgs}${FFprobeArgs:+ }${FFprobeArg}"
     fi
   done
-  Debug::Message 'info' "ffprobe ${FFprobeArgs}"
-  FFprobeOut="$(ffprobe ${FFprobeArgs})"
+  Debug::Message 'info' "@FFPROBE_PATH@ ${FFprobeArgs}"
+  FFprobeOut="$(@FFPROBE_PATH@ ${FFprobeArgs})"
 
   Var::Type.string "${FFprobeOut}"
 
