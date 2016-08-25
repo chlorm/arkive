@@ -102,9 +102,6 @@ function Arkive::Run {
       '-hide_banner'
       '-stats'
       '-loglevel info'
-    )
-    FFmpegArgs+=("-r $(Video::FrameRate "${vs}" "${File}")")
-    FFmpegArgs+=(
       "-i ${File}"
       '-threads 1'
     )
