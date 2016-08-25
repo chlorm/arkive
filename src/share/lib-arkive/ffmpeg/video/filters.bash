@@ -42,7 +42,6 @@ function FFmpeg::Video.filters {
   #Filters+=("$(FFmpeg::Video.filters:de_interlace "${Stream}" "${File}")")
   Filters+=("$(FFmpeg::Video.filters:black_bar_crop "${Stream}" "${File}")")
   #Filters+=("$(FFmpeg::Video.filters:scale "${Stream}" "${File}")")
-  #Filters+=("$(FFmpeg::Video.filters:denoise)")
 
   for Filter in "${Filters[@]}" ; do
     if [ -n "${Filter}" ] ; then
