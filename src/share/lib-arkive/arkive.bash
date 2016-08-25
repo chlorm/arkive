@@ -111,7 +111,9 @@ function Arkive::Run {
         "-passlogfile ${__tmpdir__}/${__filenamefmt__}.ffmpeg-passlog"
       )
     fi
-    FFmpegArgs+=("$(FFmpeg::Video "${vs}" "${File}")")
+    FFmpegArgs+=(
+      "$(FFmpeg::Video "${vs}" "${File}")"
+    )
     FFmpegArgs+=(
       '-movflags faststart'
       '-movflags frag_keyframe'
@@ -122,8 +124,11 @@ function Arkive::Run {
     else
       FFmpegArgs+=('-an')
     fi
-    FFmpegArgs+=('-sn')
-    FFmpegArgs+=("${OutputFile}")
+    FFmpegArgs+=(
+      # FIXME: add subtitle support
+      '-sn'
+      "${OutputFile}"
+    )
 
     for FFmpegArg in "${FFmpegArgs[@]}" ; do
       if [ -n "${FFmpegArg}" ] ; then

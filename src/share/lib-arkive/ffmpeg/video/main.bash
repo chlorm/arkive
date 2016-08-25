@@ -43,9 +43,7 @@ function FFmpeg::Video {
   VideoArgs+=("-b:v:${Stream} $(FFmpeg::Video.bitrate "${Stream}" "${File}")k")
   VideoArgs+=("$(FFmpeg::Video.codec "${Stream}" "${File}")")
   VideoArgs+=("$(FFmpeg::Video.filters "${Stream}" "${File}")")
-  VideoArgs+=(
-    "-r:v:${Stream} $(FFmpeg::Video.frame_rate "${Stream}" "${File}")"
-  )
+  VideoArgs+=("-r:v:${Stream} $(FFmpeg::Video.frame_rate "${Stream}" "${File}")")
   VideoArgs+=("$(FFmpeg::Video.pixel_format "${Stream}" "${File}")")
 
   for VideoArg in "${VideoArgs[@]}" ; do
