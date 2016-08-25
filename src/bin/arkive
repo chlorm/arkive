@@ -140,6 +140,7 @@ ARKIVE_AUDIO_STREAM_DISCARD_KEYWORDS=(
 ARKIVE_AUDIO_LANG_DEFAULT='eng'
 #### Audio languages to include (ISO 639-2/B)
 # Channel layout mappings
+declare -A ARKIVE_CHANNEL_LAYOUT_MAPS_LIST
 ARKIVE_CHANNEL_LAYOUT_MAPS_LIST=(
   ['mono']='stereo'
   ['stereo']='stereo'
