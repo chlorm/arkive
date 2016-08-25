@@ -39,8 +39,14 @@ function FFmpeg::Video.level:h265 {
 
   # FIXME: used cropped width
   FrameWidth="$(Video::Width "${Stream}" "${File}")"
+
+  Debug::Message 'info' "frame width: ${FrameWidth}"
+
   # Evaluate frame rate incase a fractional number is returned
-  FrameRate="$(echo "$(Video::FrameRate "${Stream}" "${File}")" | bc)"
+  FrameRate="$(echo "$(FFmpeg::Video.frame_rate "${Stream}" "${File}")" | bc)"
+  FrameRate=${FrameRate%.*}
+
+  Debug::Message 'info' "frame rate: ${FrameRate}"
 
   if [ ${FrameWidth} -le 352 ] && [ ${FrameRate} -le 60 ] ; then
     echo "3"
