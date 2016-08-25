@@ -42,7 +42,7 @@ function FFmpeg::Video.bitrate {
   local Width
 
   # FIXME: use user specified frame rate
-  FrameRate="$(Video::FrameRate "${Stream}" "${File}")"
+  FrameRate="$(FFmpeg::Video.frame_rate "${Stream}" "${File}")"
   # FIXME: use cropped width/height
   Height="$(Video::Height "${Stream}" "${File}")"
   Width="$(Video::Width "${Stream}" "${File}")"
