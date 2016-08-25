@@ -55,7 +55,8 @@ function FFmpeg::Video.codec:x265_params {
   if [ ${FrameRate} -gt 250 ] ; then
     RcLookahead=250
   else
-    RcLookahead=${FrameRate}
+    # RcLookahead must be an integer
+    RcLookahead=${FrameRate%.*}
   fi
 
   MeRange="$(FFmpeg::Video.motion_estimation_range "${Stream}" "${File}")"
@@ -165,6 +166,7 @@ function FFmpeg::Video.codec:x265_params {
     'b-pyramid=true'
   )
   __parameters+=(
+    # Make sure to only pass integers
     "vbv-bufsize=${BufSize%.*}"
     "vbv-maxrate=${BufSize%.*}"
   )
