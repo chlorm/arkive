@@ -109,7 +109,7 @@ function FFmpeg::Video.codec:x264_params {
     'qblur=0.5'
     #'qpfile'
   ### Analysis ###
-    'partitions=all'
+    'partitions=all\:8x8dct'
     'direct=auto'
     'weightb=true'
     'weightp=2'
