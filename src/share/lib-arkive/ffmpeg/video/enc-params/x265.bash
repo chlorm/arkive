@@ -35,6 +35,7 @@
 function FFmpeg::Video.codec:x265_params {
   local Bitrate
   local BufSize
+  local ColorTransfer
   local File="${2}"
   local FrameRate
   local MeRange
@@ -62,6 +63,12 @@ function FFmpeg::Video.codec:x265_params {
   # http://forum.doom9.org/showthread.php?p=1713094#post1713094
   if [ ${MeRange} -lt 58 ] ; then
     MeRange=58
+  fi
+
+  if [ ${ARKIVE_VIDEO_BIT_DEPTH} -lt 10 ] ; then
+    ColorTransfer='bt709'
+  else
+    ColorTransfer="bt2020-${ARKIVE_VIDEO_BIT_DEPTH}"
   fi
 
   __parameters+=(
@@ -191,10 +198,12 @@ function FFmpeg::Video.codec:x265_params {
     #'display-window'
     #'overscan'
     #'videoformat'
-    #'range'
-    'colorprim=bt709'
-    'transfer=bt709'
-    'colormatrix=bt709'
+    'range=full'
+    'colorprim=bt2020'
+    "transfer=${ColorTransfer}"
+    # bt2020c = constant luminance
+    # bt2020nc = non-constant luminance
+    'colormatrix=bt2020nc'
     #'chromaloc'
     #'master-display'
     #'max-cll'
