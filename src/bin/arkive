@@ -202,7 +202,7 @@ function Arkive::Main {
     done
 
     echo "ffmpeg ${FFmpegArgsList}"
-    LD_LIBRARY_PATH=/run/opengl-driver-x86_64-linux/lib/ ffmpeg ${FFmpegArgsList}
+    ffmpeg ${FFmpegArgsList}
 
     unset FFmpegArg FFmpegArgs FFmpegArgsList
     __pass__=$(( ${__pass__} + 1 ))
