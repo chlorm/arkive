@@ -1,28 +1,22 @@
 arkive
-=======
+======
 
-arkive(-remux) are video encoding automation scripts
+arkive is a multimedia processing automation script
 
 #### Warning:
 This mock-up implementation in shell is for testing and demonstration
-purposes only.
+purposes only.  The current version is meant as a stop-gap solution in the
+meantime for generating test data sets.  An actual series of programs and
+libraries is being written in C, C++, & Rust.
 
 Dependencies:
   * bc
   * [lib-bash](https://github.com/chlorm/lib-bash)
-  * ffmpeg >= 3.0.0
+  * ffmpeg >= 3.1.0 (for libebur128)
+    - libebur128
     - libopus >= 1.1.0
-    - libvpx >= 1.5.0
-    - x264 (only 8bit supported)
-    - x265 >= 1.9 (with multi-lib, e.g. 8/10/12 bit)
-
-#### Remux input into the following format
-* mkv container
-* (1) video stream (requires language code)
-* (1-2) audio streams, if the primary is not english then including a
-  second english dub audio stream is allowed. (requires language codes)
-* (1-2) subtitle streams, may contain 1 english forced subtitle stream
-  and 1 english subtitle stream.  Format must be plain-text. (requires
-  language codes)
-* 1 chapter stream (titles preferred)
-* metadata to be decided (currently maps all)
+    - libvpx >= 1.6.0
+    - x264 >= 201611xx (only 8bit/4:2:0 supported)
+    - x265 >= 201611xx (for limit-tu, ...) (with
+      [multi-lib](https://github.com/triton/triton/blob/master/pkgs/all-pkgs/x/x265/default.nix),
+      e.g. 8, 10, & 12 bit statically linked into libx265.{a,so})
