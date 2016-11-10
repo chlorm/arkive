@@ -73,156 +73,138 @@ wait
 
 trap 'Debug::Func' DEBUG
 trap 'Tmp::Cleanup' SIGINT SIGTERM
-trap -- 'Tmp::Cleanup ; Debug::Trace ; exit 1' ERR
+trap -- 'Tmp::Cleanup ; Log::Trace ; exit 1' ERR
 
-################################### Profile ####################################
+##################################### Main #####################################
 
-# Debugging
-ARKIVE_DEBUG='false'
-# Allow overwriting existing files
-ARKIVE_ALLOW_OVERWRITING_FILES=true
+function Arkive::Main {
+  local __filename__
+  local __filenamefmt__
+  local __outputdir__
+  # Initial pass number, DO NOT CHANGE VALUE
+  local __pass__=1
+  local __subtitlestreams__
+  local __tmpdir__
 
-#
-## Container
-#
+  local Audio
+  local AudioPass
+  local FFmpegArg
+  local -a FFmpegArgs
+  local FFmpegArgsList
+  local File
+  local Index=0
+  local Subtitle
+  local Chapter
+  local Metadata
+  local OutputFile
+  local -a StreamIndexMap
+  local -a VideoArgs
 
-# Container format (mkv,mp4,ogv,webm)
-ARKIVE_CONTAINER='mkv'
+  # Stream identifiers
+  local as
+  local asa
+  local cs
+  local ss
+  local ssa
+  local vs
 
-#
-## Video
-#
+  File="${INPUTFILE}"
+  __filename__="$(Filename::Original.base "${File}")"
+  __filenamefmt__="$(Filename::Formatted "${File}")"
+  __tmpdir__="${TMPDIR}"
+  __outputdir__="${OUTPUTDIR}"
+  OutputFile="${__outputdir__}/${__filenamefmt__}.${FFMPEG_CONTAINER_FORMAT}"
 
-# Video Codec (h264(x264),h265(x265),nvenc-h264,nvenc-h265,vp9,vp10)
-ARKIVE_VIDEO_CODEC='h264'
-# Bits Per Pixel (used to dynamically determine bitrate)
+  asa=($(Stream::Select 'audio' "${File}"))
+  [[ ${#asa[@]} == +(1|2) ]]
+  for as in ${asa[@]} ; do
+    Index=$(( ${Index} + 1 ))
+    # Assign stream index, assuming video is 0, and audio starts from 1 ->
+    # number of streams + 1.
+    StreamIndexMap[${Index}]="-map 0:${as}"
+    Audio="${Audio:+${Audio} }$(FFmpeg::Audio "${as}" "${File}" "${Index}")"
+  done
 
-# 2048
-#ARKIVE_VIDEO_BITS_PER_PIXEL='0.04218205761316872427'
-# 2560
-#ARKIVE_VIDEO_BITS_PER_PIXEL='0.05272757201646090534'
-# 3072
-ARKIVE_VIDEO_BITS_PER_PIXEL='0.06327308641975308641'
-# 4096
-#ARKIVE_VIDEO_BITS_PER_PIXEL='0.08436411522633744855'
-# Bits per channel color (8,10,12) (ignored for h.264)
-ARKIVE_VIDEO_BIT_DEPTH=8
-# Chroma Subsampling (420,422,444)
-ARKIVE_VIDEO_CHROMA_SUBSAMPLING=420
-# Multi-pass video encoding (1-3)
-ARKIVE_VIDEO_ENCODING_PASSES=1
-# Frame Rate (FPS)
-ARKIVE_VIDEO_FRAMERATE='source'
+  #ssa=($(Stream::Select 'subtitle' "${File}"))
+  #[[ ${#ssa[@]} == +(1|2) ]]
+  #for ss in ${ssa[@]} ; do
+  #  Subtitle="${Subtitle:+${Subtitle} }$(FFmpeg::Subtitle "${ss}" "${File}")"
+  #done
 
-#
-## Audio
-#
+  # FIXME: Stream::Select may return multiple values in the future so
+  #        vs should be an array, Indexs will also have to be fixed for
+  #        audio and video streams.
+  vs="$(Stream::Select 'video' "${File}")"
+  # Assign the video stream index 0
+  StreamIndexMap[0]="-map 0:${vs}"
+  VideoArgs+=("-b:0 $(FFmpeg::Video.bitrate "${vs}" "${File}")k")
+  # Force constant frame rate
+  VideoArgs+=("-vsync:0 cfr")
+  VideoArgs+=("-r:0 $(FFmpeg::Video.frame_rate "${vs}" "${File}")")
+  VideoArgs+=("$(FFmpeg::Video.filters "${vs}" "${File}" '0')")
+  VideoArgs+=("$(FFmpeg::Video.pixel_format)")
 
-# Audio Codec (aac,ac3,flac,opus)
-ARKIVE_AUDIO_ENCODER='opus'
-# Bitrate per audio channel in kbps (5.1 -> 6 * 64 = 384),
-# Ignored if `flac` codec is specified
-ARKIVE_AUDIO_CHANNEL_BITRATE=64
-# Sample rate (44100,48000,96000,192000)
-ARKIVE_AUDIO_SAMPLE_RATE=48000
-# Streams with phrases from this list in their title are discarded
-ARKIVE_AUDIO_STREAM_DISCARD_KEYWORDS=(
-  'commentary'
-)
-# Audio default language (ISO 639-2/B)
-ARKIVE_AUDIO_LANG_DEFAULT='eng'
-#### Audio languages to include (ISO 639-2/B)
-# Channel layout mappings
-declare -A ARKIVE_CHANNEL_LAYOUT_MAPS_LIST
-ARKIVE_CHANNEL_LAYOUT_MAPS_LIST=(
-  ['mono']='stereo'
-  ['stereo']='stereo'
-  ['2.1']='stereo'
-  ['3.0']='stereo'
-  ['3.0(back)']='stereo'
-  ['4.0']='7.0'
-  ['quad']='7.0'
-  ['quad(side)']='5.0(side)'
-  ['3.1']='stereo'
-  ['5.0']='7.0'
-  ['5.0(side)']='5.0(side)'
-  ['4.1']='stereo'
-  ['5.1']='7.0'
-  ['5.1(side)']='5.0(side)'
-  ['6.0']='5.0(side)'
-  ['6.0(front)']='5.0(side)'
-  ['hexagonal']='7.0'
-  ['6.1']='7.0'
-  ['6.1(back)']='7.0'
-  ['6.1(front)']='5.0(side)'
-  ['7.0']='7.0'
-  ['7.0(front)']='5.0(side)'
-  ['7.1']='7.0'
-  ['7.1(wide)']='7.0'
-  ['7.1(wide-side)']='5.0(side)'
-  ['octagonal']='7.0'
-  ['hexadecagonal']='7.0'
-  ['downmix']='stereo'
-)
-ARKIVE_AUDIO_CHANNEL_LAYOUT_FALLBACK='stereo'
+  #Chapter="$(FFmpeg::Chapter)"
 
-#
-## Subtitles
-#
+  # Metadata
+  #Metadata="$(FFmpeg::Metadata)"
 
-###ARKIVE_SUBTITLES_LANGS=('eng')
-# Subtitles, NOT IMPLEMENTED
-ARKIVE_SUBTITLES=true
-# Subtitles default language (ISO 639-2/B)
-ARKIVE_SUBTITLES_LANG_DEFAULT='eng'
-# Subtitle languages to include (ISO 639-2/B)
-ARKIVE_SUBTITLES_LANGS=('eng')
-# Subtitle codec (ass,srt)
-ARKIVE_SUBTITLE_CODEC='ass'
+  while [ ${__pass__} -le ${FFMPEG_VIDEO_ENCODER_PASSES} ] ; do
+    # Always overwrite the file for multipass encodes or if requestedaaaaaa
+    if [ ${__pass__} -gt 1 ] || ${ARKIVE_ALLOW_OVERWRITING_FILES} ; then
+      FFmpegArgs+=('-y')
+    else
+      FFmpegArgs+=('-n')
+    fi
+    FFmpegArgs+=(
+      '-nostdin'
+      '-hide_banner'
+      '-stats'
+      '-loglevel info'
+      "-i ${File}"
+      # FIXME: specify thread count per stream
+      # Video encoders specify their own thread count seperate from FFmpeg's
+      '-threads 1'
+      # FIXME: disable mapping metadata for testing
+      '-map_metadata -1'
+      # FIXME
+      #'-reset_timestamps 1'
+    )
+    if [ ${FFMPEG_VIDEO_ENCODER_PASSES} -gt 1 ] ; then
+      FFmpegArgs+=(
+        "-pass ${__pass__}"
+        "-passlogfile ${__tmpdir__}/${__filenamefmt__}.ffmpeg-passlog"
+      )
+    fi
+    # Only encode non-video streams on the final pass
+    if [ ${__pass__} -eq ${FFMPEG_VIDEO_ENCODER_PASSES} ] ; then
+      FFmpegArgs+=("${StreamIndexMap[@]}")
+    else
+      FFmpegArgs+=("${StreamIndexMap[0]}")
+    fi
+    FFmpegArgs+=("${VideoArgs[@]}")
+    FFmpegArgs+=("$(FFmpeg::Video.codec "${vs}" "${File}" '0')")
+    if [[ "${FFMPEG_CONTAINER_FORMAT}" == @('m4a'|'m4v'|'mp4'|'mov') ]] ; then
+      FFmpegArgs+=('-movflags +faststart')
+    fi
+    # Only encode audio on last pass
+    if [ ${__pass__} -eq ${FFMPEG_VIDEO_ENCODER_PASSES} ] ; then
+      FFmpegArgs+=("${Audio}")
+    fi
+    FFmpegArgs+=("${OutputFile}")
 
-#
-## Chapters
-#
+    for FFmpegArg in "${FFmpegArgs[@]}" ; do
+      if [ -n "${FFmpegArg}" ] ; then
+        FFmpegArgsList="${FFmpegArgsList}${FFmpegArgsList:+ }${FFmpegArg}"
+      fi
+    done
 
-# Chapters, NOT IMPLEMENTED
-ARKIVE_CHAPTERS=true
+    echo "ffmpeg ${FFmpegArgsList}"
+    LD_LIBRARY_PATH=/run/opengl-driver-x86_64-linux/lib/ ffmpeg ${FFmpegArgsList}
 
-################################### Filename ###################################
-
-# Format filename w/ ext, w/ no path
-function Filename::Orginal {
-  [ $# -eq 1 ]
-  local File="${1}"
-
-  basename "${File}"
-}
-
-# Format filename w/o ext, w/ no path
-function Filename::Original.base {
-  [ $# -eq 1 ]
-  local File="${1}"
-
-  Filename::Orginal "${File}" | sed -r 's/\.[[:alnum:]]+$//'
-}
-
-function Filename::Formatted {
-  [ $# -eq 1 ]
-  local File="${1}"
-  local Filename
-  local ArkMark
-
-  # TODO: eventually this should handle more parsing, but for now,
-  #       fuck it, ship it
-  # - include appx resolution, e.g. 1080p/720p
-  # - include bits per channel color, e.g. 8bit 10bit
-  # - include codec
-  # - include audio channel layout
-  # - rip type (bluray/dvd/scene etc...)
-
-  Filename="$(Filename::Original.base "${File}")"
-  ArkMark='-ARK'
-
-  echo "${Filename}${ArkMark}"
+    unset FFmpegArg FFmpegArgs FFmpegArgsList
+    __pass__=$(( ${__pass__} + 1 ))
+  done
 }
 
 ################################## Execution ###################################
@@ -236,7 +218,7 @@ if [ -n "${RAW_BITPERPIXEL}" ] ; then
   exit 0
 fi
 
-Arkive::Run
+Arkive::Main
 
 Tmp::Cleanup
 
