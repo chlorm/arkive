@@ -79,6 +79,7 @@ trap -- 'Tmp::Cleanup ; Log::Trace ; exit 1' ERR
 ##################################### Main #####################################
 
 function Arkive::Main {
+  Function::RequiredArgs '0' "$#"
   local __filename__
   local __filenamefmt__
   local __outputdir__
