@@ -2,20 +2,18 @@
 
 if [ "${1}" == '--revert' ] ; then
   sed -i src/bin/arkive \
-    -e 's/source "$(.*)"/source "$(@LIB_BASH_PATH@)"/'
+    -e 's/source "$(.*lib-bash)"/source "$(@LIB_BASH_PATH@)"/'
 
   sed -i src/share/lib-arkive/ffprobe.bash \
     -e 's/ffprobe /@FFPROBE_PATH@ /'
 
-  sed -i src/share/lib-arkive/arkive.bash \
+  sed -i src/bin/arkive \
     -e 's/ffmpeg ${FFmpegArgsList}/@FFMPEG_PATH@ ${FFmpegArgsList}/'
 else
-  if [ "${1}" == '--local' ] ; then
-    file="$(readlink -f "$(pwd)/../lib-bash/src/bin/lib-bash")"
+  if [ -f "$(readlink -f "$(pwd)/vendor/lib-bash/bash/bin/lib-bash")" ] ; then
+    file="$(readlink -f "$(pwd)/vendor/lib-bash/bash/bin/lib-bash")"
     sed -i src/bin/arkive \
       -e "s,\@LIB_BASH_PATH\@,$file,"
-  elif [ -n "${1}" ] ; then
-    echo "invalid: ${1}"
   else
     sed -i src/bin/arkive \
       -e 's/@LIB_BASH_PATH@/lib-bash/'
@@ -24,6 +22,6 @@ else
   sed -i src/share/lib-arkive/ffprobe.bash \
     -e 's/@FFPROBE_PATH@/ffprobe/'
 
-  sed -i src/share/lib-arkive/arkive.bash \
+  sed -i src/bin/arkive \
     -e 's/@FFMPEG_PATH@ ${FFmpegArgsList}/ffmpeg ${FFmpegArgsList}/'
 fi
