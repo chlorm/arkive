@@ -44,8 +44,6 @@
 set -o errexit
 set -o errtrace
 set -o functrace
-# TODO: fix remaining undeclared variables in arkive and lib-bash
-#set -o nounset
 set -o pipefail
 
 ################################################################################
