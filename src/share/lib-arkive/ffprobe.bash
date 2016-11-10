@@ -32,7 +32,7 @@
 # purposes only.
 
 function FFprobe {
-  [ $# -eq 5 ]
+  Function::RequiredArgs '5' "$#"
   local StreamType="${1}"
   local Stream="${2}"
   local EntKey="${3}"
