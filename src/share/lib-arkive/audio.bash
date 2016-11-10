@@ -32,9 +32,10 @@
 # purposes only.
 
 function Audio::Bitrate {
-  local Bitrate
-  local File="${2}"
-  local Stream="${1}"
+  Function::RequiredArgs '2' "$#"
+  local -i Bitrate
+  local -r File="${2}"
+  local -r Stream="${1}"
 
   Bitrate=$(FFprobe '-' "${Stream}" 'stream' 'bit_rate' "${File}")
 
@@ -44,9 +45,10 @@ function Audio::Bitrate {
 }
 
 function Audio::ChannelLayout {
+  Function::RequiredArgs '2' "$#"
   local ChannelLayout
-  local File="${2}"
-  local Stream="${1}"
+  local -r File="${2}"
+  local -r Stream="${1}"
 
   ChannelLayout="$(FFprobe '-' "${Stream}" 'stream' 'channel_layout' "${File}")"
 
@@ -56,9 +58,10 @@ function Audio::ChannelLayout {
 }
 
 function Audio::Channels {
-  local Channels
-  local File="${2}"
-  local Stream="${1}"
+  Function::RequiredArgs '2' "$#"
+  local -i Channels
+  local -r File="${2}"
+  local -r Stream="${1}"
 
   Channels=$(FFprobe '-' "${Stream}" 'stream' 'channels' "${File}")
 
@@ -68,9 +71,10 @@ function Audio::Channels {
 }
 
 function Audio::SampleFormat {
-  local File="${2}"
+  Function::RequiredArgs '2' "$#"
+  local -r File="${2}"
   local SampleFormat
-  local Stream="${1}"
+  local -r Stream="${1}"
 
   SampleFormat=$(FFprobe '-' "${Stream}" 'stream' 'sample_fmt' "${File}")
 
@@ -80,9 +84,10 @@ function Audio::SampleFormat {
 }
 
 function Audio::SampleRate {
-  local File="${2}"
-  local SampleRate
-  local Stream="${1}"
+  Function::RequiredArgs '2' "$#"
+  local -r File="${2}"
+  local -i SampleRate
+  local -r Stream="${1}"
 
   SampleRate=$(FFprobe '-' "${Stream}" 'stream' 'sample_rate' "${File}")
 
