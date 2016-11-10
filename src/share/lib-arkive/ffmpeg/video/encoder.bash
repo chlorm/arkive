@@ -32,29 +32,38 @@
 # purposes only.
 
 function FFmpeg::Video.codec {
+  Function::RequiredArgs '3' "$#"
   local Encoder
   local EncoderParams
-  local File="${2}"
-  local Stream="${1}"
+  local -r File="${2}"
+  local -r Index="${3}"
+  local -r Stream="${1}"
 
-  case "${ARKIVE_VIDEO_CODEC}" in
-    'h264')
+  case "${FFMPEG_VIDEO_ENCODER}" in
+    'x264')
       Encoder='libx264'
       EncoderParams="$(FFmpeg::Video.codec:x264_params "${Stream}" "${File}")"
       ;;
-    'h265')
+    'x265')
       Encoder='libx265'
       EncoderParams="$(FFmpeg::Video.codec:x265_params "${Stream}" "${File}")"
       ;;
-    'nvenc-h264') echo 'not implemented' ; return 1 ;;
+    'nvenc-h264')
+      Encoder='h264_nvenc'
+      EncoderParams="$(FFmpeg::Video.codec:nvenc_h264_params "${Stream}" "${File}" "${Index}")"
+      ;;
     'nvenc-h265') echo 'not implemented' ; return 1 ;;
+    'vaapi-h264')
+      Encoder='h264_vaapi'
+      EncoderParams="$(FFmpeg::Video.codec:vaapi_h264_params "${Stream}" "${File}" "${Index}")"
+      ;;
     'vp9')
       Encoder='libvpx-vp9'
       EncoderParams="$(FFmpeg::Video.codec:vp9_params "${Stream}" "${File}")"
       ;;
-    'vp10') echo 'not implemented' ; return 1 ;;
+    'av1') echo 'not implemented' ; return 1 ;;
     *) return 1 ;;
   esac
 
-  echo "-c:0:v:${Stream} ${Encoder}${EncoderParams:+ ${EncoderParams}}"
+  echo "-c:${Index} ${Encoder}${EncoderParams:+ ${EncoderParams}}"
 }

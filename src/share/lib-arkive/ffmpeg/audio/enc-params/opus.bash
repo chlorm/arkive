@@ -32,16 +32,24 @@
 # purposes only.
 
 function FFmpeg::Audio.encoder:opus {
+  Function::RequiredArgs '1' "$#"
   local Parameter
   local ParameterList
   local -a Parameters
-  local Stream="${1}"
+  local -r Stream="${1}"
 
   Parameters=(
-    "-frame_duration:a:${Stream} 60"
-    "-compression_level:a:${Stream} 10"
-    "-vbr:a:${Stream} on"
+    "-frame_duration:${Stream} ${FFMPEG_AUDIO_ENCODER_OPUS_FRAMEDURATION}"
+    "-compression_level:${Stream} ${FFMPEG_AUDIO_ENCODER_OPUS_COMPRESSIONLEVEL}"
+    "-vbr:${Stream} ${FFMPEG_AUDIO_ENCODER_OPUS_VBR}"
+    "-cutoff:${Stream} ${FFMPEG_AUDIO_ENCODER_OPUS_CUTOFF}"
+    "-application:${Stream} ${FFMPEG_AUDIO_ENCODER_OPUS_APPLICATION}"
+    "-mapping_family:${Stream} 1"
   )
+
+  if [ -n "${FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS}" ] ; then
+    Parameters+=("${FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS}")
+  fi
 
   for Parameter in "${Parameters[@]}" ; do
     if [ -n "${Parameter}" ] ; then

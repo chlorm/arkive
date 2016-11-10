@@ -30,3 +30,39 @@
 # WARNING:
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
+
+# Format filename w/ ext, w/ no path
+function Filename::Orginal {
+  Function::RequiredArgs '1' "$#"
+  local -r File="${1}"
+
+  basename "${File}"
+}
+
+# Format filename w/o ext, w/ no path
+function Filename::Original.base {
+  Function::RequiredArgs '1' "$#"
+  local -r File="${1}"
+
+  Filename::Orginal "${File}" | sed -r 's/\.[[:alnum:]]+$//'
+}
+
+function Filename::Formatted {
+  Function::RequiredArgs '1' "$#"
+  local -r File="${1}"
+  local Filename
+  local ArkMark
+
+  # TODO: eventually this should handle more parsing, but for now,
+  #       fuck it, ship it
+  # - include appx resolution, e.g. 1080p/720p
+  # - include bits per channel color, e.g. 8bit 10bit
+  # - include codec
+  # - include audio channel layout
+  # - rip type (bluray/dvd/scene etc...)
+
+  Filename="$(Filename::Original.base "${File}")"
+  ArkMark='-ARK'
+
+  echo "${Filename}${ArkMark}"
+}

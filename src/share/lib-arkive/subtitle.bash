@@ -32,9 +32,10 @@
 # purposes only.
 
 function Subtitle::Codec {
+  Function::RequiredArgs '2' "$#"
   local Codec
-  local File="${2}"
-  local Stream="${1}"
+  local -r File="${2}"
+  local -r Stream="${1}"
 
   Codec="$(FFprobe '-' "${Stream}" 'stream' 'codec_name' "${File}")"
 
@@ -45,10 +46,11 @@ function Subtitle::Codec {
 
 # Return true is the codec is a bitmap format, false if plaintext
 function Subtitle::IsBitmap {
+  Function::RequiredArgs '2' "$#"
   local Codec
-  local File="${2}"
+  local -r File="${2}"
   local IsBitmap='null'
-  local Stream="${1}"
+  local -r Stream="${1}"
 
   Codec="$(Subtitle::Codec "${Stream}" "${File}")"
 
@@ -62,7 +64,7 @@ function Subtitle::IsBitmap {
       IsBitmap='true'
       ;;
     *)
-      Debug::Message 'error' "unsupported subtitle codec: ${Codec}"
+      Log::Message 'error' "unsupported subtitle codec: ${Codec}"
       return 1
       ;;
   esac

@@ -32,17 +32,22 @@
 # purposes only.
 
 function FFmpeg::Audio.channels {
-  local File="${2}"
+  Function::RequiredArgs '2' "$#"
+  local -r File="${2}"
   local Channels
   local ChannelLayout
-  local Stream="${1}"
+  local -r Stream="${1}"
 
-  ChannelLayout="${ARKIVE_CHANNEL_LAYOUT_MAPS_LIST[${ChannelLayout}]}" || :
+  ChannelLayout="$(Audio::ChannelLayout "${Stream}" "${File}")"
 
   if [ -z "${ChannelLayout}" ] ; then
-    # Force channel count if input has a non-standard channel layout
-    ChannelLayout="${ARKIVE_AUDIO_CHANNEL_LAYOUT_FALLBACK}"
+    # Force channel count if layout is not detected
+    ChannelLayout="${FFMPEG_AUDIO_CHANNEL_LAYOUT_FALLBACK}"
+  else
+    ChannelLayout="${FFMPEG_AUDIO_CHANNEL_LAYOUT_MAPPINGS[${ChannelLayout}]}"
   fi
+
+  # https://github.com/FFmpeg/FFmpeg/blob/master/libavutil/channel_layout.c
 
   case "${ChannelLayout}" in
     'mono') Channels=1 ;;
@@ -54,6 +59,8 @@ function FFmpeg::Audio.channels {
     '6.1'|'6.1(back)'|'6.1(front)'|'7.0'|'7.0(front)') Channels=7 ;;
     '7.1'|'7.1(wide)'|'7.1(wide-side)'|'octagonal') Channels=8 ;;
     'hexadecagonal') Channels=16 ;;
+    # FIXME: use fallbacks channel count here (needs to also be implemented
+    #        in other places however.)
     *) return 1 ;;
   esac
 

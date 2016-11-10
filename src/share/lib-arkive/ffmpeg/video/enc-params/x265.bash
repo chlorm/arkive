@@ -33,10 +33,11 @@
 
 # Generates formatted ffmpeg x265-params key/values
 function FFmpeg::Video.codec:x265_params {
+  Function::RequiredArgs '2' "$#"
   local Bitrate
   local BufSize
   local ColorTransfer
-  local File="${2}"
+  local -r File="${2}"
   local FrameRate
   local MeRange
   local Param
@@ -44,15 +45,15 @@ function FFmpeg::Video.codec:x265_params {
   local ParamHasValue
   local ParamList
   local RcLookahead
-  local Stream="${1}"
+  local -r Stream="${1}"
 
   Bitrate="$(FFmpeg::Video.bitrate "${Stream}" "${File}")"
 
   # Buffer size is bitrate +10%
-  BufSize=$(echo "${Bitrate}+(${Bitrate}*0.1)" | bc)
+  BufSize=$(echo "scale=10;${Bitrate}*1.10)" | bc -l | xargs printf "%1.0f")
 
   FrameRate="$(echo "$(FFmpeg::Video.frame_rate "${Stream}" "${File}")" | bc)"
-  if [ ${FrameRate} -gt 250 ] ; then
+  if [ ${FrameRate} -gt 500 ] ; then
     RcLookahead=250
   else
     # RcLookahead must be an integer
@@ -66,23 +67,18 @@ function FFmpeg::Video.codec:x265_params {
     MeRange=58
   fi
 
-  if [ ${ARKIVE_VIDEO_BIT_DEPTH} -lt 10 ] ; then
-    ColorTransfer='bt709'
-  else
-    ColorTransfer="bt2020-${ARKIVE_VIDEO_BIT_DEPTH}"
-  fi
-
   __parameters+=(
     'log-level=info'
-    # Use a single frame thread to prevent ghosting artifacts in some cases
-    "frame-threads=1"
+    # Use a single frame thread to prevent ghosting artifacts in some cases.
+    # Static such as in the HBO intro is an example where this occurs with
+    # frame thread parallelism.  If objects in scenes look like the edges
+    # are blurred or not very well defined it is usually due to this issue.
+    'frame-threads=1'
   )
   __parameters+=("pools=$(Cpu::Logical)") # FIXME
     #numa-pools # char
   __parameters+=(
-    "wpp=$(if [ $(Cpu::Logical) -gt 1 ] ; then echo 'true' ; else echo 'false' ; fi)"
-  )
-  __parameters+=(
+    'wpp=true'
     'pmode=false'
     'pme=false'
     #'dither'
@@ -98,49 +94,50 @@ function FFmpeg::Video.codec:x265_params {
     'rd=3'
     'ctu=64'
     'min-cu-size=8'
-    'limit-refs=3'
+    'limit-refs=0'
     'limit-modes=false'
-    'rect=false'
-    'amp=false'
+    'rect=false'  # 2x performance penalty
+    'amp=false'  # 2x performance penalty
     'early-skip=false'
-    'recursion-skip=true'
+    'rskip=false'  # Increases performance 2x+, decreases detail at CU borders.
     'fast-intra=false'
-    # Disable b-intra for performance & to prevent serial decoding limitations
-    'b-intra=false'
+    'b-intra=false'  # May require serialized decoding when enabled
     'cu-lossless=false'
     'tskip-fast=false'
-    #'rd-refine=true'
-    # Use rdoq-level <= 1 for grain retention
-    # http://forum.doom9.org/showthread.php?p=1713406#post1713406
-    'rdoq-level=1'
-    # Performance penalty for > 1 and only small quality improvement
-    'tu-intra-depth=1'
-    'tu-inter-depth=1'
+    'rd-refine=false'
+    'rdoq-level=0'  # rdoq is overly argrssive causing hot-spots & deadzones.
+    'tu-intra-depth=1'  # Performance penalty for > 1 for minimal improvement.
+    'tu-inter-depth=1'  # Performance penalty for > 1 for minimal improvement.
+    'limit-tu=0'
     'nr-intra=0'
     'nr-inter=0'
     'tskip=false'
-    'rdpenalty=0' # TODO
+    'rdpenalty=0'
     'max-tu-size=32'
     'max-merge=3'
-    # me:star(3) seems to be producing artifacts
-    'me=2'
+    'me=2'  # 3(star) produces blocking artifacts in high energy scenes
+            # that contain a lot of motion.
     'subme=2'
-  )
-  __parameters+=("merange=${MeRange}")
-  __parameters+=(
-    'temporal-mvp=true' # TODO
+    "merange=${MeRange}"
+    'temporal-mvp=true'  # TODO
     'weightp=true'
     # Segfault if weightb is disabled (possibly only when in combination
     # with another flag)
     'weightb=true'
     'strong-intra-smoothing=false'
-    'constrained-intra=false'
-    'psy-rd=2.3'
-    'psy-rdoq=0.1'
-    'open-gop=true'
+    'constrained-intra=true'
+    # For psy-rd(oq), favor lower more conservative values.  In scenes with
+    # high energy dispersed evenly across a frame, higher values will cause
+    # hot-spots and dead-zones. (e.g. really bad blocking artifacts with
+    # high detail CUs next to low detail CUs). Despite this issue, psy-rd(oq)
+    # is still necessary to better distribute energy.
+    'psy-rd=0.7'  # Values > 1.0 cause color distortions, use < 2.0
+    'psy-rdoq=0.0'  # disabled
+    'open-gop=false'
   )
   __parameters+=(
     # Ensure 1 keyframe per GOP
+    # FIXME: make keyframe interval a multiple of 4
     "keyint=$(FFmpeg::Video.keyframe_interval "${Stream}" "${File}")"
   )
   __parameters+=(
@@ -148,46 +145,36 @@ function FFmpeg::Video.codec:x265_params {
     "min-keyint=$(FFmpeg::Video.min_keyframe_interval "${Stream}" "${File}")"
   )
   __parameters+=(
-    ###############'scenecut=40'
     'scenecut=0'
+    'scenecut-bias=0'
     'intra-refresh=false'
-  )
-  __parameters+=(
     # Set lookahead to same as key-frame interval to make sure the encoder
     # has the entire GOP for decision making.
     "rc-lookahead=${RcLookahead}" # (> bframes & < 250)
-  )
-  __parameters+=(
     'lookahead-slices=0'
     'b-adapt=2'
     # Using > 3 bframes has a large performance penalty
     'bframes=3'
     'bframe-bias=0'
     'b-pyramid=true'
-  )
-  __parameters+=(
-    # Make sure to only pass integers
-    "vbv-bufsize=${BufSize%.*}"
-    "vbv-maxrate=${BufSize%.*}"
-  )
-  __parameters+=(
+    "vbv-bufsize=${BufSize}"
+    "vbv-maxrate=${BufSize}"
     'vbv-init=0.9' # float
     'lossless=false'
-    # x265's aq causes significant blocking artifacts, negating any usefulness.
-    'aq-mode=0' # something with aq is causing crashes on 2nd pass encodes,
-    'aq-strength=0' # maybe the crash is caused by aq-strength > 2.0
-    #'qg-size' # int
+    'aq-mode=1'
+    'aq-strength=0.4'
+    'qg-size=16'  # setting to 8 results in segfault
     'cutree=false'
     'strict-cbr=false'
     'cbqpoffs=-4'
     'crqpoffs=-4'
     'ipratio=1.4'
     'pbratio=1.0'
-    'qcomp=0.6' # values < 0.5 segfault, use 0.6, > values blur
-    'qpstep=4'
-    'rc-grain=true'
-    'qblur=0.5'
-    'cplxblur=20.0'
+    'qcomp=0.8'  # values < 0.5 segfault, always use >= 0.8 w/ aq-auto-variance
+    'qpstep=8'
+    'rc-grain=false'
+    'qblur=0.0'
+    'cplxblur=0.0'
     #'zones=0,250,b=2.0'
     'signhide=true'
     #'qpfile'
@@ -200,12 +187,36 @@ function FFmpeg::Video.codec:x265_params {
     #'display-window'
     #'overscan'
     #'videoformat'
-    'range=full'
-    'colorprim=bt2020'
-    "transfer=${ColorTransfer}"
-    # bt2020c = constant luminance
-    # bt2020nc = non-constant luminance
-    'colormatrix=bt2020nc'
+    'range=limited'
+  )
+  __parameters+=(
+    "colorprim=$(
+      if [ ${FFMPEG_VIDEO_BITDEPTH} -lt 10 ] ; then
+        echo 'bt709'
+      else
+        echo 'bt2020'
+      fi
+    )"
+  )
+  __parameters+=(
+    "transfer=$(
+      if [ ${FFMPEG_VIDEO_BITDEPTH} -lt 10 ] ; then
+        echo 'bt709'
+      else
+        echo "bt2020-${FFMPEG_VIDEO_BITDEPTH}"
+      fi
+    )"
+  )
+  __parameters+=(
+    "colormatrix=$(
+      if [ ${FFMPEG_VIDEO_BITDEPTH} -lt 10 ] ; then
+        echo 'bt709'
+      else
+        echo 'bt2020nc'
+      fi
+    )"
+  )
+  __parameters+=(
     #'chromaloc'
     #'master-display'
     #'max-cll'
@@ -214,16 +225,16 @@ function FFmpeg::Video.codec:x265_params {
     'annexb=true'
     'repeat-headers=false'
     'aud=false'
-    #'hrd=false' # XXX
+    #'hrd=false'  # ???
     'info=false'
     'hash=2'
     'temporal-layers=false'
   )
 
-  if [ ${ARKIVE_VIDEO_ENCODING_PASSES} -gt 1 ] ; then
+  if [ ${FFMPEG_VIDEO_ENCODER_PASSES} -gt 1 ] ; then
     __parameters+=(
       "pass=${__pass__}"
-      'slow-firstpass=false'
+      #'slow-firstpass=false'
       "stats=${__tmpdir__}/${__filenamefmt__}.stats"
       "analysis-file=${__tmpdir__}/${__filenamefmt__}.analysis"
     )

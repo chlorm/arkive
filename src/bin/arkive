@@ -39,6 +39,9 @@
 # http://www.afterdawn.com/glossary/
 # https://people.xiph.org/~xiphmont/demo/index.html
 
+# Performance:
+# 2.2fps =~ 12.6 hours encoding time
+
 ################################################################################
 
 set -o errexit
@@ -48,18 +51,16 @@ set -o pipefail
 
 ################################################################################
 
-ENABLE_DEBUGGING=true
+LOG_LEVEL='debug'
 
-ARKIVE_SCRIPT_VERSION=5
-ARKIVE_BIT_STREAM_VERSION=3
-ARKIVE_VERSION="${ARKIVE_SCRIPT_VERSION}.${ARKIVE_BIT_STREAM_VERSION}"
+ARKIVE_VERSION='0.1.0'
 
 ARKIVE_PREFIX="$(readlink -f "$(readlink -f "$(dirname "$(readlink -f "${0}")")")"/..)"
 ARKIVE_LIB_DIR="${ARKIVE_PREFIX}/share/lib-arkive"
 
 ################################ Load Libraries ################################
 
-source "$(@LIB_BASH_PATH@)"
+source "$(/home/cwopel/Projects/arkive/vendor/lib-bash/src/bin/lib-bash)"
 
 wait
 
@@ -71,7 +72,7 @@ wait
 
 #################################### Traps #####################################
 
-trap 'Debug::Func' DEBUG
+trap 'Log::Func' DEBUG
 trap 'Tmp::Cleanup' SIGINT SIGTERM
 trap -- 'Tmp::Cleanup ; Log::Trace ; exit 1' ERR
 

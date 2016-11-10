@@ -31,15 +31,17 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-# XXX: this function inherits an array (Parameters) from a parent function
+# XXX: this function inherits an array (__parameters) from a parent function
 function FFmpeg::Video.x26x_params {
+  Function::RequiredArgs '0' "$#"
   local Param
   local ParamList
   local ParamValue
 
   for Param in ${__parameters[@]} ; do
     # FFmpeg's key/value parser can't handle null values and will fail
-    # silently, make sure a value is set to prevent this behavior.
+    # silently if it recieves any. Make sure a value is set to prevent
+    # this behavior.
     ParamKey="$(echo "${Param}" | awk -F'=' '{ print $1 ; exit }')"
     Var::Type.string "${ParamKey}"
     ParamValue="$(echo "${Param}" | awk -F'=' '{ print $2 ; exit }')"

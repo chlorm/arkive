@@ -32,16 +32,18 @@
 # purposes only.
 
 function FFmpeg::Audio.filters {
-  local File="${2}"
+  Function::RequiredArgs '3' "$#"
+  local -r File="${2}"
   local Filter
   local FilterList
   local -a Filters
-  local Stream="${1}"
+  local -r Index="${3}"
+  local -r Stream="${1}"
 
+  Filters+=("$(FFmpeg::Audio.filters:resample "${Stream}" "${File}")")
   Filters+=("$(FFmpeg::Audio.filters:channel_layout_map "${Stream}" "${File}")")
   Filters+=("$(FFmpeg::Audio.filters:highpass)")
   Filters+=("$(FFmpeg::Audio.filters:lowpass)")
-  Filters+=("$(FFmpeg::Audio.filters:resample "${Stream}" "${File}")")
 
   for Filter in "${Filters[@]}" ; do
     if [ -n "${Filter}" ] ; then
@@ -50,6 +52,6 @@ function FFmpeg::Audio.filters {
   done
 
   if [ -n "${FilterList}" ] ; then
-    echo "-filter:a:${Stream} ${FilterList}"
+    echo "-filter:${Index} ${FilterList}"
   fi
 }

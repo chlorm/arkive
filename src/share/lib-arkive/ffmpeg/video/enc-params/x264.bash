@@ -33,25 +33,25 @@
 
 # Generates formatted ffmpeg x264-params key/values
 function FFmpeg::Video.codec:x264_params {
+  Function::RequiredArgs '2' "$#"
   local Bitrate
   local BufSize
-  local File="${2}"
+  local -r File="${2}"
   local FrameRate
-  local -a __parameters
-  local Stream="${1}"
+  local -a __parameters=()
+  local -r Stream="${1}"
   local X26xParams
 
   Bitrate="$(FFmpeg::Video.bitrate "${Stream}" "${File}")"
   # Buffer size is bitrate +10%
   # Setting the buffer size much higher than the bitrate becomes counter
   # productive and can lower visual quality.
-  BufSize=$(Math::RoundFloat "$(echo "${Bitrate}+(${Bitrate}*0.1)" | bc -l)")
+  BufSize=$(Math::RoundFloat "$(echo "${Bitrate}*1.2" | bc -l)")
 
   FrameRate="$(FFmpeg::Video.frame_rate "${Stream}" "${File}")"
 
 
 
-  ### Frame-type opions ###
   __parameters+=(
     "keyint=$(FFmpeg::Video.keyframe_interval "${Stream}" "${File}")"
   )
@@ -61,14 +61,14 @@ function FFmpeg::Video.codec:x264_params {
   __parameters+=(
     'scenecut=0'
     'intra-refresh=false'
-    'bframes=2'
-    'b-adapt=1'
+    'bframes=3'
+    'b-adapt=0'
     'b-bias=0'
     'b-pyramid=normal'
-    'open-gop=true'
+    'open-gop=false'
     'cabac=true'
     'ref=3'
-    'deblock=\-3\:0'
+    'deblock=\0\:0'
     'slices=0'
     'slices-max=0'
     'slice-max-size=0'
@@ -76,40 +76,38 @@ function FFmpeg::Video.codec:x264_params {
     'slice-min-mbs=0'
     'tff=false'
     'bff=false'
-    'constrained-intra=false'
+    'constrained-intra=true'
     #'pulldown=none'
     'fake-interlaced=false'
     'interlaced=false'
     # TODO: support alternative frame-packing for 3D sources
     'frame-packing=6'
   )
-  ### Ratecontrol ###
   # FIXME: limit value to <= 250
-  __parameters+=("rc-lookahead=$(( ${FrameRate} * 2 ))")
+  __parameters+=("rc-lookahead=$(( ${FrameRate} * 3 ))")
   __parameters+=("vbv-maxrate=${BufSize}")
   __parameters+=("vbv-bufsize=${BufSize}")
   __parameters+=(
     'vbv-init=0.9'
     'qpmin=0'
-    'qpmax=69' # XXX
-    'qpstep=4' # XXX
+    'qpmax=51' # XXX
+    'qpstep=8'
     'ratetol=10.0'
     'ipratio=1.4'
-    'pbratio=1.1'
+    'pbratio=1.0'
     # If psy-rd or trellis are enabled chroma-qp-offset is offset by -2 each
     # Make sure the offset is at least -4 if either are disabled to counter
     # some artifacting.
     'chroma-qp-offset=0'
     'aq-mode=1'
-    'aq-strength=1.0'
+    'aq-strength=0.7'
     'mbtree=true'
-    'qcomp=0.6'
+    'qcomp=0.8'
     # Does nothing when mbtree is enabled
-    'cplxblur=20.0'
-    'qblur=0.5'
+    'cplxblur=0'
+    'qblur=0'
     #'qpfile'
-  ### Analysis ###
-    'partitions=all\:8x8dct'
+    'partitions=all\:i8x8'
     'direct=auto'
     'weightb=true'
     'weightp=2'
@@ -119,23 +117,22 @@ function FFmpeg::Video.codec:x264_params {
     "merange=$(FFmpeg::Video.motion_estimation_range "${Stream}" "${File}")"
   )
   __parameters+=(
-    'subme=9'
+    'subme=10'
     'psy-rd=1.0\:0.25' # FIXME
     'psy=true'
     'mixed-refs=true'
     'chroma-me=true'
     '8x8dct=true'
-    'trellis=1'
+    'trellis=2'
     'fast-pskip=false'
     'dct-decimate=false'
     'nr=0'
     'deadzone-inter=21'
     'deadzone-intra=11'
-    #"cqmfile=${ARKIVE_PREFIX}/share/lib-arkive/ffmpeg/video/enc-params/cqm-matrices/eqm_avc_hr_matrix"
-  ### Video Usability Info ###
+    #"cqmfile=${ARKIVE_LIB_DIR}/ffmpeg/video/enc-params/cqm-matrices/eqm_avc_hr_matrix"
     #'overscan'
     #'videoformat'
-    #'range'
+    'range=tv'
     'colorprim=bt709'
     'transfer=bt709'
     'colormatrix=bt709'
@@ -144,8 +141,8 @@ function FFmpeg::Video.codec:x264_params {
     #'filler'
     #'pic-struct'
     #'crop-rect'
-    ### Input/Output ###
     #'sar'
+    #'fps'
   )
   __parameters+=(
     # Without specifing the level some decoders such as Chromium's incorrectly
@@ -156,23 +153,25 @@ function FFmpeg::Video.codec:x264_params {
   __parameters+=(
     'bluray-compat=false'
     'avcintra-class=false'
-    #'stitchable'
+    'stitchable=true'
+    'log-level=info'
     'psnr=false'
     'ssim=false'
   )
   __parameters+=("threads=$(Cpu::Logical)")
   __parameters+=(
-    #'lookahead-threads'
+    'lookahead-threads=1'
     'sliced-threads=false'
     #'sync-lookahead'
-    'non-deterministic=false'
+    'non-deterministic=true'
+    'cpu-independent=false'
     'asm=auto'
-    #'opencl'
-    #'opencl-clbin'
+    'opencl=false'
+    'opencl-clbin=false'
     #'opencl-device'
     #'dump-yuv'
     #'sps-id'
-    #'aud'
+    #'aud=false'
     #'force-cfr'
     #'tcfile-in'
     #'tcfile-out'
@@ -180,7 +179,7 @@ function FFmpeg::Video.codec:x264_params {
     ######'dts-compress=false'
   )
 
-  if [ ${ARKIVE_VIDEO_ENCODING_PASSES} -gt 1 ] ; then
+  if [ ${FFMPEG_VIDEO_ENCODER_PASSES} -gt 1 ] ; then
     __parameters+=(
       "pass=${__pass__}"
       "stats=${__tmpdir__}/${__filenamefmt__}.stats"

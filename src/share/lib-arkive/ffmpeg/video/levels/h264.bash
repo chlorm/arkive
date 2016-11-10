@@ -32,22 +32,29 @@
 # purposes only.
 
 # This is a rudimentary system for setting the minimum decoder level, it
-# is in now way precise.  Level 3.0 is the minimum supported level.
+# is in no way precise.  Level 3.0 is the minimum supported level.
 function FFmpeg::Video.level:h264 {
-  local File="${2}"
-  local Stream="${1}"
+  Function::RequiredArgs '2' "$#"
+  local -r File="${2}"
+  local -r Stream="${1}"
 
-  # FIXME: used cropped width
+  # FIXME: use cropped width
   FrameWidth="$(Video::Width "${Stream}" "${File}")"
+
+  Log::Message 'debug' "frame width: ${FrameWidth}"
+
   # Evaluate frame rate incase a fractional number is returned
-  FrameRate="$(echo "$(Video::FrameRate "${Stream}" "${File}")" | bc)"
+  FrameRate="$(echo "$(Video::FrameRate "${Stream}" "${File}")" | bc -l | xargs printf "%1.0f")"
+
+  Log::Message 'debug' "frame rate: ${FrameRate}"
 
   if [ ${FrameWidth} -le 720 ] ; then
     echo "3"
   elif [ ${FrameWidth} -le 1280 ] && [ ${FrameRate} -le 60 ] ; then
     echo "3.2"
+  # Amazon Fire TV only supports <=4.0
   elif [ ${FrameWidth} -le 1920 ] && [ ${FrameRate} -le 30 ] ; then
-    echo "4.1"
+    echo "4.0"
   elif [ ${FrameWidth} -le 1920 ] && [ ${FrameRate} -le 60 ] ; then
     echo "4.2"
   elif [ ${FrameWidth} -le 2560 ] && [ ${FrameRate} -le 30 ] ; then
@@ -57,7 +64,7 @@ function FFmpeg::Video.level:h264 {
   elif [ ${FrameWidth} -le 4096 ] && [ ${FrameRate} -le 60 ] ; then
     echo "5.2"
   else
-    Debug::Message 'Error' 'failed to detect decoder level'
+    Log::Message 'Error' 'failed to detect decoder level'
     return 1
   fi
 }

@@ -32,6 +32,7 @@
 # purposes only.
 
 function Tmp::Cleanup {
+  Function::RequiredArgs '0' "$#"
   # Remove tmp directory if one was specified
   if [ -d "${TMPDIR}" ] ; then
     # Add check for files not created before removing directory

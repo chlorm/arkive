@@ -31,17 +31,18 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
+# http://forum.videohelp.com/threads/373264-FFMpeg-List-of-working-sample-formats-per-format-and-encoder
+
 function FFmpeg::Audio.sample_format {
-  local File="${2}"
+  Function::RequiredArgs '2' "$#"
+  local -r File="${2}"
   local SampleFormat
-  local Stream="${1}"
+  local -r Stream="${1}"
 
   SampleFormat="$(Audio::SampleFormat "${Stream}" "${File}")"
 
-  # Assume `Planar Floating point format` is 16bit
-  if [ "${SampleFormat}" == 'fltp' ] ; then
-    SampleFormat='s16'
-  fi
-
-  echo "${SampleFormat}"
+  case "${FFMPEG_AUDIO_ENCODER}" in
+    'flac') echo "${SampleFormat}" ;;
+    'opus') echo 'flt' ;;
+  esac
 }

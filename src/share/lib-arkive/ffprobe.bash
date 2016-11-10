@@ -35,30 +35,30 @@ function FFprobe {
   Function::RequiredArgs '5' "$#"
   local StreamType="${1}"
   local Stream="${2}"
-  local EntKey="${3}"
-  local EntVal="${4}"
-  local File="${5}"
+  local -r EntKey="${3}"
+  local -r EntVal="${4}"
+  local -r File="${5}"
   local FFprobeArg
   local FFprobeArgs
   local -a FFprobeArgsList
-  local FFprobeOut
+  local FFprobeOutput
 
-  Debug::Message 'info' "1:${1}, 2:${2}, 3:${3}, 4:${4}, 5:${5},"
+  Log::Message 'info' "1:${1}, 2:${2}, 3:${3}, 4:${4}, 5:${5},"
 
   if [ "${StreamType}" == '-' ] ; then
     unset StreamType
-  elif [[ ! "${StreamType}" == +('a'|'s'|'v') ]]; then
-    Debug::Message 'error' "invalid stream type: ${StreamType}"
+  elif [[ ! "${StreamType}" == @('a'|'s'|'v') ]] ; then
+    Log::Message 'error' "invalid stream type: ${StreamType}"
   fi
 
   if [ "${Stream}" == '-' ] ; then
     unset Stream
   elif [ ! ${Stream} -ge 0 ] ; then
-    Debug::Message 'error' "invalid stream id: ${Stream}"
+    Log::Message 'error' "invalid stream id: ${Stream}"
   fi
 
   if [ ! -f "${File}" ] ; then
-    Debug::Message 'error' "invalid file: ${File}"
+    Log::Message 'error' "invalid file: ${File}"
   fi
 
   FFprobeArgsList=(
@@ -73,10 +73,12 @@ function FFprobe {
       FFprobeArgs="${FFprobeArgs}${FFprobeArgs:+ }${FFprobeArg}"
     fi
   done
-  Debug::Message 'info' "@FFPROBE_PATH@ ${FFprobeArgs}"
-  FFprobeOut="$(@FFPROBE_PATH@ ${FFprobeArgs})"
+  Log::Message 'info' "ffprobe ${FFprobeArgs}"
+  FFprobeOutput="$(ffprobe ${FFprobeArgs})"
 
-  Var::Type.string "${FFprobeOut}"
+  Var::Type.string "${FFprobeOutput}"
 
-  echo "${FFprobeOut}"
+  Log::Message 'info' "ffprobe: ${FFprobeOutput}"
+
+  echo "${FFprobeOutput}"
 }

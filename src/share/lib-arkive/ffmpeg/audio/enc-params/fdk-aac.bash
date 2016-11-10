@@ -31,32 +31,31 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio.encoder {
-  Function::RequiredArgs '3' "$#"
-  local Encoder EncoderParams
-  local -r File="${2}"
-  local -r Index="${3}"
-  local -r Stream="${1}"
+function FFmpeg::Audio.encoder:fdk_aac {
+  Function::RequiredArgs '1' "$#"
+  local -r Index="${1}"
+  local Parameter
+  local ParameterList
+  local -a Parameters
 
-  case "${FFMPEG_AUDIO_ENCODER}" in
-    'ffaac')
-      Encoder='aac'
-      EncoderParams="$(FFmpeg::Audio.encoder:ffaac "${Index}")"
-      ;;
-    'fdk-aac')
-      Encoder='libfdk_aac'
-      EncoderParams="$(FFmpeg::Audio.encoder:fdk_aac "${Index}")"
-      ;;
-    'opus')
-      Encoder='libopus'
-      EncoderParams="$(FFmpeg::Audio.encoder:opus "${Index}")"
-      ;;
-    'flac') Encoder='flac' ;;
-    *)
-      Log::Message 'error' "invalid audio encoder \`${FFMPEG_AUDIO_ENCODER}' specified"
-      return 1
-      ;;
-  esac
+  Parameters=(
+    "-profile:${Index} aac_low"  # HE-AACv1
+    "-vbr:${Index} 0"  # CBR
+    "-afterburner:${Index} 1"
+    "-eld_sbr:${Index} 1"
+  )
 
-  echo "-c:${Index} ${Encoder}${EncoderParams:+ ${EncoderParams}}"
+  if [ -n "${FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS}" ] ; then
+    Parameters+=("${FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS}")
+  fi
+
+  for Parameter in "${Parameters[@]}" ; do
+    if [ -n "${Parameter}" ] ; then
+      ParameterList="${ParameterList}${ParameterList:+ }${Parameter}"
+    fi
+  done
+
+  if [ -n "${ParameterList}" ] ; then
+    echo "${ParameterList}"
+  fi
 }

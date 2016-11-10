@@ -32,21 +32,21 @@
 # purposes only.
 
 # This is a rudimentary system for setting the minimum decoder level, it
-# is in now way precise.  Level 3.0 is the minimum supported level.
+# is in no way precise.  Level 3.0 is the minimum supported level.
 function FFmpeg::Video.level:h265 {
-  local File="${2}"
-  local Stream="${1}"
+  Function::RequiredArgs '2' "$#"
+  local -r File="${2}"
+  local -r Stream="${1}"
 
-  # FIXME: used cropped width
+  # FIXME: use cropped width
   FrameWidth="$(Video::Width "${Stream}" "${File}")"
 
-  Debug::Message 'info' "frame width: ${FrameWidth}"
+  Log::Message 'debug' "frame width: ${FrameWidth}"
 
   # Evaluate frame rate incase a fractional number is returned
-  FrameRate="$(echo "$(FFmpeg::Video.frame_rate "${Stream}" "${File}")" | bc)"
-  FrameRate=${FrameRate%.*}
+  FrameRate="$(echo "$(FFmpeg::Video.frame_rate "${Stream}" "${File}")" | bc -l | xargs printf "%1.0f")"
 
-  Debug::Message 'info' "frame rate: ${FrameRate}"
+  Log::Message 'debug' "frame rate: ${FrameRate}"
 
   if [ ${FrameWidth} -le 352 ] && [ ${FrameRate} -le 60 ] ; then
     echo "3"
@@ -79,7 +79,7 @@ function FFmpeg::Video.level:h265 {
   elif [ ${FrameWidth} -le 8192 ] && [ ${FrameRate} -le 120 ] ; then
     echo "6.2"
   else
-    Debug::Message 'error' 'failed to detect decoder level'
+    Log::Message 'error' 'failed to detect decoder level'
     return 1
   fi
 }

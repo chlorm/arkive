@@ -32,16 +32,23 @@
 # purposes only.
 
 function Requires::Check.ffmpeg {
-  local ReqVersion='3.0.0'
+  Function::RequiredArgs '0' "$#"
+  local -r ReqVersion='3.1.0'
   local Version
 
   Version="$(ffmpeg -version | awk -F' ' '/ffmpeg version/ {print $3 ; exit}')"
+
+  # Handle FFmpeg git version strings
+  if [[ "${Version}" =~ ^.*\.git ]] ; then
+    Version='3.999.999'
+  fi
 
   String::Version.atleast "${Version}" "${ReqVersion}"
 }
 
 # Required dependencies
 function Requires::Check {
+  Function::RequiredArgs '0' "$#"
   # libx264 (compiled with target bit depth)
   # libx265 >= 1.9 (compiled with multilib or at least target bit depth)
   # libopus >= 1.1 (surround sound improvements)

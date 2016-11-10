@@ -31,28 +31,36 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Video {
-  local File="${2}"
-  local Index="${3}"
-  local Stream="${1}"
-  local VideoArg
-  local -a VideoArgs
-  local VideoArgsList
+function FFmpeg::Audio.encoder:ffaac {
+  Function::RequiredArgs '1' "$#"
+  local -r Index="${1}"
+  local Parameter
+  local ParameterList
+  local -a Parameters
 
-  VideoArgs+=("-map 0:${Stream}")
-  VideoArgs+=("-b:v:${Stream} $(FFmpeg::Video.bitrate "${Stream}" "${File}")k")
-  VideoArgs+=("$(FFmpeg::Video.codec "${Stream}" "${File}")")
-  VideoArgs+=("$(FFmpeg::Video.filters "${Stream}" "${File}")")
-  VideoArgs+=("-r:v:${Stream} $(FFmpeg::Video.frame_rate "${Stream}" "${File}")")
-  VideoArgs+=("$(FFmpeg::Video.pixel_format "${Stream}" "${File}")")
+  Parameters=(
+    "-profile:${Index} aac_low"  # AAC-LC
+    "-q:${Index} 2"  # VBR
+    "-aac_coder:${Index} twoloop"  # Also: amnr, requires -strict -2
+    "-aac_ms:${Index} auto"
+    "-aac_is:${Index} 1"
+    "-aac_pns:${Index} 1"
+    "-aac_tns:${Index} 1"
+    "-aac_ltp:${Index} 0"  # Requires aac_ltp profile
+    "-aac_pred:${Index} 0"  # Requires aac_main profile
+  )
 
-  for VideoArg in "${VideoArgs[@]}" ; do
-    if [ -n "${VideoArg}" ] ; then
-      VideoArgsList="${VideoArgsList}${VideoArgsList:+ }${VideoArg}"
+  if [ -n "${FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS}" ] ; then
+    Parameters+=("${FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS}")
+  fi
+
+  for Parameter in "${Parameters[@]}" ; do
+    if [ -n "${Parameter}" ] ; then
+      ParameterList="${ParameterList}${ParameterList:+ }${Parameter}"
     fi
   done
 
-  if [ -n "${VideoArgsList}" ] ; then
-    echo "${VideoArgsList}"
+  if [ -n "${ParameterList}" ] ; then
+    echo "${ParameterList}"
   fi
 }

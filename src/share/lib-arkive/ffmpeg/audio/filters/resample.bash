@@ -32,36 +32,31 @@
 # purposes only.
 
 function FFmpeg::Audio.filters:resample {
-  local File="${2}"
+  Function::RequiredArgs '2' "$#"
+  local -r File="${2}"
   local SampleFormat
   local SampleRate
-  local Stream="${1}"
+  local -r Stream="${1}"
 
   SampleFormat="$(Audio::SampleFormat "${Stream}" "${File}")"
   SampleRate="$(Audio::SampleRate "${Stream}" "${File}")"
 
-  # Supported sample rates
-  [[ "${ARKIVE_AUDIO_SAMPLE_RATE}" == +(44100|48000|96000|192000) ]]
+  case ${FFMPEG_AUDIO_SAMPLERATE} in
+    8000|11025|12000|16000|22050|24000|32000|44100|48000|\
+        64000|88200|96000|176400|192000) true ;;
+    *)
+      Log::Message 'error' "invalid samplerate: ${FFMPEG_AUDIO_SAMPLERATE}"
+      return 1
+      ;;
+  esac
 
-  # Refuse to upsample unless the codec is opus or the source sample rate
-  # is less than 44100Hz. Opus natively uses 48000Hz.
-  if ([ ${ARKIVE_AUDIO_SAMPLE_RATE} -gt ${SampleRate} ] && \
-      [ ${SampleRate} -gt 44100 ]) || \
-     ([ "${ARKIVE_AUDIO_CODEC}" == 'opus' ] && \
-      [ ${ARKIVE_AUDIO_SAMPLE_RATE} -ne 48000 ]) ; then
-    Debug::Message 'error' 'upsampling is only allowed for < 44100kHz -> 44100kHz'
-    Debug::Message 'error' 'and for opus anything that != 48000kHz'
-    return 1
-  fi
-
-  # Assume `Planar Floating point format` is 16bit
-  if [ "${SampleFormat}" == 'fltp' ] ; then
-    SampleFormat='s16'
-  fi
+  # http://forum.videohelp.com/threads/373264-FFMpeg-List-of-working-sample-formats-per-format-and-encoder
+  case "${FFMPEG_AUDIO_ENCODER}" in
+    'flac') OutputSampleFormat='s32' ;;
+    'opus') OutputSampleFormat='flt' ;;
+    'ac3'|'ffaac'|'fdk-aac'|'eac3'|'vorbis') OutputSampleFormat='fltp' ;;
+  esac
 
   # Only resample when converting sample rates or sample formats (bit depth)
-  if [ ${ARKIVE_AUDIO_SAMPLE_RATE} -ne ${SampleRate} ] || \
-     [ "${SampleFormat}" != 's16' ] ; then
-    echo "aresample=resampler=soxr:precision=28:cheby=1:isf=${SampleFormat}:osf=s16:tsf=s32:isr=${SampleRate}:osr=${ARKIVE_AUDIO_SAMPLE_RATE}:cutoff=0.91:dither_method=0"
-  fi
+  echo "aresample=resampler=soxr:precision=28:cheby=1:isf=${SampleFormat}:osf=${OutputSampleFormat}:tsf=s32:isr=${SampleRate}:osr=${FFMPEG_AUDIO_SAMPLERATE}:cutoff=0.91:dither_method=0"
 }

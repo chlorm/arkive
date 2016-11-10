@@ -31,13 +31,16 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
+# FIXME: make max stream count for each type configurable and defined in defaults
+
 function Stream::Select {
+  Function::RequiredArgs '2' "$#"
   local -A FFtypes
-  local File="${2}"
+  local -r File="${2}"
   local -A ReqMaxsStm
   local -A ReqMinsStm
   local -a Streams
-  local Type="${1}"
+  local -r Type="${1}"
 
   # Translate strings to ffmpeg stream type identifiers
   FFtypes=(
@@ -79,7 +82,7 @@ function Stream::Select {
     # Remove streams that contain matching keywords in the stream title
     for Stream in ${Streams[@]} ; do
       FindMatch=false
-      for Keyword in "${ARKIVE_AUDIO_STREAM_DISCARD_KEYWORDS[@]}" ; do
+      for Keyword in "${FFMPEG_AUDIO_STREAM_DISCARDKEYWORDS[@]}" ; do
         FindKeyword="$(
           echo $(
             String::LowerCase $(
@@ -98,8 +101,12 @@ function Stream::Select {
       fi
     done
 
-    Debug::Message 'error' 'multiple streams not implemented'
-    return 1
+    if [ ${#Streams[@]} -eq 1 ] ; then
+      Stream=${Streams[@]}
+    else
+      Log::Message 'error' 'multiple streams not implemented'
+      return 1
+    fi
   fi
 
   echo "${Stream}"

@@ -31,32 +31,33 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio.encoder {
-  Function::RequiredArgs '3' "$#"
-  local Encoder EncoderParams
-  local -r File="${2}"
-  local -r Index="${3}"
-  local -r Stream="${1}"
+function FFmpeg::Video.filters:colorspace() {
+  #local File="${2}"
+  #local Stream="${1}"
 
-  case "${FFMPEG_AUDIO_ENCODER}" in
-    'ffaac')
-      Encoder='aac'
-      EncoderParams="$(FFmpeg::Audio.encoder:ffaac "${Index}")"
-      ;;
-    'fdk-aac')
-      Encoder='libfdk_aac'
-      EncoderParams="$(FFmpeg::Audio.encoder:fdk_aac "${Index}")"
-      ;;
-    'opus')
-      Encoder='libopus'
-      EncoderParams="$(FFmpeg::Audio.encoder:opus "${Index}")"
-      ;;
-    'flac') Encoder='flac' ;;
-    *)
-      Log::Message 'error' "invalid audio encoder \`${FFMPEG_AUDIO_ENCODER}' specified"
-      return 1
-      ;;
-  esac
+  if [ ${FFMPEG_VIDEO_BITDEPTH} -gt 8 ] ; then
+    ColorPrimaries='bt2020'
+  else
+    ColorPrimaries='bt709'
+  fi
 
-  echo "-c:${Index} ${Encoder}${EncoderParams:+ ${EncoderParams}}"
+  if [ "${ColorPrimaries}" == 'bt2020' ] ; then
+    ColorSpace='bt2020ncl'
+  else
+    ColorSpace='bt709'
+  fi
+
+  if [ "${ColorPrimaries}" == 'bt2020' ] ; then
+    ColorTransfer="bt2020-${FFMPEG_VIDEO_BITDEPTH}"
+  else
+    ColorTransfer='bt709'
+  fi
+
+  if [ ${FFMPEG_VIDEO_BITDEPTH} -gt 8 ] ; then
+    PixelFormat="yuv${FFMPEG_VIDEO_CHROMASUBSAMPLING}p${FFMPEG_VIDEO_BITDEPTH}"
+  else
+    PixelFormat="yuv${FFMPEG_VIDEO_CHROMASUBSAMPLING}p"
+  fi
+
+  #echo "colorspace=space=${ColorSpace}:trc=${ColorTransfer}:primaries=${ColorPrimaries}:range=mpeg:format=yuv420p10:dither=fsb"
 }

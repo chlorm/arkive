@@ -32,22 +32,20 @@
 # purposes only.
 
 function FFmpeg::Audio {
+  Function::RequiredArgs '3' "$#"
   local AudioArg
   local AudioArgs
   local -a AudioArgsList
-  local File="${2}"
-  local Index="${3}"
-  local Stream="${1}"
+  local -r File="${2}"
+  local -r Index="${3}"
+  local -r Stream="${1}"
 
-  # -ac ${Channels}"
-
-  AudioArgsList+=("-map 0:${Stream}")
-  AudioArgsList+=("$(FFmpeg::Audio.filters "${Stream}" "${File}")")
-  AudioArgsList+=("$(FFmpeg::Audio.cutoff "${Stream}")")
-  AudioArgsList+=("$(FFmpeg::Audio.bitrate "${Stream}" "${File}")")
-  #AudioArgsList+=("$(FFmpeg::Audio.channels "${Stream}")")
-  AudioArgsList+=("$(FFmpeg::Audio.encoder "${Stream}" "${File}")")
-  AudioArgsList+=("$(FFmpeg::Audio.sample_rate "${Stream}")")
+  AudioArgsList+=("$(FFmpeg::Audio.filters "${Stream}" "${File}" "${Index}")")
+  AudioArgsList+=("$(FFmpeg::Audio.cutoff "${Index}")")
+  AudioArgsList+=("$(FFmpeg::Audio.bitrate "${Stream}" "${File}" "${Index}")")
+  #AudioArgsList+=("-ac:${Index} $(FFmpeg::Audio.channels "${Stream}" "${File}")")
+  AudioArgsList+=("$(FFmpeg::Audio.encoder "${Stream}" "${File}" "${Index}")")
+  AudioArgsList+=("$(FFmpeg::Audio.sample_rate "${Stream}" "${File}" "${Index}")")
 
   for AudioArg in "${AudioArgsList[@]}" ; do
     if [ -n "${AudioArg}" ] ; then

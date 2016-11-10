@@ -34,20 +34,31 @@
 # Bitrate from a fixed bpp value:
 # bitrate = (w * h * fps * bpp) / 1024
 function FFmpeg::Video.bitrate {
-  local Bpp="${ARKIVE_VIDEO_BITS_PER_PIXEL}"
-  local File="${2}"
+  Function::RequiredArgs '2' "$#"
+  local -r Bpp="${FFMPEG_VIDEO_BITSPERPIXEL}"
+  local -r File="${2}"
   local FrameRate
   local Height
-  local Stream="${1}"
+  local -r Stream="${1}"
   local Width
 
-  # FIXME: use user specified frame rate
-  FrameRate="$(FFmpeg::Video.frame_rate "${Stream}" "${File}")"
-  # FIXME: use cropped width/height
+  if [ "${FFMPEG_VIDEO_FRAMERATE}" == 'source' ] ; then
+    FrameRate="$(FFmpeg::Video.frame_rate "${Stream}" "${File}")"
+  else
+    FrameRate="${FFMPEG_VIDEO_FRAMERATE}"
+  fi
+  # FIXME: use output width/height (factor based on crop & scale filters)
   Height="$(Video::Height "${Stream}" "${File}")"
   Width="$(Video::Width "${Stream}" "${File}")"
 
-  Bitrate="$(echo "((${Width}*${Height}*${FrameRate}*${Bpp})/1024)" | bc)"
+  # BC defaults to a scale of 0, which will result in a rounding error,
+  # meaning the number may be much lower than it should be.
+  Bitrate="$(
+    echo "scale=10;((${Width}*${Height}*(${FrameRate})*${Bpp})/1024)" | bc
+  )"
+
+  # Round to nearest whole number
+  Bitrate="$(printf "%1.0f" "${Bitrate}")"
 
   Var::Type.integer "${Bitrate}"
 
@@ -58,7 +69,7 @@ function FFmpeg::Video.bitrate {
 # This formula uses 1920x1080@23.976
 # bpp = (bitrate * 1024) / (1920 * 1080 * (24000 / 1001))
 function FFmpeg::Video.bpp {
-  local Bitrate="${1}"
+  local -r Bitrate="${1}"
   local Bpp
 
   Bpp="$(echo "((${Bitrate}*1024)/(1920*1080*(24000/1001)))" | bc -l)"

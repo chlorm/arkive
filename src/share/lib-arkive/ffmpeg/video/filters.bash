@@ -32,16 +32,26 @@
 # purposes only.
 
 function FFmpeg::Video.filters {
-  local File="${2}"
+  Function::RequiredArgs '3' "$#"
+  local -r File="${2}"
   local Filter
   local FilterList
   local -a Filters
-  local Stream="${1}"
+  local -r Index="${3}"
+  local -r Stream="${1}"
 
   # NOTE: the order of filters here is the order in which they are applied
   #Filters+=("$(FFmpeg::Video.filters:de_interlace "${Stream}" "${File}")")
   Filters+=("$(FFmpeg::Video.filters:black_bar_crop "${Stream}" "${File}")")
+  Filters+=("$(FFmpeg::Video.filters:colorspace "${Stream}" "${File}")")
+  #Filters+=("$(FFmpeg::Video.filters:denoise)")
   #Filters+=("$(FFmpeg::Video.filters:scale "${Stream}" "${File}")")
+  if [ "${FFMPEG_VIDEO_ENCODER}" == 'vaapi-h264' ] ; then
+    Filters+=(
+      'format=nv12'
+      'hwupload'
+    )
+  fi
 
   for Filter in "${Filters[@]}" ; do
     if [ -n "${Filter}" ] ; then
@@ -50,6 +60,6 @@ function FFmpeg::Video.filters {
   done
 
   if [ -n "${FilterList}" ] ; then
-    echo "-filter:v:${Stream} ${FilterList}"
+    echo "-filter:${Index} ${FilterList}"
   fi
 }

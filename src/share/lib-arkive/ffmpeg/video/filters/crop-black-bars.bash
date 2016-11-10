@@ -31,9 +31,11 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-# Uses the ffmpeg cropdetect filter to check for blackbars at 5 second
-# intervals until 10 identical results for both width and height are found.
+# This function uses the ffmpeg cropdetect filter to check for blackbars
+# at 5 second intervals until 10 identical results for both width and
+# height are found.
 function FFmpeg::Video.filters:black_bar_crop {
+  Function::RequiredArgs '2' "$#"
   # TODO:
   # - fix setting crop rounding value dynamically
   #   h264: prefer multiples of 16 for compression efficiency, or multiple
@@ -55,12 +57,12 @@ function FFmpeg::Video.filters:black_bar_crop {
   local CropXOffsetArray
   local CropYOffset
   local CropYOffsetArray
-  local File="${2}"
+  local -r File="${2}"
   local LoopIter
   local Skip
   local SourceHeight
   local SourceWidth
-  local Stream="${1}"
+  local -r Stream="${1}"
 
   CropHeight=0
   CropHeightArray=()
@@ -74,9 +76,9 @@ function FFmpeg::Video.filters:black_bar_crop {
   CropYOffsetMatches=0
   LoopIter=1
   SourceHeight=$(Video::Height "${Stream}" "${File}")
-  Debug::Message 'info' "source height: ${SourceHeight}"
+  Log::Message 'info' "source height: ${SourceHeight}"
   SourceWidth=$(Video::Width "${Stream}" "${File}")
-  Debug::Message 'info' "source width: ${SourceWidth}"
+  Log::Message 'info' "source width: ${SourceWidth}"
 
   function mode {
     echo "${@}" |
@@ -124,7 +126,7 @@ function FFmpeg::Video.filters:black_bar_crop {
       fi
     done
 
-    Debug::Message 'info' "ffmpeg ${CropDetectArgs}"
+    Log::Message 'info' "ffmpeg ${CropDetectArgs}"
 
     CropDetect="$(
       ffmpeg ${CropDetectArgs} 2>&1 |
@@ -132,7 +134,7 @@ function FFmpeg::Video.filters:black_bar_crop {
         tail -1
     )"
 
-    Debug::Message 'info' "${LoopIter}: ${CropDetect}"
+    Log::Message 'info' "${LoopIter}: ${CropDetect}"
 
     # Find crop height
     CropHeight=$(echo "${CropDetect}" | awk -F':' '{ print $2 ; exit }')
@@ -151,7 +153,7 @@ function FFmpeg::Video.filters:black_bar_crop {
       CropWidthArray+=("${CropWidth}")
     fi
 
-    Debug::Message 'info' "${LoopIter} - W:${CropWidth} H:${CropHeight} X:${CropXOffsetArray[-1]} Y:${CropYOffsetArray[-1]}"
+    Log::Message 'info' "${LoopIter} - W:${CropWidth} H:${CropHeight} X:${CropXOffsetArray[-1]} Y:${CropYOffsetArray[-1]}"
 
     # Find count of mode values
     CropWidthMatches=$(mode_count "${CropWidthArray[@]}")
@@ -159,7 +161,7 @@ function FFmpeg::Video.filters:black_bar_crop {
     CropXOffsetMatches=$(mode_count "${CropXOffsetArray[@]}")
     CropYOffsetMatches=$(mode_count "${CropYOffsetArray[@]}")
 
-    Debug::Message 'info' "MODE - W:${CropWidthMatches} H:${CropHeightMatches} X:${CropXOffsetMatches} Y:${CropYOffsetMatches}"
+    Log::Message 'info' "MODE - W:${CropWidthMatches} H:${CropHeightMatches} X:${CropXOffsetMatches} Y:${CropYOffsetMatches}"
 
     LoopIter=$(( ${LoopIter} + 1 ))
 
@@ -185,7 +187,7 @@ function FFmpeg::Video.filters:black_bar_crop {
   CropYOffset=$(mode "${CropYOffsetArray[@]}")
   Var::Type.integer "${CropYOffset}"
 
-  Debug::Message 'info' "FINAL: W:${CropWidth} H:${CropHeight} X:${CropXOffset} Y:${CropYOffset}"
+  Log::Message 'info' "FINAL: W:${CropWidth} H:${CropHeight} X:${CropXOffset} Y:${CropYOffset}"
 
   echo "crop=${CropWidth}:${CropHeight}:${CropXOffset}:${CropYOffset}"
 }

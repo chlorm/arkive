@@ -33,14 +33,19 @@
 
 # Equivalent to 2 seconds of video
 function FFmpeg::Video.motion_estimation_range {
-  local File="${2}"
+  Function::RequiredArgs '2' "$#"
+  local -r File="${2}"
   local FrameRate
   local MeRange
-  local Stream="${1}"
+  local -r Stream="${1}"
 
-  FrameRate="$(Video::FrameRate "${Stream}" "${File}")"
+  if [ "${FFMPEG_VIDEO_FRAMERATE}" == 'source' ] ; then
+    FrameRate="$(Video::FrameRate "${Stream}" "${File}")"
+  else
+    FrameRate="${FFMPEG_VIDEO_FRAMERATE}"
+  fi
 
-  MeRange=$(( ${FrameRate} * 2 ))
+  MeRange=$(( ${FrameRate} * 3 ))
 
   Var::Type.integer "${MeRange}"
 

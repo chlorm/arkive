@@ -31,10 +31,40 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
+# function Video::ColorMatrix {
+#   Function::RequiredArgs '2' "$#"
+#   local -r File="${2}"
+#   local SourceCodecName
+#   local SourceColorPrimaries
+#   local -r Stream="${1}"
+
+#   SourceCodecName="$(FFprobe '-' "${Stream}" 'stream' 'codec_name' "${File}")"
+
+#   # We really only care to signal bt2020 for bt2020 sources, for all others
+#   # bt709 is signaled.  Ignore testing for bt2020 if the source codec doesn't
+#   # support it.
+#   case "${SourceCodecName}" in
+#     'h265'|'vp9')
+#       SourceColorPrimaries="$(FFprobe '-' "${Stream}" 'stream' 'color_primaries' "${File}")"
+#       SourcePixelFormat="$(FFprobe '-' "${Stream}" 'stream' 'pix_fmt' "${File}")"
+#       # FIXME: only supports yuv currently
+#       if [ "${SourcePixelFormat}" =~ yuv4([2]|[4])([0]|[2]|[4])10* ] ; then
+#         # FIXME: test for bt2020
+#         echo 'bt2020'
+#       else
+#         # 8bpcc cannot support bt2020, assume bt709
+#         echo 'bt709'
+#       fi
+#       ;;
+#     *) echo 'bt709' ;;
+#   esac
+# }
+
 function Video::FrameRate {
-  local File="${2}"
+  Function::RequiredArgs '2' "$#"
+  local -r File="${2}"
   local SourceFrameRate
-  local Stream="${1}"
+  local -r Stream="${1}"
 
   SourceFrameRate="$(FFprobe '-' "${Stream}" 'stream' 'r_frame_rate' "${File}")"
 
@@ -44,9 +74,10 @@ function Video::FrameRate {
 }
 
 function Video::Height {
-  local File="${2}"
+  Function::RequiredArgs '2' "$#"
+  local -r File="${2}"
   local Height
-  local Stream="${1}"
+  local -r Stream="${1}"
 
   Height=$(FFprobe '-' "${Stream}" 'stream' 'height' "${File}")
 
@@ -56,8 +87,9 @@ function Video::Height {
 }
 
 function Video::Width {
-  local File="${2}"
-  local Stream="${1}"
+  Function::RequiredArgs '2' "$#"
+  local -r File="${2}"
+  local -r Stream="${1}"
   local Width
 
   Width=$(FFprobe '-' "${Stream}" 'stream' 'width' "${File}")

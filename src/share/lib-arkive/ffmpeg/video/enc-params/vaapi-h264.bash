@@ -31,32 +31,15 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio.encoder {
+function FFmpeg::Video.codec:vaapi_h264_params {
   Function::RequiredArgs '3' "$#"
-  local Encoder EncoderParams
   local -r File="${2}"
-  local -r Index="${3}"
+  local -a Parameters
   local -r Stream="${1}"
 
-  case "${FFMPEG_AUDIO_ENCODER}" in
-    'ffaac')
-      Encoder='aac'
-      EncoderParams="$(FFmpeg::Audio.encoder:ffaac "${Index}")"
-      ;;
-    'fdk-aac')
-      Encoder='libfdk_aac'
-      EncoderParams="$(FFmpeg::Audio.encoder:fdk_aac "${Index}")"
-      ;;
-    'opus')
-      Encoder='libopus'
-      EncoderParams="$(FFmpeg::Audio.encoder:opus "${Index}")"
-      ;;
-    'flac') Encoder='flac' ;;
-    *)
-      Log::Message 'error' "invalid audio encoder \`${FFMPEG_AUDIO_ENCODER}' specified"
-      return 1
-      ;;
-  esac
+  Parameters=(
+    '-vaapi_device /dev/dri/renderD128'
+  )
 
-  echo "-c:${Index} ${Encoder}${EncoderParams:+ ${EncoderParams}}"
+  echo "${Parameters[@]}"
 }

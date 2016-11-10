@@ -35,7 +35,8 @@
 # FIXME: these values need to be refined further
 
 function FFmpeg::Video.filters:de_interlace {
-  local File="${2}"
+  Function::RequiredArgs '2' "$#"
+  local -r File="${2}"
   local IdetAprox=0
   local IdetBFF
   local IdetInterlaced
@@ -51,12 +52,12 @@ function FFmpeg::Video.filters:de_interlace {
   local IsInterlaced=false
   local LoopIter=0
   local Skip=1
-  local Stream="${1}"
+  local -r Stream="${1}"
 
   CheckMinFrames="$(FFprobe '-' "${Stream}" 'stream' 'nb_frames' "${File}")"
 
   if [ ${CheckMinFrames} -lt 5000 ] ; then
-    Debug::Message 'warn' "skipping interlace detection, not enough frames: ${CheckMinFrames}"
+    Log::Message 'warn' "skipping interlace detection, not enough frames: ${CheckMinFrames}"
     return 0
   fi
 
@@ -142,9 +143,9 @@ function FFmpeg::Video.filters:de_interlace {
       IdetProgressive=$(( ${IdetProg} + ${IdetUnd} ))
     fi
 
-    # Something is wrong if no frames were detected at all 
+    # Something is wrong if no frames were detected at all
     [ $(( ${IdetInterlaced} + ${IdetProgressive} )) -gt 0 ] || {
-      Debug::Message 'error' 'no frames detected'
+      Log::Message 'error' 'no frames detected'
       return 1
     }
 
@@ -152,15 +153,15 @@ function FFmpeg::Video.filters:de_interlace {
     IdetProgressiveTotal=$(( ${IdetProgressiveTotal} + ${IdetProgressive} ))
     TotalFrames=$(( ${IdetInterlacedTotal} + ${IdetProgressiveTotal} ))
 
-    Debug::Message 'info' "Interlaced frames: ${IdetInterlacedTotal}"
-    Debug::Message 'info' "Progressive frames: ${IdetProgressiveTotal}"
-    Debug::Message 'info' "Total frames: ${TotalFrames}"
+    Log::Message 'info' "Interlaced frames: ${IdetInterlacedTotal}"
+    Log::Message 'info' "Progressive frames: ${IdetProgressiveTotal}"
+    Log::Message 'info' "Total frames: ${TotalFrames}"
 
     IdetInterlacedPercentage=$(( ${IdetInterlacedTotal} * 100 / ${TotalFrames} ))
     IdetProgressivePercentage=$(( ${IdetProgressiveTotal} * 100 / ${TotalFrames} ))
 
-    Debug::Message 'info' "Percentage interlaced: ${IdetInterlacedPercentage}"
-    Debug::Message 'info' "Percentage progressive: ${IdetProgressivePercentage}"
+    Log::Message 'info' "Percentage interlaced: ${IdetInterlacedPercentage}"
+    Log::Message 'info' "Percentage progressive: ${IdetProgressivePercentage}"
 
     LoopIter=$(( ${LoopIter} + 1 ))
 

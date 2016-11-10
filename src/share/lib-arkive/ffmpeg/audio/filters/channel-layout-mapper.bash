@@ -33,12 +33,14 @@
 
 # Enforce a consistent audio channel layout by remapping non-conformant streams.
 function FFmpeg::Audio.filters:channel_layout_map {
+  Function::RequiredArgs '2' "$#"
   local ChannelLayout
   local ChannelLayoutMap
   local ChannelLayoutMapTo
-  local File="${2}"
+  local -A ChannelOrderMap
+  local -r File="${2}"
   local -A PanArgsList
-  local Stream="${1}"
+  local -r Stream="${1}"
 
   # https://github.com/FFmpeg/FFmpeg/blob/master/libavutil/channel_layout.c
   # https://github.com/FFmpeg/FFmpeg/blob/master/doc/utils.texi
@@ -111,6 +113,10 @@ function FFmpeg::Audio.filters:channel_layout_map {
   # hexadecagonal  = FL+FR+FC+BL+BR+BC+SL+SR+WL+WR+TBL+TBR+TBC+TFC+TFL+TFR
   # downmix        = DL+DR
 
+  # Channel ordering
+
+  # https://developer.apple.com/reference/coreaudio/1572101-audio_channel_layout_tags
+
   # NOTE
   # LFE is purposely remapped back into all output channels
   # - You should locally use lowpass filtering on subwoofer channels &
@@ -126,39 +132,48 @@ function FFmpeg::Audio.filters:channel_layout_map {
 
   ChannelLayout="$(Audio::ChannelLayout "${Stream}" "${File}")"
 
-  # FIXME: implement missing maps
+  # FFmpeg does not handle channel ordering correctly for all codecs
+  # so we manually specify the maps ourselves.
+  case "${FFMPEG_AUDIO_ENCODER}" in
+    'ffaac'|'fdk-aac'|'faac')
+      # FL,FR,FC,LFE,SL,SR
+      # ChannelOrderMap=(
+      #   ['FL']='c0'
+      #   ['FR']='c1'
+      #   ['FC']='c2'
+      #   ['LFE']='c3'
+      #   ['SL']='c4'
+      #   ['SR']='c5'
+      #   ['BL']='c4'
+      #   ['BR']='c5'
+      # )
+      ChannelOrderMap=(
+        ['FL']='FL'
+        ['FR']='FR'
+        ['FC']='FC'
+        ['LFE']='LFE'
+        ['SL']='SL'
+        ['SR']='SR'
+        ['BL']='BL'
+        ['BR']='BR'
+      )
+      ;;
+  esac
+
+  # FIXME: Mix in Top channels
   PanArgsList=(
-    ['mono']='pan=mono|FC<'
-    ['stereo']='pan=stereo|FL<FL+FLC+FC+BL+BC+SL+DL+WL+SDL+LFE+LFE2|FR<FR+FRC+FC+BR+BC+SR+DR+WR+SDR+LFE+LFE2'
-    ['2.1']='pan=2.1|FL|FR|LFE'
-    ['3.0']='pan=3.0|FL|FC|FR'
-    ['3.0(back)']='pan=3.0(back)|FL|FR|BC'
-    ['4.0']='pan=4.0|FL|FC|FR|BC'
-    ['quad']='pan=quad|FL|FR|BL|BR'
-    ['quad(side)']='pan=quad(side)|'
-    ['3.1']='pan=3.1|'
-    ['4.1']='pan=4.1|'
-    ['5.0']='pan=5.0|'
-    ['5.0(side)']='pan=5.0(side)|SL<BL+BC+SL+LFE+LFE2|FL<FL+LFE+LFE2|FC<FC+LFE+LFE2|FR<FR+LFE+LFE2|SR<BR+BC+SR+LFE+LFE2'
-    ['5.1']='pan=5.1|'
-    ['5.1(side)']='pan=5.1(side)|'
-    ['6.0']='pan=6.0|FL|FR|FC|BC|SL|SR'
-    ['6.0(front)']='pan=6.0(front)|'
-    ['hexagonal']='pan=hexagonal|'
-    ['6.1']='pan=6.1|'
-    ['6.1(back)']='pan=6.1(back)|'
-    ['6.1(front)']='pan=6.1(front)|'
-    ['7.0']='pan=7.0|BL|SL|FL|FC|FR|SR|BR'
-    ['7.0(front)']='pan=7.0(front)|'
-    ['7.1']='pan=7.1|'
-    ['7.1(wide)']='pan=7.1(wide)|'
-    ['7.1(wide-side)']='pan=7.1(wide-side)|'
-    ['octagonal']='pan=octagonal|'
-    ['hexadecagonal']='pan=hexadecagonal|'
-    ['downmix']='pan=downmix|' #'
+    ['stereo']="pan=stereo|${ChannelOrderMap[FL]}<FL+FC+LFE+BL+FLC+BC+SL+TC+TFL+TFC+TBL+TBC+DL+WL+SDL|${ChannelOrderMap[FR]}<FR+FC+LFE+BR+FRC+BC+SR+TC+TFR+TBR+TBC+DR+WR+SDR"
+    # MPEG_5_1_A
+    # MPEG_5_1_B
+    # MPEG_5_1_C
+    # MPEG_5_1_D
+    ['5.1(side)']="pan=5.1(side)|${ChannelOrderMap[FR]}<FR+FRC+TC+TFR+DR|${ChannelOrderMap[FL]}<FL+FLC+TC+TFL+DL|${ChannelOrderMap[FC]}<FC+FLC+FRC+TC+TFC|${ChannelOrderMap[LFE]}<LFE|${ChannelOrderMap[SL]}<BL+BC+SL+TC+TBL+TBC+WL+SDL|${ChannelOrderMap[SR]}<BR+BC+SR+TC+TBC+TBR+WR+SDR"
+    # MPEG_7_1_A
+    # MPEG_7_1_C
+    ['7.1']="pan=7.1|${ChannelOrderMap[FL]}<FL+FLC|${ChannelOrderMap[FR]}<FR+FRC|${ChannelOrderMap[FC]}<FC+FLC+FRC|${ChannelOrderMap[LFE]}<LFE|${ChannelOrderMap[SL]}<SL|${ChannelOrderMap[SR]}<SR|${ChannelOrderMap[BL]}<BL|${ChannelOrderMap[BR]}<BR"
   )
 
-  ChannelLayoutMapTo="${ARKIVE_CHANNEL_LAYOUT_MAPS_LIST[${ChannelLayout}]}"
+  ChannelLayoutMapTo="${FFMPEG_AUDIO_CHANNEL_LAYOUT_MAPPINGS[${ChannelLayout}]}"
 
   # TODO: Make sure string is a valid channel layout
   Var::Type.string "${ChannelLayoutMapTo}"

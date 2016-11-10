@@ -32,7 +32,8 @@
 # purposes only.
 
 function Input::Check.input {
-  local File="${1}"
+  Function::RequiredArgs '1' "$#"
+  local -r File="${1}"
   [ -f "${File}" ]
   #[ "${file##*.}" == 'mkv' ]
   # FIXME: check requirements
@@ -43,11 +44,13 @@ function Input::Check.input {
 }
 
 function Input::Check.output {
+  Function::RequiredArgs '1' "$#"
   [ -n "${1}" ]
   [ -d "${1}" ]
 }
 
 function Input::Check.tmp {
+  Function::RequiredArgs '0' "$#"
   if [ ! -d "${INPUTDIR}/.arktmp" ] ; then
     mkdir "${INPUTDIR}/.arktmp"
   fi
@@ -55,24 +58,35 @@ function Input::Check.tmp {
 
 # Parses, validates, and exports input
 function Input::Parser {
-  local input="$@"
+  local -r input="$@"
 
   Args::Define 'short=i' 'long=input'  'variable=RAW_INPUTFILE' 'desc=Input video file'
   Args::Define 'short=o' 'long=output' 'variable=RAW_OUTPUTDIR' 'desc=Output directory'
+  Args::Define 'short=p' 'long=profile' 'variable=RAW_PROFILE' 'desc=Specify profile to use'
   Args::Define 'short=b' 'long=bpp' 'variable=RAW_BITPERPIXEL' 'desc=Calculate bits per pixel'
   source "$(Args::Build)"
 
   if [ -z "${input}" ] ; then
-    Debug::Message 'error' 'no input'
+    Log::Message 'error' 'no input'
     arkive::Usage
+    return 1
+  fi
+
+  # Profiles
+  if [ -f "${RAW_PROFILE}" ] ; then
+    source "${RAW_PROFILE}"
+  elif [ -f "${ARKIVE_LIB_DIR}/profiles/${RAW_PROFILE}.profile" ] ; then
+    source "${ARKIVE_LIB_DIR}/profiles/${RAW_PROFILE}.profile"
+  else
+    Log::Message 'error' "invalid profile specified: ${RAW_PROFILE}"
     return 1
   fi
 
   if [ -z "${RAW_BITPERPIXEL}" ] ; then
     Input::Check.input "${RAW_INPUTFILE}"
     pushd "$(dirname "${RAW_INPUTFILE}")" > /dev/null
-      export INPUTFILE="$(pwd)/$(basename "${RAW_INPUTFILE}")"
       export INPUTDIR="$(pwd)"
+      export INPUTFILE="${INPUTDIR}/$(basename "${RAW_INPUTFILE}")"
     popd > /dev/null
 
     if Input::Check.output "${RAW_OUTPUTDIR}" ; then
@@ -81,6 +95,14 @@ function Input::Parser {
       popd > /dev/null
     else
       export OUTPUTDIR="${INPUTDIR}"
+    fi
+
+    if [ -n "${RAW_PROFILE}" ] ; then
+      if [ -f "${ARKIVE_LIB_DIR}/profiles/${RAW_PROFILE}.profile" ] ; then
+        ARKIVE_PROFILE="${ARKIVE_LIB_DIR}/profiles/${RAW_PROFILE}.profile"
+      else
+        Log::Message 'error' "specified profile does not exist: ${RAW_PROFILE}"
+      fi
     fi
 
     Input::Check.tmp

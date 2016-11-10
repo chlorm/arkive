@@ -32,12 +32,13 @@
 # purposes only.
 
 function FFmpeg::Video.frame_rate {
-  local File="${2}"
+  Function::RequiredArgs '2' "$#"
+  local -r File="${2}"
   local SourceFrameRate
-  local Stream="${1}"
+  local -r Stream="${1}"
 
-  if [ "${ARKIVE_VIDEO_FRAMERATE}" != 'source' ] ; then
-    echo "${ARKIVE_VIDEO_FRAMERATE}"
+  if [ "${FFMPEG_VIDEO_FRAMERATE}" != 'source' ] ; then
+    echo "${FFMPEG_VIDEO_FRAMERATE}"
   else
     SourceFrameRate="$(Video::FrameRate "${Stream}" "${File}")"
     Var::Type.string "${SourceFrameRate}"

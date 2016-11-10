@@ -32,25 +32,26 @@
 # purposes only.
 
 function FFmpeg::Video.pixel_format {
+  Function::RequiredArgs '0' "$#"
   local BitDepth
   local ChrSubSam
   local Endian
 
-  BitDepth="${ARKIVE_VIDEO_BIT_DEPTH}"
-  ChrSubSam="${ARKIVE_VIDEO_CHROMA_SUBSAMPLING}"
+  BitDepth="${FFMPEG_VIDEO_BITDEPTH}"
+  ChrSubSam="${FFMPEG_VIDEO_CHROMASUBSAMPLING}"
 
-  [[ ${ARKIVE_VIDEO_CHROMA_SUBSAMPLING} == +(420|422|444) ]]
+  [[ ${FFMPEG_VIDEO_CHROMASUBSAMPLING} == +(420|422|444) ]]
 
-  if [[ ${ARKIVE_VIDEO_BIT_DEPTH} == +(10|12) ]] ; then
+  if [[ ${FFMPEG_VIDEO_BITDEPTH} == +(10|12) ]] ; then
     Endian='le'
-  elif [ ${ARKIVE_VIDEO_BIT_DEPTH} -eq 8 ] ; then
+  elif [ ${FFMPEG_VIDEO_BITDEPTH} -eq 8 ] ; then
     unset Endian
   else
     Debug::Message 'error' "unsupported bit depth: ${BitDepth}"
     return 1
   fi
 
-  if [ ${ARKIVE_VIDEO_BIT_DEPTH} -eq 8 ] ; then
+  if [ ${FFMPEG_VIDEO_BITDEPTH} -eq 8 ] ; then
     unset BitDepth
   fi
 
