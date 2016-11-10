@@ -39,8 +39,8 @@ function FFmpeg::Audio.encoder:fdk_aac {
   local -a Parameters
 
   Parameters=(
-    "-profile:${Index} aac_low"  # HE-AACv1
-    "-vbr:${Index} 0"  # CBR
+    "-profile:${Index} ${FFMPEG_AUDIO_ENCODER_AAC_PROFILE}"
+    "-vbr:${Index} 0"
     "-afterburner:${Index} 1"
     "-eld_sbr:${Index} 1"
   )

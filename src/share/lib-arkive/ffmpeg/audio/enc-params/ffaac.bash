@@ -39,7 +39,7 @@ function FFmpeg::Audio.encoder:ffaac {
   local -a Parameters
 
   Parameters=(
-    "-profile:${Index} aac_low"  # AAC-LC
+    "-profile:${Index} ${FFMPEG_AUDIO_ENCODER_AAC_PROFILE}"
     "-q:${Index} 2"  # VBR
     "-aac_coder:${Index} twoloop"  # Also: amnr, requires -strict -2
     "-aac_ms:${Index} auto"
