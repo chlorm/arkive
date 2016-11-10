@@ -86,7 +86,7 @@ function FFmpeg::Video.codec:x265_params {
   )
   __parameters+=("level-idc=$(FFmpeg::Video.level:h265 "${Stream}" "${File}")")
   __parameters+=(
-    #'high-tier' # bool
+    'high-tier=false'
     # value <= 6 due to b-frames & b-pyramid
     'ref=3'
     'allow-non-conformance=false'
@@ -105,7 +105,7 @@ function FFmpeg::Video.codec:x265_params {
     'cu-lossless=false'
     'tskip-fast=false'
     'rd-refine=false'
-    'rdoq-level=0'  # rdoq is overly argrssive causing hot-spots & deadzones.
+    'rdoq-level=0'  # rdoq is overly argressive causing hot-spots & deadzones.
     'tu-intra-depth=1'  # Performance penalty for > 1 for minimal improvement.
     'tu-inter-depth=1'  # Performance penalty for > 1 for minimal improvement.
     'limit-tu=0'
