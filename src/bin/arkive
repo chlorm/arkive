@@ -63,14 +63,9 @@ source "$(@LIB_BASH_PATH@)"
 
 wait
 
-# Load all libraries within the current shell
-eval "$(
-  find "${ARKIVE_LIB_DIR}" -type f -iname '*.bash' |
-  while read LoadLibrary ; do
-    LoadLibrary="$(readlink -f "${LoadLibrary}")"
-    echo "source \"${LoadLibrary}\""
-  done
-)"
+while read LoadLibrary ; do
+  source "$(readlink -f "${LoadLibrary}")"
+done < <(find "${ARKIVE_LIB_DIR}" -type f -iname '*.bash')
 
 wait
 
