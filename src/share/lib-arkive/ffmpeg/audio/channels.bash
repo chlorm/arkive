@@ -59,8 +59,6 @@ function FFmpeg::Audio.channels {
     '6.1'|'6.1(back)'|'6.1(front)'|'7.0'|'7.0(front)') Channels=7 ;;
     '7.1'|'7.1(wide)'|'7.1(wide-side)'|'octagonal') Channels=8 ;;
     'hexadecagonal') Channels=16 ;;
-    # FIXME: use fallbacks channel count here (needs to also be implemented
-    #        in other places however.)
     *) return 1 ;;
   esac
 
