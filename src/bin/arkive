@@ -60,7 +60,7 @@ ARKIVE_LIB_DIR="${ARKIVE_PREFIX}/share/lib-arkive"
 
 ################################ Load Libraries ################################
 
-source "$(/home/cwopel/Projects/arkive/vendor/lib-bash/src/bin/lib-bash)"
+source "$(@LIB_BASH_PATH@)"
 
 wait
 
@@ -201,8 +201,8 @@ function Arkive::Main {
       fi
     done
 
-    echo "ffmpeg ${FFmpegArgsList}"
-    ffmpeg ${FFmpegArgsList}
+    echo "@FFMPEG_PATH@ ${FFmpegArgsList}"
+    @FFMPEG_PATH@ ${FFmpegArgsList}
 
     unset FFmpegArg FFmpegArgs FFmpegArgsList
     __pass__=$(( ${__pass__} + 1 ))
