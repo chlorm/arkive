@@ -171,8 +171,6 @@ function Arkive::Main {
       '-threads 1'
       # FIXME: disable mapping metadata for testing
       '-map_metadata -1'
-      # FIXME
-      #'-reset_timestamps 1'
     )
     if [ ${FFMPEG_VIDEO_ENCODER_PASSES} -gt 1 ] ; then
       FFmpegArgs+=(
