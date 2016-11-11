@@ -1,11 +1,15 @@
 cmake_minimum_required(VERSION 3.0)
 project(arkive)
 
+find_program(BC_PATH bc)
 find_program(FFMPEG_PATH ffmpeg)
 find_program(FFPROBE_PATH ffprobe)
 find_program(JQ_PATH jq)
 find_program(LIB_BASH_PATH lib-bash)
 
+if (NOT BC_PATH)
+  message(FATAL_ERROR "bc not found")
+endif()
 if (NOT FFMPEG_PATH)
   message(FATAL_ERROR "ffmpeg not found")
 endif()
@@ -18,26 +22,6 @@ endif()
 if (NOT LIB_BASH_PATH)
   message(FATAL_ERROR "lib-bash not found")
 endif()
-
-# Set path to ffmpeg at build time
-configure_file(
-  ${CMAKE_CURRENT_LIST_DIR}/src/bin/arkive
-  ${CMAKE_CURRENT_LIST_DIR}/src/bin/arkive @ONLY)
-
-# Set path to ffprobe at build time
-configure_file(
-  ${CMAKE_CURRENT_LIST_DIR}/src/share/lib-arkive/ffprobe.bash
-  ${CMAKE_CURRENT_LIST_DIR}/src/share/lib-arkive/ffprobe.bash @ONLY)
-
-# Set path to jq at build time
-configure_file(
-  ${CMAKE_CURRENT_LIST_DIR}/src/share/lib-arkive/ffmpeg/audio/filters/ebu-r128.bash
-  ${CMAKE_CURRENT_LIST_DIR}/src/share/lib-arkive/ffmpeg/audio/filters/ebu-r128.bash @ONLY)
-
-# Set path to lib-bash at build time
-configure_file(
-  ${CMAKE_CURRENT_LIST_DIR}/src/bin/arkive
-  ${CMAKE_CURRENT_LIST_DIR}/src/bin/arkive @ONLY)
 
 install(
   PROGRAMS
