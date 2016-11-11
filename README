@@ -11,6 +11,7 @@ libraries is being written in C, C++, & Rust.
 
 Dependencies:
   * bc
+  * jq
   * [lib-bash](https://github.com/chlorm/lib-bash)
   * ffmpeg >= 3.1.0 (for libebur128)
     - libebur128

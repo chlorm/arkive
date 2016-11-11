@@ -42,6 +42,7 @@ function FFmpeg::Audio.filters {
 
   Filters+=("$(FFmpeg::Audio.filters:resample "${Stream}" "${File}")")
   Filters+=("$(FFmpeg::Audio.filters:channel_layout_map "${Stream}" "${File}")")
+  Filters+=("$(FFmpeg::Audio.filters:ebu_r128 "${Stream}" "${File}")")
   Filters+=("$(FFmpeg::Audio.filters:highpass)")
   Filters+=("$(FFmpeg::Audio.filters:lowpass)")
 

@@ -50,6 +50,7 @@ function Requires::Check.ffmpeg {
 function Requires::Check {
   Function::RequiredArgs '0' "$#"
   Path::Check 'bc'
+  Path::Check 'jq'
   # libx264 (compiled with target bit depth)
   # libx265 >= 1.9 (compiled with multilib or at least target bit depth)
   # libopus >= 1.1 (surround sound improvements)
