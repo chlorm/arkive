@@ -120,7 +120,7 @@ function Arkive::Main {
   OutputFile="${__outputdir__}/${__filenamefmt__}.${FFMPEG_CONTAINER_FORMAT}"
 
   asa=($(Stream::Select 'audio' "${File}"))
-  [[ ${#asa[@]} == +(1|2) ]]
+  [[ ${#asa[@]} == @(1|2) ]]
   for as in ${asa[@]} ; do
     Index=$(( ${Index} + 1 ))
     # Assign stream index, assuming video is 0, and audio starts from 1 ->
