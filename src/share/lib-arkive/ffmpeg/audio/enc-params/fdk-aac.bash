@@ -40,7 +40,7 @@ function FFmpeg::Audio.encoder:fdk_aac {
 
   Parameters=(
     "-profile:${Index} ${FFMPEG_AUDIO_ENCODER_AAC_PROFILE}"
-    "-vbr:${Index} 0"
+    "-vbr:${Index} 0"  # CBR mode
     "-afterburner:${Index} 1"
     "-eld_sbr:${Index} 1"
   )
