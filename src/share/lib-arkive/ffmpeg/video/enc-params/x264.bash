@@ -48,9 +48,13 @@ function FFmpeg::Video.codec:x264_params {
   # productive and can lower visual quality.
   BufSize=$(Math::RoundFloat "$(echo "${Bitrate}*1.2" | bc -l)")
 
-  FrameRate="$(FFmpeg::Video.frame_rate "${Stream}" "${File}")"
-
-
+  FrameRate="$(FFmpeg::Video.frame_rate "${Stream}" "${File}" | bc)"
+  if [ ${FrameRate} -gt 500 ] ; then
+    RcLookahead=250
+  else
+    # RcLookahead must be an integer
+    RcLookahead=${FrameRate%.*}
+  fi
 
   __parameters+=(
     "keyint=$(FFmpeg::Video.keyframe_interval "${Stream}" "${File}")"
@@ -84,7 +88,7 @@ function FFmpeg::Video.codec:x264_params {
     'frame-packing=6'
   )
   # FIXME: limit value to <= 250
-  __parameters+=("rc-lookahead=$(( ${FrameRate} * 3 ))")
+  __parameters+=("rc-lookahead=${RcLookahead}")
   __parameters+=("vbv-maxrate=${BufSize}")
   __parameters+=("vbv-bufsize=${BufSize}")
   __parameters+=(
@@ -132,7 +136,7 @@ function FFmpeg::Video.codec:x264_params {
     #"cqmfile=${ARKIVE_LIB_DIR}/ffmpeg/video/enc-params/cqm-matrices/eqm_avc_hr_matrix"
     #'overscan'
     #'videoformat'
-    'range=tv'
+    ###'range=tv'
     'colorprim=bt709'
     'transfer=bt709'
     'colormatrix=bt709'
@@ -154,7 +158,7 @@ function FFmpeg::Video.codec:x264_params {
     'bluray-compat=false'
     'avcintra-class=false'
     'stitchable=true'
-    'log-level=info'
+    ###'log-level=info'
     'psnr=false'
     'ssim=false'
   )

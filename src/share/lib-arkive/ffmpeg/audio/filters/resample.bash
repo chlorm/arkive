@@ -33,11 +33,15 @@
 
 function FFmpeg::Audio.filters:resample {
   Function::RequiredArgs '2' "$#"
+  local ChannelCount
+  local ChannelLayout
   local -r File="${2}"
   local SampleFormat
   local SampleRate
   local -r Stream="${1}"
 
+  ChannelCount="$(Audio::Channels "${Stream}" "${File}")"
+  ChannelLayout="$(Audio::ChannelLayout "${Stream}" "${File}")"
   SampleFormat="$(Audio::SampleFormat "${Stream}" "${File}")"
   SampleRate="$(Audio::SampleRate "${Stream}" "${File}")"
 
@@ -57,6 +61,29 @@ function FFmpeg::Audio.filters:resample {
     'ac3'|'ffaac'|'fdk-aac'|'eac3'|'vorbis') OutputSampleFormat='fltp' ;;
   esac
 
-  # Only resample when converting sample rates or sample formats (bit depth)
-  echo "aresample=resampler=soxr:precision=28:cheby=1:isf=${SampleFormat}:osf=${OutputSampleFormat}:tsf=s32:isr=${SampleRate}:osr=${FFMPEG_AUDIO_SAMPLERATE}:cutoff=0.91:dither_method=0"
+  Parameters=(
+    "ich=${ChannelCount}"
+    "och=${ChannelCount}"  # Leave input unchanged, pan filter will remap
+    "uch=${ChannelCount}"
+    "isr=${SampleRate}"
+    "osr=${FFMPEG_AUDIO_SAMPLERATE}"
+    "isf=${SampleFormat}"
+    "osf=${OutputSampleFormat}"
+    'tsf=s32'
+    "icl=${ChannelLayout}"
+    "ocl=${ChannelLayout}"  # Leave input unchanged, pan filter will remap
+    'dither_method=0'
+    'resampler=soxr'
+    'linear_interp=0'
+    'cutoff=0.91'
+    'precision=28'
+    'cheby=1'
+    'matrix_encoding=none'
+  )
+
+  for Parameter in "${Parameters[@]}" ; do
+    ParameterString="${ParameterString}${ParameterString:+:}${Parameter}"
+  done
+
+  echo "aresample=${ParameterString}"
 }

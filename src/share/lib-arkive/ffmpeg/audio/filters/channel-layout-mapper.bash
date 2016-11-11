@@ -144,8 +144,8 @@ function FFmpeg::Audio.filters:channel_layout_map {
       #   ['LFE']='c3'
       #   ['SL']='c4'
       #   ['SR']='c5'
-      #   ['BL']='c4'
-      #   ['BR']='c5'
+      #   ['BL']='c6'
+      #   ['BR']='c7'
       # )
       ChannelOrderMap=(
         ['FL']='FL'
