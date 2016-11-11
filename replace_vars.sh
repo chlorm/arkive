@@ -10,8 +10,8 @@ if [ "${1}" == '--revert' ] ; then
   sed -i src/bin/arkive \
     -e 's/ffmpeg ${FFmpegArgsList}/@FFMPEG_PATH@ ${FFmpegArgsList}/'
 else
-  if [ -f "$(readlink -f "$(pwd)/vendor/lib-bash/bash/bin/lib-bash")" ] ; then
-    file="$(readlink -f "$(pwd)/vendor/lib-bash/bash/bin/lib-bash")"
+  if [ -f "$(readlink -f "$(pwd)/vendor/lib-bash/src/bin/lib-bash")" ] ; then
+    file="$(readlink -f "$(pwd)/vendor/lib-bash/src/bin/lib-bash")"
     sed -i src/bin/arkive \
       -e "s,\@LIB_BASH_PATH\@,$file,"
   else
