@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
 if [ "${1}" == '--revert' ] ; then
+  sed -i src/share/lib-arkive/ffmpeg/audio/filters/ebu-r128.bash \
+    -e 's,| jq,| @JQ_PATH@,'
+
   sed -i src/bin/arkive \
     -e 's/source "$(.*lib-bash)"/source "$(@LIB_BASH_PATH@)"/'
 
@@ -18,6 +21,9 @@ else
     sed -i src/bin/arkive \
       -e 's/@LIB_BASH_PATH@/lib-bash/'
   fi
+
+  sed -i src/share/lib-arkive/ffmpeg/audio/filters/ebu-r128.bash \
+    -e 's/@JQ_PATH@/jq/'
 
   sed -i src/share/lib-arkive/ffprobe.bash \
     -e 's/@FFPROBE_PATH@/ffprobe/'

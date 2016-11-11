@@ -56,23 +56,23 @@ function FFmpeg::Audio.filters:ebu_r128 {
       }
   )"
 
-  # FIXME: The output text and json are inter-mingled and this assumes that
-  #        the last 12 lines are the json output.
+  # FIXME: The output text and json are inter-mingled and this assumes
+  #        that the last 12 lines are the json output.
   EBUR128="$(echo "${EBUR128}" | tail -12)"
 
-  R128I="$(echo "${EBUR128}" | jq -r -c -M '.input_i')"
+  R128I="$(echo "${EBUR128}" | @JQ_PATH@ -r -c -M '.input_i')"
   Var::Type.string "${R128I}"
   Log::Message 'info' "ebur128 I: ${R128I}"
-  R128LRA="$(echo "${EBUR128}" | jq -r -c -M '.input_lra')"
+  R128LRA="$(echo "${EBUR128}" | @JQ_PATH@ -r -c -M '.input_lra')"
   Var::Type.string "${R128LRA}"
   Log::Message 'info' "ebur128 LRA: ${R128LRA}"
-  R128TP="$(echo "${EBUR128}" | jq -r -c -M '.input_tp')"
+  R128TP="$(echo "${EBUR128}" | @JQ_PATH@ -r -c -M '.input_tp')"
   Var::Type.string "${R128TP}"
   Log::Message 'info' "ebur128 TP: ${R128TP}"
-  R128THRESH="$(echo "${EBUR128}" | jq -r -c -M '.input_thresh')"
+  R128THRESH="$(echo "${EBUR128}" | @JQ_PATH@ -r -c -M '.input_thresh')"
   Var::Type.string "${R128THRESH}"
   Log::Message 'info' "ebur128 Thresh: ${R128THRESH}"
-  R128OFFSET="$(echo "${EBUR128}" | jq -r -c -M '.target_offset')"
+  R128OFFSET="$(echo "${EBUR128}" | @JQ_PATH@ -r -c -M '.target_offset')"
   Var::Type.string "${R128OFFSET}"
   Log::Message 'info' "ebur128 Offset: ${R128OFFSET}"
 
