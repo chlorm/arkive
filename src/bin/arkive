@@ -58,6 +58,8 @@ ARKIVE_VERSION='0.1.0'
 ARKIVE_PREFIX="$(readlink -f "$(readlink -f "$(dirname "$(readlink -f "${0}")")")"/..)"
 ARKIVE_LIB_DIR="${ARKIVE_PREFIX}/share/lib-arkive"
 
+PROGRAM_NAME='arkive'
+
 ################################ Load Libraries ################################
 
 source "$(lib-bash)"
