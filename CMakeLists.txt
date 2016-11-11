@@ -21,8 +21,8 @@ endif()
 
 # Set path to ffmpeg at build time
 configure_file(
-  ${CMAKE_CURRENT_LIST_DIR}/src/share/lib-arkive/arkive.bash
-  ${CMAKE_CURRENT_LIST_DIR}/src/share/lib-arkive/arkive.bash @ONLY)
+  ${CMAKE_CURRENT_LIST_DIR}/src/bin/arkive
+  ${CMAKE_CURRENT_LIST_DIR}/src/bin/arkive @ONLY)
 
 # Set path to ffprobe at build time
 configure_file(
