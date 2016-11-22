@@ -40,12 +40,14 @@ function FFmpeg::Audio {
   local -r Index="${3}"
   local -r Stream="${1}"
 
-  AudioArgsList+=("$(FFmpeg::Audio.filters "${Stream}" "${File}" "${Index}")")
-  #AudioArgsList+=("$(FFmpeg::Audio.cutoff "${Index}")")
-  AudioArgsList+=("$(FFmpeg::Audio.bitrate "${Stream}" "${File}" "${Index}")")
-  #AudioArgsList+=("-ac:${Index} $(FFmpeg::Audio.channels "${Stream}" "${File}")")
+  if [ "${FFMPEG_AUDIO_ENCODER}" != 'copy' ] ; then
+    AudioArgsList+=("$(FFmpeg::Audio.filters "${Stream}" "${File}" "${Index}")")
+    #AudioArgsList+=("$(FFmpeg::Audio.cutoff "${Index}")")
+    AudioArgsList+=("$(FFmpeg::Audio.bitrate "${Stream}" "${File}" "${Index}")")
+    #AudioArgsList+=("-ac:${Index} $(FFmpeg::Audio.channels "${Stream}" "${File}")")
+    #AudioArgsList+=("$(FFmpeg::Audio.sample_rate "${Stream}" "${File}" "${Index}")")
+  fi
   AudioArgsList+=("$(FFmpeg::Audio.encoder "${Stream}" "${File}" "${Index}")")
-  #AudioArgsList+=("$(FFmpeg::Audio.sample_rate "${Stream}" "${File}" "${Index}")")
 
   for AudioArg in "${AudioArgsList[@]}" ; do
     if [ -n "${AudioArg}" ] ; then

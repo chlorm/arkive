@@ -39,6 +39,9 @@ function FFmpeg::Audio.encoder {
   local -r Stream="${1}"
 
   case "${FFMPEG_AUDIO_ENCODER}" in
+    'copy')
+      Encoder='copy'
+      ;;
     'ffaac')
       Encoder='aac'
       EncoderParams="$(FFmpeg::Audio.encoder:ffaac "${Index}")"
