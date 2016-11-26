@@ -47,9 +47,9 @@ function FFmpeg::Audio.filters:ebu_r128 {
 
   EBUR128="$(
     ffmpeg -i "${File}" \
-      -map 0:${Stream} \
       -hide_banner \
-      -filter:0 "loudnorm=i=${R128I}:lra=${R128LRA}:tp=${R128TP}:print_format=json" \
+      -map 0:${Stream} \
+      -filter:0 "loudnorm=i=${R128I}:lra=${R128LRA}:tp=${R128TP}:dual_mono=1:print_format=json" \
       -f null - 2>&1 || {
         Log::Message 'error' "ebur filter failed"
         return 1
