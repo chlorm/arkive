@@ -62,12 +62,20 @@ function FFmpeg::Audio.filters:ebu_r128 {
 
   R128I="$(echo "${EBUR128}" | jq -r -c -M '.input_i')"
   Var::Type.string "${R128I}"
+  # Fallback for null audio
+  if [ "${R128I}" == '-inf' ] ; then
+    R128I="${FFMPEG_AUDIO_FILTER_EBUR128_I}"
+  fi
   Log::Message 'info' "ebur128 I: ${R128I}"
   R128LRA="$(echo "${EBUR128}" | jq -r -c -M '.input_lra')"
   Var::Type.string "${R128LRA}"
   Log::Message 'info' "ebur128 LRA: ${R128LRA}"
   R128TP="$(echo "${EBUR128}" | jq -r -c -M '.input_tp')"
   Var::Type.string "${R128TP}"
+  # Fallback for null audio
+  if [ "${R128TP}" == '-inf' ] ; then
+    R128TP="${FFMPEG_AUDIO_FILTER_EBUR128_TP}"
+  fi
   Log::Message 'info' "ebur128 TP: ${R128TP}"
   R128THRESH="$(echo "${EBUR128}" | jq -r -c -M '.input_thresh')"
   Var::Type.string "${R128THRESH}"
@@ -75,8 +83,12 @@ function FFmpeg::Audio.filters:ebu_r128 {
   R128OFFSET="$(echo "${EBUR128}" | jq -r -c -M '.target_offset')"
   Var::Type.string "${R128OFFSET}"
   Log::Message 'info' "ebur128 Offset: ${R128OFFSET}"
+  # Fallback for null audio
+  if [ "${R128OFFSET}" == 'inf' ] ; then
+    R128OFFSET='0'
+  fi
 
-  Parameters+=(
+  Parameters=(
     "i=${FFMPEG_AUDIO_FILTER_EBUR128_I}"
     "lra=${FFMPEG_AUDIO_FILTER_EBUR128_LRA}"
     "tp=${FFMPEG_AUDIO_FILTER_EBUR128_TP}"
