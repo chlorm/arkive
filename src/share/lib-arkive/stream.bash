@@ -50,7 +50,9 @@ function Stream::Select {
     ['video']='v'
   )
 
-  Streams=($(FFprobe "${FFtypes[${Type}]}" '-' 'stream' 'index' "${File}"))
+  mapfile -t Streams < <(
+    FFprobe "${FFtypes[${Type}]}" '-' 'stream' 'index' "${File}"
+  )
 
   # Minimum number of streams allowed for each type
   ReqMinsStm=(
@@ -60,7 +62,11 @@ function Stream::Select {
     ['video']=1
   )
 
-  [ ${#Streams[@]} -ge ${ReqMinsStm[${Type}]} ]
+  [ ${#Streams[@]} -ge ${ReqMinsStm[${Type}]} ] || {
+    Log::Message 'error' \
+        "At least \`${ReqMinsStm[${Type}]}\` ${Type} stream is required, but \`${#Streams[@]}\` found"
+    return 1
+  }
 
   # Maximum number of streams allowed for each type
   ReqMaxsStm=(
@@ -70,7 +76,12 @@ function Stream::Select {
     ['video']=1
   )
 
-  [ ${#Streams[@]} -le ${ReqMaxsStm[${Type}]} ]
+  # FIXME
+  # [ ${#Streams[@]} -le ${ReqMaxsStm[${Type}]} ] || {
+  #   Log::Message 'error' \
+  #       "A maximum of \`${ReqMaxsStm[${Type}]}\` ${Type} streams are allowed, but found \`${#Streams[@]}\`"
+  #   return 1
+  # }
 
   if [ ${#Streams[@]} -eq 1 ] ; then
     # FIXME: make sure stream meets requirements
@@ -79,34 +90,37 @@ function Stream::Select {
   # If multiple audio streams exist, select the correct one(s)
   elif [ ${#Streams[@]} -gt 1 ] ; then
 
-    # Remove streams that contain matching keywords in the stream title
-    for Stream in ${Streams[@]} ; do
-      FindMatch=false
-      for Keyword in "${FFMPEG_AUDIO_STREAM_DISCARDKEYWORDS[@]}" ; do
-        FindKeyword="$(
-          echo $(
-            String::LowerCase $(
-              FFprobe '-' "${Stream}" 'stream_tags' 'title' "${File}"
-            )
-          ) | grep ${Keyword}
-        )"
-        if [ -n "${FindKeyword}" ] ; then
-          FindMatch=true
-        fi
-      done
-      unset Keyword
-      # Discard matches
-      if ${FindMatch} ; then
-        Streams=(${Streams[@]/${Stream}})
-      fi
-    done
+    # FIXME
+    Stream=${Streams[0]}
 
-    if [ ${#Streams[@]} -eq 1 ] ; then
-      Stream=${Streams[@]}
-    else
-      Log::Message 'error' 'multiple streams not implemented'
-      return 1
-    fi
+    # # Remove streams that contain matching keywords in the stream title
+    # for Stream in ${Streams[@]} ; do
+    #   FindMatch=false
+    #   for Keyword in "${FFMPEG_AUDIO_STREAM_DISCARDKEYWORDS[@]}" ; do
+    #     FindKeyword="$(
+    #       echo $(
+    #         String::LowerCase $(
+    #           FFprobe '-' "${Stream}" 'stream_tags' 'title' "${File}"
+    #         )
+    #       ) | grep ${Keyword}
+    #     )"
+    #     if [ -n "${FindKeyword}" ] ; then
+    #       FindMatch=true
+    #     fi
+    #   done
+    #   unset Keyword
+    #   # Discard matches
+    #   if ${FindMatch} ; then
+    #     Streams=(${Streams[@]/${Stream}})
+    #   fi
+    # done
+
+    # if [ ${#Streams[@]} -eq 1 ] ; then
+    #   Stream=${Streams[@]}
+    # else
+    #   Log::Message 'error' 'multiple streams not implemented'
+    #   return 1
+    # fi
   fi
 
   echo "${Stream}"

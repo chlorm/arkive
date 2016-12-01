@@ -35,10 +35,9 @@
 function FFmpeg::Video.x26x_params {
   Function::RequiredArgs '0' "$#"
   local Param
-  local ParamList
   local ParamValue
 
-  for Param in ${__parameters[@]} ; do
+  for Param in "${__parameters[@]}" ; do
     # FFmpeg's key/value parser can't handle null values and will fail
     # silently if it recieves any. Make sure a value is set to prevent
     # this behavior.
@@ -46,16 +45,8 @@ function FFmpeg::Video.x26x_params {
     Var::Type.string "${ParamKey}"
     ParamValue="$(echo "${Param}" | awk -F'=' '{ print $2 ; exit }')"
     Var::Type.string "${ParamValue}"
-
-    # Allow true/false within codec parameters to make booleans more apparent.
-    if [ "${ParamValue}" == 'true' ] ; then
-      Param="$(echo "${Param}" | sed -e 's/=true/=1/')"
-    elif [ "${ParamValue}" == 'false' ] ; then
-      Param="$(echo "${Param}" | sed -e 's/=false/=0/')"
-    fi
-
-    ParamList="${ParamList:+${ParamList}:}${Param}"
   done
 
-  echo "${ParamList}"
+  local IFS=":"
+  echo -E "${__parameters[*]}"
 }

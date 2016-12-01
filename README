@@ -21,3 +21,12 @@ Dependencies:
     - x265 >= 201611xx (for limit-tu, ...) (with
       [multi-lib](https://github.com/triton/triton/blob/master/pkgs/all-pkgs/x/x265/default.nix),
       e.g. 8, 10, & 12 bit statically linked into libx265.{a,so})
+
+Extract DTS core from DTS-HD MA track
+```
+ffmpeg -i input.mp4 -f spdif -dtshd_rate 0 -c copy - | ffmpeg -i - -c copy -y output.flac
+```
+or
+```
+ffmpeg -i input.mp4 -bsf:a dca_core -c copy output.mkv
+```

@@ -51,11 +51,34 @@ function FFmpeg::Video.bitrate {
   Height="$(Video::Height "${Stream}" "${File}")"
   Width="$(Video::Width "${Stream}" "${File}")"
 
-  # BC defaults to a scale of 0, which will result in a rounding error,
-  # meaning the number may be much lower than it should be.
+  # XXX: BC defaults to a scale of 0, which will result in a rounding error,
+  #      meaning the number may be much lower than it should be.
   Bitrate="$(
-    echo "scale=10;((${Width}*${Height}*(${FrameRate})*${Bpp})/1024)" | bc
+    echo "scale=10;((${Width}*${Height}*(${FrameRate})*${Bpp})/1024)" | bc -l
   )"
+
+  # TODO: refactor the bpp -> bitrate equation to work on a curve.  This is
+  #       a hack in the meantime.
+  #
+  #                                 x
+  #                       x
+  #                   x
+  #                x
+  #              x
+  #           x
+  #       x
+  # x x
+  #
+  # Quadruple the bitrate for 360p and below
+  if [ ${Width} -lt 640 ] && [ ${Height} -lt 480 ] ; then
+    Bitrate="$(echo "scale=10;(${Bitrate}*4)" | bc -l)"
+  # Triple the bitrate for 640p
+  elif [ ${Width} -lt 1280 ] && [ ${Height} -lt 720 ] ; then
+    Bitrate="$(echo "scale=10;(${Bitrate}*3)" | bc -l)"
+  # Cut the bitrate in half for >=4k
+  elif [ ${Width} -gt 3000 ] && [ ${Height} -gt 1080 ] ; then
+    Bitrate="$(echo "scale=10;(${Bitrate}*0.5)" | bc -l)"
+  fi
 
   # Round to nearest whole number
   Bitrate="$(printf "%1.0f" "${Bitrate}")"

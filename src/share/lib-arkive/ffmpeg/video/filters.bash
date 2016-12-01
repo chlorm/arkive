@@ -53,13 +53,8 @@ function FFmpeg::Video.filters {
     )
   fi
 
-  for Filter in "${Filters[@]}" ; do
-    if [ -n "${Filter}" ] ; then
-      FilterList="${FilterList}${FilterList:+,}${Filter}"
-    fi
-  done
-
-  if [ -n "${FilterList}" ] ; then
-    echo "-filter:${Index} ${FilterList}"
+  if [ -n "${Filters[*]}" ] ; then
+    local IFS=","
+    echo "-filter:${Index}" "${Filters[*]}"
   fi
 }

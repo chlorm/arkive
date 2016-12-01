@@ -37,23 +37,33 @@ function FFmpeg::Video.codec:x264_params {
   local Bitrate
   local BufSize
   local -r File="${2}"
-  local FrameRate
+  local MeRange
   local -a __parameters=()
+  local RcLookahead
   local -r Stream="${1}"
   local X26xParams
 
   Bitrate="$(FFmpeg::Video.bitrate "${Stream}" "${File}")"
-  # Buffer size is bitrate +10%
-  # Setting the buffer size much higher than the bitrate becomes counter
-  # productive and can lower visual quality.
-  BufSize=$(Math::RoundFloat "$(echo "${Bitrate}*1.2" | bc -l)")
 
-  FrameRate="$(FFmpeg::Video.frame_rate "${Stream}" "${File}" | bc)"
+  # Buffer size is bitrate +10%
+  BufSize=$(echo "scale=10;${Bitrate}*1.10)" | bc -l | xargs printf "%1.0f")
+
+  FrameRate="$(
+    echo "scale=10;$(FFmpeg::Video.frame_rate "${Stream}" "${File}")" |
+        bc -l |
+        xargs printf "%1.0f"
+  )"
   if [ ${FrameRate} -gt 500 ] ; then
     RcLookahead=250
   else
-    # RcLookahead must be an integer
-    RcLookahead=${FrameRate%.*}
+    RcLookahead=${FrameRate}
+  fi
+
+  MeRange="$(FFmpeg::Video.motion_estimation_range "${Stream}" "${File}")"
+  # Motion Estimation ranges below 57 reduce coding efficiency
+  # http://forum.doom9.org/showthread.php?p=1713094#post1713094
+  if [ ${MeRange} -lt 58 ] ; then
+    MeRange=58
   fi
 
   __parameters+=(
@@ -72,7 +82,7 @@ function FFmpeg::Video.codec:x264_params {
     'open-gop=false'
     'cabac=true'
     'ref=3'
-    'deblock=\0\:0'
+    'deblock=-6\:-6'
     'slices=0'
     'slices-max=0'
     'slice-max-size=0'
@@ -87,13 +97,12 @@ function FFmpeg::Video.codec:x264_params {
     # TODO: support alternative frame-packing for 3D sources
     'frame-packing=6'
   )
-  # FIXME: limit value to <= 250
   __parameters+=("rc-lookahead=${RcLookahead}")
   __parameters+=("vbv-maxrate=${BufSize}")
   __parameters+=("vbv-bufsize=${BufSize}")
   __parameters+=(
     'vbv-init=0.9'
-    'qpmin=0'
+    'qpmin=10'
     'qpmax=51' # XXX
     'qpstep=8'
     'ratetol=10.0'
@@ -103,10 +112,10 @@ function FFmpeg::Video.codec:x264_params {
     # Make sure the offset is at least -4 if either are disabled to counter
     # some artifacting.
     'chroma-qp-offset=0'
-    'aq-mode=1'
-    'aq-strength=0.7'
+    'aq-mode=2'
+    'aq-strength=0.3'
     'mbtree=true'
-    'qcomp=0.8'
+    'qcomp=0.9'
     # Does nothing when mbtree is enabled
     'cplxblur=0'
     'qblur=0'
@@ -116,13 +125,9 @@ function FFmpeg::Video.codec:x264_params {
     'weightb=true'
     'weightp=2'
     'me=umh'
-  )
-  __parameters+=(
-    "merange=$(FFmpeg::Video.motion_estimation_range "${Stream}" "${File}")"
-  )
-  __parameters+=(
+    "merange=${MeRange}"
     'subme=10'
-    'psy-rd=1.0\:0.25' # FIXME
+    'psy-rd=0.0\:0.7' # FIXME
     'psy=true'
     'mixed-refs=true'
     'chroma-me=true'
@@ -133,7 +138,7 @@ function FFmpeg::Video.codec:x264_params {
     'nr=0'
     'deadzone-inter=21'
     'deadzone-intra=11'
-    #"cqmfile=${ARKIVE_LIB_DIR}/ffmpeg/video/enc-params/cqm-matrices/eqm_avc_hr_matrix"
+    "cqmfile=${ARKIVE_LIB_DIR}/ffmpeg/video/enc-params/cqm-matrices/prestige_matrix"
     #'overscan'
     #'videoformat'
     ###'range=tv'
@@ -167,7 +172,7 @@ function FFmpeg::Video.codec:x264_params {
     'lookahead-threads=1'
     'sliced-threads=false'
     #'sync-lookahead'
-    'non-deterministic=true'
+    'non-deterministic=false'
     'cpu-independent=false'
     'asm=auto'
     'opencl=false'

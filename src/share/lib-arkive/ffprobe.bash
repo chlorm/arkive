@@ -38,10 +38,9 @@ function FFprobe {
   local -r EntKey="${3}"
   local -r EntVal="${4}"
   local -r File="${5}"
-  local FFprobeArg
   local FFprobeArgs
   local -a FFprobeArgsList
-  local FFprobeOutput
+  local -a FFprobeOutput
 
   Log::Message 'info' "1:${1}, 2:${2}, 3:${3}, 4:${4}, 5:${5},"
 
@@ -62,23 +61,22 @@ function FFprobe {
   fi
 
   FFprobeArgsList=(
-    '-v error'
-    "-select_streams ${StreamType}${StreamType:+${Stream:+:}}${Stream}"
-    "-show_entries ${EntKey}=${EntVal}"
-    '-of default=noprint_wrappers=1:nokey=1'
+    '-v' 'error'
+    '-select_streams' "${StreamType}${StreamType:+${Stream:+:}}${Stream}"
+    '-show_entries' "${EntKey}=${EntVal}"
+    '-of' 'default=noprint_wrappers=1:nokey=1'
     "${File}"
   )
-  for FFprobeArg in "${FFprobeArgsList[@]}" ; do
-    if [ -n "${FFprobeArg}" ] ; then
-      FFprobeArgs="${FFprobeArgs}${FFprobeArgs:+ }${FFprobeArg}"
-    fi
-  done
+
+  FFprobeArgs="${FFprobeArgsList[@]}"
   Log::Message 'info' "ffprobe ${FFprobeArgs}"
-  FFprobeOutput="$(ffprobe ${FFprobeArgs})"
+  FFprobeOutput=($(ffprobe "${FFprobeArgsList[@]}"))
 
   Var::Type.string "${FFprobeOutput}"
 
-  Log::Message 'info' "ffprobe: ${FFprobeOutput}"
+  Log::Message 'info' "ffprobe output: ${FFprobeOutput}"
 
-  echo "${FFprobeOutput}"
+  for i in "${FFprobeOutput[@]}" ; do
+    echo "${i}"
+  done
 }

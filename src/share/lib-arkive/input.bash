@@ -58,19 +58,20 @@ function Input::Check.tmp {
 
 # Parses, validates, and exports input
 function Input::Parser {
-  local -r input="$@"
-
-  Args::Define 'short=i' 'long=input'  'variable=RAW_INPUTFILE' 'desc=Input video file'
-  Args::Define 'short=o' 'long=output' 'variable=RAW_OUTPUTDIR' 'desc=Output directory'
-  Args::Define 'short=p' 'long=profile' 'variable=RAW_PROFILE' 'desc=Specify profile to use'
-  Args::Define 'short=b' 'long=bpp' 'variable=RAW_BITPERPIXEL' 'desc=Calculate bits per pixel'
-  source "$(Args::Build)"
+  local -r input="$@"   # Only for testing for input
 
   if [ -z "${input}" ] ; then
     Log::Message 'error' 'no input'
     arkive::Usage
     return 1
   fi
+
+  Args::Define 'short=i' 'long=input'  'variable=RAW_INPUTFILE' 'desc=Input video file'
+  Args::Define 'short=o' 'long=output' 'variable=RAW_OUTPUTDIR' 'desc=Output directory'
+  Args::Define 'short=p' 'long=profile' 'variable=RAW_PROFILE' 'desc=Specify profile to use'
+  Args::Define 'short=b' 'long=bpp' 'variable=RAW_BITPERPIXEL' 'desc=Calculate bits per pixel'
+  # Build and source script that parses $@
+  source "$(Args::Build)"
 
   # Profiles
   if [ -f "${RAW_PROFILE}" ] ; then
@@ -84,15 +85,11 @@ function Input::Parser {
 
   if [ -z "${RAW_BITPERPIXEL}" ] ; then
     Input::Check.input "${RAW_INPUTFILE}"
-    pushd "$(dirname "${RAW_INPUTFILE}")" > /dev/null
-      export INPUTDIR="$(pwd)"
-      export INPUTFILE="${INPUTDIR}/$(basename "${RAW_INPUTFILE}")"
-    popd > /dev/null
+    INPUTFILE="$(readlink -f "${RAW_INPUTFILE}")"
+    INPUTDIR="$(dirname "${INPUTFILE}")"
 
     if Input::Check.output "${RAW_OUTPUTDIR}" ; then
-      pushd "${RAW_OUTPUTDIR}" > /dev/null
-        export OUTPUTDIR="$(pwd)"
-      popd > /dev/null
+      OUTPUTDIR="$(readlink -f "${RAW_OUTPUTDIR}")"
     else
       export OUTPUTDIR="${INPUTDIR}"
     fi
@@ -106,6 +103,6 @@ function Input::Parser {
     fi
 
     Input::Check.tmp
-    export TMPDIR="${INPUTDIR}/.arktmp"
+    export TMPDIR="${INPUTDIR}/.arkive.${RANDOM}"
   fi
 }

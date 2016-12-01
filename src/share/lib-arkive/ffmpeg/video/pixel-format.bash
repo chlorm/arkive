@@ -55,5 +55,5 @@ function FFmpeg::Video.pixel_format {
     unset BitDepth
   fi
 
-  echo "-pix_fmt yuv${ChrSubSam}p${BitDepth:+${BitDepth}}${Endian:+${Endian}}"
+  echo '-pix_fmt' "yuv${ChrSubSam}p${BitDepth:+${BitDepth}}${Endian:+${Endian}}"
 }

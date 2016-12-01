@@ -46,7 +46,7 @@ function FFmpeg::Video.codec {
       ;;
     'x265')
       Encoder='libx265'
-      EncoderParams="$(FFmpeg::Video.codec:x265_params "${Stream}" "${File}")"
+      EncoderParams=("$(FFmpeg::Video.codec:x265_params "${Stream}" "${File}")")
       ;;
     'nvenc-h264')
       Encoder='h264_nvenc'
@@ -65,5 +65,5 @@ function FFmpeg::Video.codec {
     *) return 1 ;;
   esac
 
-  echo "-c:${Index} ${Encoder}${EncoderParams:+ ${EncoderParams}}"
+  echo "-c:${Index}" "${Encoder}" "${EncoderParams[@]}"
 }

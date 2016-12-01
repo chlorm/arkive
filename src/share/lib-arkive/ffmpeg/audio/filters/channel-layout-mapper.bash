@@ -132,45 +132,17 @@ function FFmpeg::Audio.filters:channel_layout_map {
 
   ChannelLayout="$(Audio::ChannelLayout "${Stream}" "${File}")"
 
-  # FFmpeg does not handle channel ordering correctly for all codecs
-  # so we manually specify the maps ourselves.
-  case "${FFMPEG_AUDIO_ENCODER}" in
-    'ffaac'|'fdk-aac'|'faac')
-      # FL,FR,FC,LFE,SL,SR
-      # ChannelOrderMap=(
-      #   ['FL']='c0'
-      #   ['FR']='c1'
-      #   ['FC']='c2'
-      #   ['LFE']='c3'
-      #   ['SL']='c4'
-      #   ['SR']='c5'
-      #   ['BL']='c6'
-      #   ['BR']='c7'
-      # )
-      ChannelOrderMap=(
-        ['FL']='FL'
-        ['FR']='FR'
-        ['FC']='FC'
-        ['LFE']='LFE'
-        ['SL']='SL'
-        ['SR']='SR'
-        ['BL']='BL'
-        ['BR']='BR'
-      )
-      ;;
-  esac
-
   # FIXME: Mix in Top channels
   PanArgsList=(
-    ['stereo']="pan=stereo|${ChannelOrderMap[FL]}<FL+FC+LFE+BL+FLC+BC+SL+TC+TFL+TFC+TBL+TBC+DL+WL+SDL|${ChannelOrderMap[FR]}<FR+FC+LFE+BR+FRC+BC+SR+TC+TFR+TBR+TBC+DR+WR+SDR"
+    ['stereo']='pan=stereo|FL<FL+FC+LFE+BL+FLC+BC+SL+TC+TFL+TFC+TBL+TBC+DL+WL+SDL|FR<FR+FC+LFE+BR+FRC+BC+SR+TC+TFR+TBR+TBC+DR+WR+SDR'
     # MPEG_5_1_A
     # MPEG_5_1_B
     # MPEG_5_1_C
     # MPEG_5_1_D
-    ['5.1(side)']="pan=5.1(side)|${ChannelOrderMap[FR]}<FR+FRC+TC+TFR+DR|${ChannelOrderMap[FL]}<FL+FLC+TC+TFL+DL|${ChannelOrderMap[FC]}<FC+FLC+FRC+TC+TFC|${ChannelOrderMap[LFE]}<LFE|${ChannelOrderMap[SL]}<BL+BC+SL+TC+TBL+TBC+WL+SDL|${ChannelOrderMap[SR]}<BR+BC+SR+TC+TBC+TBR+WR+SDR"
+    ['5.1(side)']='pan=5.1(side)|FR<FR+FRC+TC+TFR+DR+LFE|FL<FL+FLC+TC+TFL+DL+LFE|FC<FC+FLC+FRC+TC+TFC+LFE|LFE<LFE|SL<BL+BC+SL+TC+TBL+TBC+WL+SDL+LFE|SR<BR+BC+SR+TC+TBC+TBR+WR+SDR+LFE'
     # MPEG_7_1_A
     # MPEG_7_1_C
-    ['7.1']="pan=7.1|${ChannelOrderMap[FL]}<FL+FLC|${ChannelOrderMap[FR]}<FR+FRC|${ChannelOrderMap[FC]}<FC+FLC+FRC|${ChannelOrderMap[LFE]}<LFE|${ChannelOrderMap[SL]}<SL|${ChannelOrderMap[SR]}<SR|${ChannelOrderMap[BL]}<BL|${ChannelOrderMap[BR]}<BR"
+    ['7.1']='pan=7.1|FL<FL+FLC+LFE|FR<FR+FRC+LFE|FC<FC+FLC+FRC+LFE|LFE<LFE|SL<SL+LFE|SR<SR+LFE|BL<BL+LFE|BR<BR+LFE'
   )
 
   ChannelLayoutMapTo="${FFMPEG_AUDIO_CHANNEL_LAYOUT_MAPPINGS[${ChannelLayout}]}"

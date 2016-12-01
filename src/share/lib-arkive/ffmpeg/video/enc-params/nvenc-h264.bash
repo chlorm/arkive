@@ -118,7 +118,7 @@ function FFmpeg::Video.codec:nvenc_h264_params {
     "-level:${Index} $(FFmpeg::Video.level:h264 "${Stream}" "${File}")"
   )
   Parameters+=(
-    "-rc:${Index} ll_2pass_quality"
+    "-rc:${Index} vbr"
   )
   Parameters+=(
     "-rc-lookahead:${Index} $(( ${FrameRate} * 10 ))"

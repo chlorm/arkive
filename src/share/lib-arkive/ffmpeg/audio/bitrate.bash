@@ -46,6 +46,6 @@ function FFmpeg::Audio.bitrate {
 
     [ ${Bitrate} -ge 16 ]
 
-    echo "-b:${Index} ${Bitrate}k"
+    echo "-b:${Index}" "${Bitrate}k"
   fi
 }

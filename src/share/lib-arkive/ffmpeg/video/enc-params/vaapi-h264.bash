@@ -38,7 +38,7 @@ function FFmpeg::Video.codec:vaapi_h264_params {
   local -r Stream="${1}"
 
   Parameters=(
-    '-vaapi_device /dev/dri/renderD128'
+    '-vaapi_device' '/dev/dri/renderD128'
   )
 
   echo "${Parameters[@]}"

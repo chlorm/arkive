@@ -90,7 +90,7 @@ function Arkive::Main {
   local __subtitlestreams__
   local __tmpdir__
 
-  local Audio
+  local -a Audio
   local AudioPass
   local FFmpegArg
   local -a FFmpegArgs
@@ -119,6 +119,8 @@ function Arkive::Main {
   __outputdir__="${OUTPUTDIR}"
   OutputFile="${__outputdir__}/${__filenamefmt__}.${FFMPEG_CONTAINER_FORMAT}"
 
+  FFprobe 'v' '-' 'stream' 'index' "${File}"
+
   asa=($(Stream::Select 'audio' "${File}"))
   [[ ${#asa[@]} == @(1|2) ]]
   for as in ${asa[@]} ; do
@@ -126,7 +128,7 @@ function Arkive::Main {
     # Assign stream index, assuming video is 0, and audio starts from 1 ->
     # number of streams + 1.
     StreamIndexMap[${Index}]="-map 0:${as}"
-    Audio="${Audio:+${Audio} }$(FFmpeg::Audio "${as}" "${File}" "${Index}")"
+    Audio+=("$(FFmpeg::Audio "${as}" "${File}" "${Index}")")
   done
 
   #ssa=($(Stream::Select 'subtitle' "${File}"))
@@ -141,10 +143,10 @@ function Arkive::Main {
   vs="$(Stream::Select 'video' "${File}")"
   # Assign the video stream index 0
   StreamIndexMap[0]="-map 0:${vs}"
-  VideoArgs+=("-b:0 $(FFmpeg::Video.bitrate "${vs}" "${File}")k")
+  VideoArgs+=('-b:0' "$(FFmpeg::Video.bitrate "${vs}" "${File}")k")
   # Force constant frame rate
-  VideoArgs+=("-vsync:0 cfr")
-  VideoArgs+=("-r:0 $(FFmpeg::Video.frame_rate "${vs}" "${File}")")
+  VideoArgs+=('-vsync:0' 'cfr')
+  VideoArgs+=('-r:0' "$(FFmpeg::Video.frame_rate "${vs}" "${File}")")
   VideoArgs+=("$(FFmpeg::Video.filters "${vs}" "${File}" '0')")
   VideoArgs+=("$(FFmpeg::Video.pixel_format)")
 
@@ -164,45 +166,39 @@ function Arkive::Main {
       '-nostdin'
       '-hide_banner'
       '-stats'
-      '-loglevel info'
-      "-i ${File}"
+      '-loglevel' 'info'
+      '-i' "${File}"
       # FIXME: specify thread count per stream
       # Video encoders specify their own thread count seperate from FFmpeg's
-      '-threads 1'
+      '-threads' '1'
       # FIXME: disable mapping metadata for testing
-      '-map_metadata -1'
+      '-map_metadata' '-1'
     )
     if [ ${FFMPEG_VIDEO_ENCODER_PASSES} -gt 1 ] ; then
       FFmpegArgs+=(
-        "-pass ${__pass__}"
-        "-passlogfile ${__tmpdir__}/${__filenamefmt__}.ffmpeg-passlog"
+        '-pass' "${__pass__}"
+        '-passlogfile' "${__tmpdir__}/${__filenamefmt__}.ffmpeg-passlog"
       )
     fi
     # Only encode non-video streams on the final pass
     if [ ${__pass__} -eq ${FFMPEG_VIDEO_ENCODER_PASSES} ] ; then
-      FFmpegArgs+=("${StreamIndexMap[@]}")
+      FFmpegArgs+=(${StreamIndexMap[@]})
     else
-      FFmpegArgs+=("${StreamIndexMap[0]}")
+      FFmpegArgs+=(${StreamIndexMap[0]})
     fi
-    FFmpegArgs+=("${VideoArgs[@]}")
-    FFmpegArgs+=("$(FFmpeg::Video.codec "${vs}" "${File}" '0')")
+    FFmpegArgs+=(${VideoArgs[@]})
+    FFmpegArgs+=($(FFmpeg::Video.codec "${vs}" "${File}" '0'))
     if [[ "${FFMPEG_CONTAINER_FORMAT}" == @('m4a'|'m4v'|'mp4'|'mov') ]] ; then
-      FFmpegArgs+=('-movflags +faststart')
+      FFmpegArgs+=('-movflags' '+faststart')
     fi
     # Only encode audio on last pass
     if [ ${__pass__} -eq ${FFMPEG_VIDEO_ENCODER_PASSES} ] ; then
-      FFmpegArgs+=("${Audio}")
+      FFmpegArgs+=("${Audio[@]}")
     fi
     FFmpegArgs+=("${OutputFile}")
 
-    for FFmpegArg in "${FFmpegArgs[@]}" ; do
-      if [ -n "${FFmpegArg}" ] ; then
-        FFmpegArgsList="${FFmpegArgsList}${FFmpegArgsList:+ }${FFmpegArg}"
-      fi
-    done
-
-    echo "ffmpeg ${FFmpegArgsList}"
-    ffmpeg ${FFmpegArgsList}
+    echo "ffmpeg ${FFmpegArgs[@]}"
+    ffmpeg "${FFmpegArgs[@]}"
 
     unset FFmpegArg FFmpegArgs FFmpegArgsList
     __pass__=$(( ${__pass__} + 1 ))
@@ -213,7 +209,7 @@ function Arkive::Main {
 
 Requires::Check
 
-Input::Parser $@
+Input::Parser "${@}"
 
 if [ -n "${RAW_BITPERPIXEL}" ] ; then
   FFmpeg::Video.bpp "${RAW_BITPERPIXEL}"

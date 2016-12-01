@@ -59,5 +59,5 @@ function FFmpeg::Video.filters:colorspace() {
     PixelFormat="yuv${FFMPEG_VIDEO_CHROMASUBSAMPLING}p"
   fi
 
-  #echo "colorspace=space=${ColorSpace}:trc=${ColorTransfer}:primaries=${ColorPrimaries}:range=mpeg:format=yuv420p10:dither=fsb"
+  echo "colorspace=space=${ColorSpace}:trc=${ColorTransfer}:primaries=${ColorPrimaries}:range=mpeg:format=yuv420p10:dither=fsb"
 }

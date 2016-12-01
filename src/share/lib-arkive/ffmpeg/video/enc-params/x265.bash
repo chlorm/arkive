@@ -52,12 +52,15 @@ function FFmpeg::Video.codec:x265_params {
   # Buffer size is bitrate +10%
   BufSize=$(echo "scale=10;${Bitrate}*1.10)" | bc -l | xargs printf "%1.0f")
 
-  FrameRate="$(echo "$(FFmpeg::Video.frame_rate "${Stream}" "${File}")" | bc)"
+  FrameRate="$(
+    echo "scale=10;$(FFmpeg::Video.frame_rate "${Stream}" "${File}")" |
+        bc -l |
+        xargs printf "%1.0f"
+  )"
   if [ ${FrameRate} -gt 500 ] ; then
     RcLookahead=250
   else
-    # RcLookahead must be an integer
-    RcLookahead=${FrameRate%.*}
+    RcLookahead=${FrameRate}
   fi
 
   MeRange="$(FFmpeg::Video.motion_estimation_range "${Stream}" "${File}")"
@@ -78,40 +81,40 @@ function FFmpeg::Video.codec:x265_params {
   __parameters+=("pools=$(Cpu::Logical)") # FIXME
     #numa-pools # char
   __parameters+=(
-    'wpp=true'
-    'pmode=false'
-    'pme=false'
+    'wpp=1'
+    'pmode=0'
+    'pme=0'
     #'dither'
-    'interlace=false'
+    'interlace=0'
   )
   __parameters+=("level-idc=$(FFmpeg::Video.level:h265 "${Stream}" "${File}")")
   __parameters+=(
-    'high-tier=false'
+    'high-tier=0'
     # value <= 6 due to b-frames & b-pyramid
     'ref=3'
-    'allow-non-conformance=false'
-    'uhd-bd=false'
+    'allow-non-conformance=0'
+    'uhd-bd=0'
     'rd=3'
     'ctu=64'
     'min-cu-size=8'
     'limit-refs=0'
-    'limit-modes=false'
-    'rect=false'  # 2x performance penalty
-    'amp=false'  # 2x performance penalty
-    'early-skip=false'
-    'rskip=false'  # Increases performance 2x+, decreases detail at CU borders.
-    'fast-intra=false'
-    'b-intra=false'  # May require serialized decoding when enabled
-    'cu-lossless=false'
-    'tskip-fast=false'
-    'rd-refine=false'
+    'limit-modes=0'
+    'rect=0'  # 2x performance penalty
+    'amp=0'  # 2x performance penalty
+    'early-skip=0'
+    'rskip=0'  # Increases performance 2x+, decreases detail at CU borders.
+    'fast-intra=0'
+    'b-intra=0'  # May require serialized decoding when enabled
+    'cu-lossless=0'
+    'tskip-fast=0'
+    'rd-refine=0'
     'rdoq-level=0'  # rdoq is overly argressive causing hot-spots & deadzones.
     'tu-intra-depth=1'  # Performance penalty for > 1 for minimal improvement.
     'tu-inter-depth=1'  # Performance penalty for > 1 for minimal improvement.
     'limit-tu=0'
     'nr-intra=0'
     'nr-inter=0'
-    'tskip=false'
+    'tskip=0'
     'rdpenalty=0'
     'max-tu-size=32'
     'max-merge=3'
@@ -119,21 +122,21 @@ function FFmpeg::Video.codec:x265_params {
             # that contain a lot of motion.
     'subme=2'
     "merange=${MeRange}"
-    'temporal-mvp=true'  # TODO
-    'weightp=true'
+    'temporal-mvp=1'  # TODO
+    'weightp=1'
     # Segfault if weightb is disabled (possibly only when in combination
     # with another flag)
-    'weightb=true'
-    'strong-intra-smoothing=false'
-    'constrained-intra=true'
+    'weightb=1'
+    'strong-intra-smoothing=0'
+    'constrained-intra=1'
     # For psy-rd(oq), favor lower more conservative values.  In scenes with
     # high energy dispersed evenly across a frame, higher values will cause
     # hot-spots and dead-zones. (e.g. really bad blocking artifacts with
-    # high detail CUs next to low detail CUs). Despite this issue, psy-rd(oq)
+    # high detail CUs next to low detail CUs). Despite this issue, psy-rd
     # is still necessary to better distribute energy.
     'psy-rd=0.7'  # Values > 1.0 cause color distortions, use < 2.0
     'psy-rdoq=0.0'  # disabled
-    'open-gop=false'
+    'open-gop=0'
   )
   __parameters+=(
     # Ensure 1 keyframe per GOP
@@ -147,7 +150,7 @@ function FFmpeg::Video.codec:x265_params {
   __parameters+=(
     'scenecut=0'
     'scenecut-bias=0'
-    'intra-refresh=false'
+    'intra-refresh=0'
     # Set lookahead to same as key-frame interval to make sure the encoder
     # has the entire GOP for decision making.
     "rc-lookahead=${RcLookahead}" # (> bframes & < 250)
@@ -156,33 +159,33 @@ function FFmpeg::Video.codec:x265_params {
     # Using > 3 bframes has a large performance penalty
     'bframes=3'
     'bframe-bias=0'
-    'b-pyramid=true'
+    'b-pyramid=1'
     "vbv-bufsize=${BufSize}"
     "vbv-maxrate=${BufSize}"
     'vbv-init=0.9' # float
-    'lossless=false'
+    'lossless=0'
     'aq-mode=1'
     'aq-strength=0.4'
     'qg-size=16'  # setting to 8 results in segfault
-    'cutree=false'
-    'strict-cbr=false'
+    'cutree=0'
+    'strict-cbr=0'
     'cbqpoffs=-4'
     'crqpoffs=-4'
     'ipratio=1.4'
     'pbratio=1.0'
     'qcomp=0.8'  # values < 0.5 segfault, always use >= 0.8 w/ aq-auto-variance
     'qpstep=8'
-    'rc-grain=false'
+    'rc-grain=0'
     'qblur=0.0'
     'cplxblur=0.0'
     #'zones=0,250,b=2.0'
-    'signhide=true'
+    'signhide=1'
     #'qpfile'
     #'scaling-list'
     #'lambda-file'
-    'deblock=0'
-    'sao=false'
-    'sao-non-deblock=false'
+    'deblock=-6\:-6'
+    'sao=0'
+    'sao-non-deblock=0'
     #'sar'
     #'display-window'
     #'overscan'
@@ -222,21 +225,21 @@ function FFmpeg::Video.codec:x265_params {
     #'max-cll'
     #'min-luma'
     #'max-luma'
-    'annexb=true'
-    'repeat-headers=false'
-    'aud=false'
-    #'hrd=false'  # ???
-    'info=false'
+    'annexb=1'
+    'repeat-headers=0'
+    'aud=0'
+    #'hrd=0'  # ???
+    'info=0'
     'hash=2'
-    'temporal-layers=false'
+    'temporal-layers=0'
   )
 
   if [ ${FFMPEG_VIDEO_ENCODER_PASSES} -gt 1 ] ; then
     __parameters+=(
       "pass=${__pass__}"
-      #'slow-firstpass=false'
-      "stats=${__tmpdir__}/${__filenamefmt__}.stats"
-      "analysis-file=${__tmpdir__}/${__filenamefmt__}.analysis"
+      #'slow-firstpass=0'
+      "stats=${__tmpdir__}/stats"
+      "analysis-file=${__tmpdir__}/analysis"
     )
     # Determine analysis-mode
     if [ ${__pass__} -eq 1 ] ; then
@@ -248,5 +251,5 @@ function FFmpeg::Video.codec:x265_params {
     __parameters+=('analysis-mode=0')
   fi
 
-  echo "-x265-params $(FFmpeg::Video.x26x_params)"
+  echo '-x265-params' "$(FFmpeg::Video.x26x_params)"
 }

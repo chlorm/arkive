@@ -58,7 +58,7 @@ function FFmpeg::Audio.filters:resample {
   case "${FFMPEG_AUDIO_ENCODER}" in
     'flac') OutputSampleFormat='s32' ;;
     'opus') OutputSampleFormat='flt' ;;
-    'ac3'|'ffaac'|'fdk-aac'|'eac3'|'vorbis') OutputSampleFormat='fltp' ;;
+    'ac3'|'ffaac'|'fdk-aac'|'eac3'|'vorbis') OutputSampleFormat='s16' ;;
   esac
 
   Parameters=(

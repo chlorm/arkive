@@ -44,7 +44,6 @@ function FFmpeg::Video.filters:black_bar_crop {
   #   vp9: multiple of 16, cite bug
 
   local CropDetect
-  local CropDetectArg
   local CropDetectArgs
   local -a CropDetectArgsList
   local CropHeight
@@ -107,29 +106,24 @@ function FFmpeg::Video.filters:black_bar_crop {
     CropDetectArgsList=(
       '-nostdin'
       '-hide_banner'
-      '-loglevel info'
-      "-threads $(Cpu::Logical)"
-      "-ss ${Skip}"
-      "-i ${File}"
-      '-ss 0'
-      '-t 1'
+      '-loglevel' 'info'
+      '-threads' "$(Cpu::Logical)"
+      '-ss' "${Skip}"
+      '-i' "${File}"
+      '-ss' '0'
+      '-t' '1'
       # The file index must be specified or cropdetect with fail when the
       # video stream index is not 0.
-      "-filter:0:${Stream} cropdetect=30:0:0"
+      "-filter:0:${Stream}" 'cropdetect=30:0:0'
       '-an'
-      '-f null -'
+      '-f' 'null' '-'
     )
 
-    for CropDetectArg in "${CropDetectArgsList[@]}" ; do
-      if [ -n "${CropDetectArg}" ] ; then
-        CropDetectArgs="${CropDetectArgs}${CropDetectArgs:+ }${CropDetectArg}"
-      fi
-    done
-
+    CropDetectArgs="${CropDetectArgsList[@]}"
     Log::Message 'info' "ffmpeg ${CropDetectArgs}"
 
     CropDetect="$(
-      ffmpeg ${CropDetectArgs} 2>&1 |
+      ffmpeg "${CropDetectArgsList[@]}" 2>&1 |
         awk -F'=' '/crop/ { print $NF }' |
         tail -1
     )"
