@@ -40,6 +40,9 @@ function FFmpeg::Video.codec {
   local -r Stream="${1}"
 
   case "${FFMPEG_VIDEO_ENCODER}" in
+    'copy')
+      Encoder='copy'
+      ;;
     'x264')
       Encoder='libx264'
       EncoderParams="$(FFmpeg::Video.codec:x264_params "${Stream}" "${File}")"

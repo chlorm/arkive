@@ -53,7 +53,7 @@ function FFmpeg::Video.filters {
     )
   fi
 
-  if [ -n "${Filters[*]}" ] ; then
+  if [ -n "${Filters[*]}" ] && [ "${FFMPEG_VIDEO_ENCODER}" != 'copy' ] ; then
     local IFS=","
     echo "-filter:${Index}" "${Filters[*]}"
   fi
