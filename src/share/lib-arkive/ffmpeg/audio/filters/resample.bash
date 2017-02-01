@@ -81,9 +81,6 @@ function FFmpeg::Audio.filters:resample {
     'matrix_encoding=none'
   )
 
-  for Parameter in "${Parameters[@]}" ; do
-    ParameterString="${ParameterString}${ParameterString:+:}${Parameter}"
-  done
-
-  echo "aresample=${ParameterString}"
+  local IFS=":"
+  echo "aresample=${Parameters[*]}"
 }

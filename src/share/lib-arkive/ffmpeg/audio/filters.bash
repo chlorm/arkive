@@ -46,13 +46,8 @@ function FFmpeg::Audio.filters {
   Filters+=("$(FFmpeg::Audio.filters:ebu_r128 "${Stream}" "${File}")")
   Filters+=("$(FFmpeg::Audio.filters:resample "${Stream}" "${File}")")
 
-  for Filter in "${Filters[@]}" ; do
-    if [ -n "${Filter}" ] ; then
-      FilterList="${FilterList}${FilterList:+,}${Filter}"
-    fi
-  done
-
-  if [ -n "${FilterList}" ] ; then
-    echo "-filter:${Index}" "${FilterList}"
+  if [ -n "${Filters[*]}" ] ; then
+    local IFS=","
+    echo "-filter:${Index}" "${Filters[*]}"
   fi
 }

@@ -76,7 +76,5 @@ function FFprobe {
 
   Log::Message 'info' "ffprobe output: ${FFprobeOutput}"
 
-  for i in "${FFprobeOutput[@]}" ; do
-    echo "${i}"
-  done
+  echo "${FFprobeOutput[@]}"
 }

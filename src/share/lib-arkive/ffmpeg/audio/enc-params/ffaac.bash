@@ -54,13 +54,7 @@ function FFmpeg::Audio.encoder:ffaac {
     Parameters+=("${FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS}")
   fi
 
-  for Parameter in "${Parameters[@]}" ; do
-    if [ -n "${Parameter}" ] ; then
-      ParameterList="${ParameterList}${ParameterList:+ }${Parameter}"
-    fi
-  done
-
-  if [ -n "${ParameterList}" ] ; then
-    echo "${ParameterList}"
+  if [ -n "${Parameters[*]}" ] ; then
+    echo "${Parameters[@]}"
   fi
 }

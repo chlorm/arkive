@@ -101,9 +101,6 @@ function FFmpeg::Audio.filters:ebu_r128 {
     'dual_mono=1'
   )
 
-  for Parameter in "${Parameters[@]}" ; do
-    ParameterString="${ParameterString}${ParameterString:+:}${Parameter}"
-  done
-
-  echo "loudnorm=${ParameterString}"
+  local IFS=":"
+  echo "loudnorm=${Parameters[*]}"
 }

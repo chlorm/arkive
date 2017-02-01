@@ -49,7 +49,7 @@ function FFmpeg::Audio {
   fi
   AudioArgsList+=("$(FFmpeg::Audio.encoder "${Stream}" "${File}" "${Index}")")
 
-  if [ -n "${AudioArgsList[@]}" ] ; then
+  if [ -n "${AudioArgsList[*]}" ] ; then
     echo "${AudioArgsList[@]}"
   fi
 }
