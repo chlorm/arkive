@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2016, Cody Opel <codyopel@gmail.com>
+# Copyright (c) 2013-2017, Cody Opel <codyopel@gmail.com>
 # All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,8 +34,6 @@
 function FFmpeg::Video.filters {
   Function::RequiredArgs '3' "$#"
   local -r File="${2}"
-  local Filter
-  local FilterList
   local -a Filters
   local -r Index="${3}"
   local -r Stream="${1}"
@@ -53,7 +51,7 @@ function FFmpeg::Video.filters {
     )
   fi
 
-  if [ -n "${Filters[*]}" ] && [ "${FFMPEG_VIDEO_ENCODER}" != 'copy' ] ; then
+  if [ -n "${Filters[*]}" ] ; then
     local IFS=","
     echo "-filter:${Index}" "${Filters[*]}"
   fi
