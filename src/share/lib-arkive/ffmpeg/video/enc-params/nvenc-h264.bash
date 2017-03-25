@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2016, Cody Opel <codyopel@gmail.com>
+# Copyright (c) 2013-2017, Cody Opel <codyopel@gmail.com>
 # All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,12 @@ function FFmpeg::Video.codec:nvenc_h264_params {
   local -a Parameters=()
   local -r Stream="${1}"
 
-  FrameRate="$(FFmpeg::Video.frame_rate "${Stream}" "${File}")"
+  FrameRate="$(
+    echo "scale=10;$(FFmpeg::Video.frame_rate "${Stream}" "${File}")" |
+        bc -l |
+        xargs printf "%1.0f"
+  )"
+  RcLookahead=${FrameRate}
 
 # h264_nvenc AVOptions:
 #   -preset            <int>        E..V.... Set the encoding preset (from 0 to 11) (default medium)
@@ -111,36 +116,36 @@ function FFmpeg::Video.codec:nvenc_h264_params {
 #   -aq-strength       <int>        E..V.... When Spatial AQ is enabled, this field is used to specify AQ strength. AQ strength scale is from 1 (low) - 15 (aggressive) (from 1 to 15) (default 8)
 #   -cq                <int>        E..V.... Set target quality level (0 to 51, 0 means automatic) for constant quality mode in VBR rate control (from 0 to 51) (default 0)
   Parameters+=(
-    "-preset:${Index} slow"
-    "-profile:${Index} main"
+    "-preset:${Index}" 'slow'
+    "-profile:${Index}" 'main'
   )
   Parameters+=(
-    "-level:${Index} $(FFmpeg::Video.level:h264 "${Stream}" "${File}")"
+    "-level:${Index}" "$(FFmpeg::Video.level:h264 "${Stream}" "${File}")"
   )
   Parameters+=(
-    "-rc:${Index} vbr"
+    "-rc:${Index}" 'cbr'
   )
   Parameters+=(
-    "-rc-lookahead:${Index} $(( ${FrameRate} * 10 ))"
+    "-rc-lookahead:${Index}" "${RcLookahead}"
   )
   Parameters+=(
-    #"-surfaces "
-    #"-cbr 1"
-    "-2pass:${Index} 1"
-    "-gpu:${Index} any"
-    "-delay:${Index} 3000"
-    "-no-scenecut:${Index} 1"
-    "-forced-idr 0"
-    "-b_adapt 1"
-    "-spatial-aq 1"
-    "-temporal-aq 1"
-    # '-zerolatency 0'
-    '-nonref_p 1'
-    "-strict_gop 1"
-    "-aq-strength 1"
+    #"-surfaces:${Index} ${RcLookahead}"
+    "-cbr:${Index}" '1'
+    "-2pass:${Index}" '1'
+    "-gpu:${Index}" 'any'
+    #"-delay:${Index}" '3000'
+    "-no-scenecut:${Index}" '1'
+    "-forced-idr" '0'
+    "-b_adapt" '1'
+    "-spatial-aq" '1'
+    "-temporal-aq" '1'
+    # '-zerolatency" '0'
+    "-nonref_p" '1'
+    "-strict_gop" '1'
+    "-aq-strength" '1'
     #"-cq 1"
-    "-qmin 28"
-    "-qmax 1"
+    "-qmin" '28'
+    "-qmax" '1'
   )
 
   echo "${Parameters[@]}"
