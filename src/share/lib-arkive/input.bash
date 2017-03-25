@@ -50,9 +50,10 @@ function Input::Check.output {
 }
 
 function Input::Check.tmp {
-  Function::RequiredArgs '0' "$#"
-  if [ ! -d "${INPUTDIR}/.arktmp" ] ; then
-    mkdir "${INPUTDIR}/.arktmp"
+  Function::RequiredArgs '1' "$#"
+  if [ ! -d "${1}" ] ; then
+    # Don't use --parents, we want it to fail
+    mkdir "${1}"
   fi
 }
 
@@ -102,7 +103,7 @@ function Input::Parser {
       fi
     fi
 
-    Input::Check.tmp
     export TMPDIR="${INPUTDIR}/.arkive.${RANDOM}"
+    Input::Check.tmp "${TMPDIR}"
   fi
 }
