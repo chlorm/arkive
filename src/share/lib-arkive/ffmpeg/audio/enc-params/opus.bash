@@ -39,12 +39,13 @@ function FFmpeg::Audio.encoder:opus {
   local -r Stream="${1}"
 
   Parameters=(
-    "-frame_duration:${Stream} ${FFMPEG_AUDIO_ENCODER_OPUS_FRAMEDURATION}"
-    "-compression_level:${Stream} ${FFMPEG_AUDIO_ENCODER_OPUS_COMPRESSIONLEVEL}"
-    "-vbr:${Stream} ${FFMPEG_AUDIO_ENCODER_OPUS_VBR}"
-    "-cutoff:${Stream} ${FFMPEG_AUDIO_ENCODER_OPUS_CUTOFF}"
-    "-application:${Stream} ${FFMPEG_AUDIO_ENCODER_OPUS_APPLICATION}"
-    "-mapping_family:${Stream} 1"
+    "-frame_duration:${Stream}" "${FFMPEG_AUDIO_ENCODER_OPUS_FRAMEDURATION}"
+    "-compression_level:${Stream}"
+        "${FFMPEG_AUDIO_ENCODER_OPUS_COMPRESSIONLEVEL}"
+    "-vbr:${Stream}" "${FFMPEG_AUDIO_ENCODER_OPUS_VBR}"
+    "-cutoff:${Stream}" "${FFMPEG_AUDIO_ENCODER_OPUS_CUTOFF}"
+    "-application:${Stream}" "${FFMPEG_AUDIO_ENCODER_OPUS_APPLICATION}"
+    "-mapping_family:${Stream}" '1'
   )
 
   if [ -n "${FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS}" ] ; then
