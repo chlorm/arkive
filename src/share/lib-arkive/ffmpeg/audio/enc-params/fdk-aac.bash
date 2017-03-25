@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2016, Cody Opel <codyopel@gmail.com>
+# Copyright (c) 2013-2017, Cody Opel <codyopel@gmail.com>
 # All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,17 +39,15 @@ function FFmpeg::Audio.encoder:fdk_aac {
   local -a Parameters
 
   Parameters=(
-    "-profile:${Index} ${FFMPEG_AUDIO_ENCODER_AAC_PROFILE}"
-    "-vbr:${Index} 0"  # CBR mode
-    "-afterburner:${Index} 1"
-    "-eld_sbr:${Index} 1"
+    "-profile:${Index}" "${FFMPEG_AUDIO_ENCODER_AAC_PROFILE}"
+    "-vbr:${Index}" '0'  # CBR mode
+    "-afterburner:${Index}" '1'
+    "-eld_sbr:${Index}" '1'
   )
 
-  if [ -n "${FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS}" ] ; then
-    Parameters+=("${FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS}")
-  fi
+  # if [ -n "${FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS}" ] ; then
+  #   Parameters+=("${FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS}")
+  # fi
 
-  if [ -n "${Parameters[*]}" ] ; then
-    echo "${Parameters[@]}"
-  fi
+  echo "${Parameters[@]}"
 }
