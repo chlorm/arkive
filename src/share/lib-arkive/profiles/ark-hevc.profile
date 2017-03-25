@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Arkive h.264/AVC main profile, ACC HE-AAC, WebVTT
+# Arkive h.265/HEVC main10 profile, AAC-LC, WebVTT
 
 FFMPEG_CONTAINER_FORMAT='mp4'
 FFMPEG_VIDEO_ENCODER='x265'
