@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2016, Cody Opel <codyopel@gmail.com>
+# Copyright (c) 2013-2017, Cody Opel <codyopel@gmail.com>
 # All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,22 +39,20 @@ function FFmpeg::Audio.encoder:ffaac {
   local -a Parameters
 
   Parameters=(
-    "-profile:${Index} ${FFMPEG_AUDIO_ENCODER_AAC_PROFILE}"
-    "-q:${Index} 2"  # VBR
-    "-aac_coder:${Index} twoloop"  # Also: amnr, requires -strict -2
-    "-aac_ms:${Index} auto"
-    "-aac_is:${Index} 1"
-    "-aac_pns:${Index} 1"
-    "-aac_tns:${Index} 1"
-    "-aac_ltp:${Index} 0"  # Requires aac_ltp profile
-    "-aac_pred:${Index} 0"  # Requires aac_main profile
+    "-profile:${Index}" "${FFMPEG_AUDIO_ENCODER_AAC_PROFILE}"
+    "-q:${Index}" '2'  # VBR
+    "-aac_coder:${Index}" 'twoloop'  # Also: amnr, requires -strict -2
+    "-aac_ms:${Index}" 'auto'
+    "-aac_is:${Index}" '1'
+    "-aac_pns:${Index}" '1'
+    "-aac_tns:${Index}" '1'
+    "-aac_ltp:${Index}" '0'  # Requires aac_ltp profile
+    "-aac_pred:${Index}" '0'  # Requires aac_main profile
   )
 
-  if [ -n "${FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS}" ] ; then
-    Parameters+=("${FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS}")
-  fi
+  # if [ -n "${FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS}" ] ; then
+  #   Parameters+=("${FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS}")
+  # fi
 
-  if [ -n "${Parameters[*]}" ] ; then
-    echo "${Parameters[@]}"
-  fi
+  echo "${Parameters[@]}"
 }
