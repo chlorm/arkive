@@ -2,7 +2,7 @@
 
 #                                  Arkive
 #
-# Copyright (c) 2013-2016, Cody Opel <codyopel@gmail.com>
+# Copyright (c) 2013-2017, Cody Opel <codyopel@gmail.com>
 # All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -128,7 +128,7 @@ function Arkive::Main {
     # Assign stream index, assuming video is 0, and audio starts from 1 ->
     # number of streams + 1.
     StreamIndexMap[${Index}]="-map 0:${as}"
-    Audio+=("$(FFmpeg::Audio "${as}" "${File}" "${Index}")")
+    Audio+=($(FFmpeg::Audio "${as}" "${File}" "${Index}"))
   done
 
   #ssa=($(Stream::Select 'subtitle' "${File}"))
@@ -143,12 +143,20 @@ function Arkive::Main {
   vs="$(Stream::Select 'video' "${File}")"
   # Assign the video stream index 0
   StreamIndexMap[0]="-map 0:${vs}"
-  VideoArgs+=('-b:0' "$(FFmpeg::Video.bitrate "${vs}" "${File}")k")
-  # Force constant frame rate
-  VideoArgs+=('-vsync:0' 'cfr')
-  VideoArgs+=('-r:0' "$(FFmpeg::Video.frame_rate "${vs}" "${File}")")
-  VideoArgs+=("$(FFmpeg::Video.filters "${vs}" "${File}" '0')")
-  VideoArgs+=("$(FFmpeg::Video.pixel_format)")
+  if [ "${FFMPEG_VIDEO_ENCODER}" != 'copy' ] ; then
+    VideoArgs+=('-b:0' "$(FFmpeg::Video.bitrate "${vs}" "${File}")k")
+    # Force constant frame rate
+    VideoArgs+=('-vsync:0' 'cfr')
+    VideoArgs+=('-r:0' "$(FFmpeg::Video.frame_rate "${vs}" "${File}")")
+    VideoArgs+=("$(FFmpeg::Video.filters "${vs}" "${File}" '0')")
+    VideoArgs+=("$(FFmpeg::Video.pixel_format)")
+    if [ ${FFMPEG_VIDEO_BITDEPTH} -gt 8 ] ; then
+      VideoArgs+=('-colorspace:0' 'bt2020nc')
+    else
+      VideoArgs+=('-colorspace:0' 'bt709')
+    fi
+    VideoArgs+=('-color_range' 'jpeg')
+  fi
 
   #Chapter="$(FFmpeg::Chapter)"
 
@@ -177,7 +185,7 @@ function Arkive::Main {
     if [ ${FFMPEG_VIDEO_ENCODER_PASSES} -gt 1 ] ; then
       FFmpegArgs+=(
         '-pass' "${__pass__}"
-        '-passlogfile' "${__tmpdir__}/${__filenamefmt__}.ffmpeg-passlog"
+        '-passlogfile' "${__tmpdir__}/ffmpeg-passlog"
       )
     fi
     # Only encode non-video streams on the final pass
