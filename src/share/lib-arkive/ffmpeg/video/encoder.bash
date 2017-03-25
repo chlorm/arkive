@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2016, Cody Opel <codyopel@gmail.com>
+# Copyright (c) 2013-2017, Cody Opel <codyopel@gmail.com>
 # All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@
 function FFmpeg::Video.codec {
   Function::RequiredArgs '3' "$#"
   local Encoder
-  local EncoderParams
+  local -a EncoderParams
   local -r File="${2}"
   local -r Index="${3}"
   local -r Stream="${1}"
@@ -45,7 +45,7 @@ function FFmpeg::Video.codec {
       ;;
     'x264')
       Encoder='libx264'
-      EncoderParams="$(FFmpeg::Video.codec:x264_params "${Stream}" "${File}")"
+      EncoderParams=("$(FFmpeg::Video.codec:x264_params "${Stream}" "${File}")")
       ;;
     'x265')
       Encoder='libx265'
@@ -53,16 +53,20 @@ function FFmpeg::Video.codec {
       ;;
     'nvenc-h264')
       Encoder='h264_nvenc'
-      EncoderParams="$(FFmpeg::Video.codec:nvenc_h264_params "${Stream}" "${File}" "${Index}")"
+      EncoderParams=(
+        "$(FFmpeg::Video.codec:nvenc_h264_params "${Stream}" "${File}" "${Index}")"
+      )
       ;;
     'nvenc-h265') echo 'not implemented' ; return 1 ;;
     'vaapi-h264')
       Encoder='h264_vaapi'
-      EncoderParams="$(FFmpeg::Video.codec:vaapi_h264_params "${Stream}" "${File}" "${Index}")"
+      EncoderParams=(
+        "$(FFmpeg::Video.codec:vaapi_h264_params "${Stream}" "${File}" "${Index}")"
+      )
       ;;
     'vp9')
       Encoder='libvpx-vp9'
-      EncoderParams="$(FFmpeg::Video.codec:vp9_params "${Stream}" "${File}")"
+      EncoderParams=("$(FFmpeg::Video.codec:vp9_params "${Stream}" "${File}")")
       ;;
     'av1') echo 'not implemented' ; return 1 ;;
     *) return 1 ;;
