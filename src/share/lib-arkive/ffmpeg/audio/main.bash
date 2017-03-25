@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2016, Cody Opel <codyopel@gmail.com>
+# Copyright (c) 2013-2017, Cody Opel <codyopel@gmail.com>
 # All Rights Reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,23 +33,19 @@
 
 function FFmpeg::Audio {
   Function::RequiredArgs '3' "$#"
-  local AudioArg
-  local AudioArgs
-  local -a AudioArgsList
+  local -a AudioArgs
   local -r File="${2}"
   local -r Index="${3}"
   local -r Stream="${1}"
 
   if [ "${FFMPEG_AUDIO_ENCODER}" != 'copy' ] ; then
-    AudioArgsList+=("$(FFmpeg::Audio.filters "${Stream}" "${File}" "${Index}")")
-    #AudioArgsList+=("$(FFmpeg::Audio.cutoff "${Index}")")
-    AudioArgsList+=("$(FFmpeg::Audio.bitrate "${Stream}" "${File}" "${Index}")")
-    #AudioArgsList+=("-ac:${Index} $(FFmpeg::Audio.channels "${Stream}" "${File}")")
-    #AudioArgsList+=("$(FFmpeg::Audio.sample_rate "${Stream}" "${File}" "${Index}")")
+    AudioArgs+=("$(FFmpeg::Audio.filters "${Stream}" "${File}" "${Index}")")
+    #AudioArgs+=("$(FFmpeg::Audio.cutoff "${Index}")")
+    AudioArgs+=("$(FFmpeg::Audio.bitrate "${Stream}" "${File}" "${Index}")")
+    #AudioArgs+=("-ac:${Index} $(FFmpeg::Audio.channels "${Stream}" "${File}")")
+    #AudioArgs+=("$(FFmpeg::Audio.sample_rate "${Stream}" "${File}" "${Index}")")
   fi
-  AudioArgsList+=("$(FFmpeg::Audio.encoder "${Stream}" "${File}" "${Index}")")
+  AudioArgs+=("$(FFmpeg::Audio.encoder "${Stream}" "${File}" "${Index}")")
 
-  if [ -n "${AudioArgsList[*]}" ] ; then
-    echo "${AudioArgsList[@]}"
-  fi
+  echo "${AudioArgs[@]}"
 }
