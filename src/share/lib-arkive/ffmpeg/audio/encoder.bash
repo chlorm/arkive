@@ -41,25 +41,29 @@ function FFmpeg::Audio.encoder {
   case "${FFMPEG_AUDIO_ENCODER}" in
     'copy')
       Encoder='copy'
+      EncoderParams=()
       ;;
     'ffaac')
       Encoder='aac'
-      EncoderParams="$(FFmpeg::Audio.encoder:ffaac "${Index}")"
+      EncoderParams=("$(FFmpeg::Audio.encoder:ffaac "${Index}")")
       ;;
     'fdk-aac')
       Encoder='libfdk_aac'
-      EncoderParams="$(FFmpeg::Audio.encoder:fdk_aac "${Index}")"
+      EncoderParams=("$(FFmpeg::Audio.encoder:fdk_aac "${Index}")")
       ;;
     'opus')
       Encoder='libopus'
-      EncoderParams="$(FFmpeg::Audio.encoder:opus "${Index}")"
+      EncoderParams=("$(FFmpeg::Audio.encoder:opus "${Index}")")
       ;;
-    'flac') Encoder='flac' ;;
+    'flac')
+      Encoder='flac'
+      EncoderParams=("$(FFmpeg::Audio.encoder:flac "${Index}")")
+      ;;
     *)
       Log::Message 'error' "invalid audio encoder \`${FFMPEG_AUDIO_ENCODER}' specified"
       return 1
       ;;
   esac
 
-  echo "-c:${Index} ${Encoder}${EncoderParams:+ ${EncoderParams}}"
+  echo "-c:${Index}" "${Encoder}" "${EncoderParams[@]}"
 }
