@@ -18,7 +18,7 @@ Dependencies:
     - libopus >= 1.1.0
     - libvpx >= 1.6.0
     - x264 >= 201611xx (only 8bit/4:2:0 supported)
-    - x265 >= 201611xx (for limit-tu, ...) (with
+    - x265 >= 201705xx (for refine-level, ...) (with
       [multi-lib](https://github.com/triton/triton/blob/master/pkgs/all-pkgs/x/x265/default.nix),
       e.g. 8, 10, & 12 bit statically linked into libx265.{a,so})
 
