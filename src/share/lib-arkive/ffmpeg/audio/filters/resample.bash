@@ -69,7 +69,7 @@ function FFmpeg::Audio.filters:resample {
     "osr=${FFMPEG_AUDIO_SAMPLERATE}"
     "isf=${SampleFormat}"
     "osf=${OutputSampleFormat}"
-    'tsf=s32'
+    #'tsf=s32'  # FIXME
     "icl=${ChannelLayout}"
     "ocl=${ChannelLayout}"  # Leave input unchanged, pan filter will remap
     'dither_method=0'
