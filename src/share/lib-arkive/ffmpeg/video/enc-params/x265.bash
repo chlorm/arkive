@@ -39,6 +39,7 @@ function FFmpeg::Video.codec:x265_params {
   local ColorTransfer
   local -r File="${2}"
   local FrameRate
+  local -i HighBitDepth=0
   local MeRange
   local Param
   local -a __parameters
@@ -57,7 +58,7 @@ function FFmpeg::Video.codec:x265_params {
         bc -l |
         xargs printf "%1.0f"
   )"
-  if [ ${FrameRate} -gt 500 ] ; then
+  if [ ${FrameRate} -gt 500 ]; then
     RcLookahead=250
   else
     RcLookahead=${FrameRate}
@@ -66,8 +67,12 @@ function FFmpeg::Video.codec:x265_params {
   MeRange="$(FFmpeg::Video.motion_estimation_range "${Stream}" "${File}")"
   # Motion Estimation ranges below 57 reduce coding efficiency
   # http://forum.doom9.org/showthread.php?p=1713094#post1713094
-  if [ ${MeRange} -lt 58 ] ; then
+  if [ ${MeRange} -lt 58 ]; then
     MeRange=58
+  fi
+
+  if [ ${FFMPEG_VIDEO_BITDEPTH} -gt 8 ]; then
+    HighBitDepth=1
   fi
 
   __parameters+=(
@@ -108,6 +113,7 @@ function FFmpeg::Video.codec:x265_params {
     'cu-lossless=0'
     'tskip-fast=0'
     'rd-refine=0'
+    'refine-level=5'  # XXX: maybe use 10???
     'rdoq-level=0'  # rdoq is overly argressive causing hot-spots & deadzones.
     'tu-intra-depth=1'  # Performance penalty for > 1 for minimal improvement.
     'tu-inter-depth=1'  # Performance penalty for > 1 for minimal improvement.
@@ -186,55 +192,69 @@ function FFmpeg::Video.codec:x265_params {
     'deblock=-6\:-6'
     'sao=0'
     'sao-non-deblock=0'
+    'limit-sao=0'
     #'sar'
     #'display-window'
     #'overscan'
     #'videoformat'
-    'range=limited'
+  )
+  __parameters+=(
+    "range=$(
+      if [ ${HighBitDepth} -eq 1 ]; then
+        echo 'limited'
+      else
+        echo 'limited'
+      fi
+    )"
   )
   __parameters+=(
     "colorprim=$(
-      if [ ${FFMPEG_VIDEO_BITDEPTH} -lt 10 ] ; then
-        echo 'bt709'
-      else
+      if [ ${HighBitDepth} -eq 1 ]; then
         echo 'bt2020'
+      else
+        echo 'bt709'
       fi
     )"
   )
   __parameters+=(
     "transfer=$(
-      if [ ${FFMPEG_VIDEO_BITDEPTH} -lt 10 ] ; then
-        echo 'bt709'
-      else
+      if [ ${HighBitDepth} -eq 1 ]; then
         echo "bt2020-${FFMPEG_VIDEO_BITDEPTH}"
+        #echo 'smpte-st-2084'
+      else
+        echo 'bt709'
       fi
     )"
   )
   __parameters+=(
     "colormatrix=$(
-      if [ ${FFMPEG_VIDEO_BITDEPTH} -lt 10 ] ; then
-        echo 'bt709'
-      else
+      if [ ${HighBitDepth} -eq 1 ]; then
         echo 'bt2020nc'
+      else
+        echo 'bt709'
       fi
     )"
   )
   __parameters+=(
-    #'chromaloc'
+    #'chromaloc=2'
     #'master-display'
     #'max-cll'
+    "hdr=${HighBitDepth}"
+    "hdr-opt=${HighBitDepth}"
+    #"dhdr10-info"
+    'dhdr10-opt=1'
     #'min-luma'
     #'max-luma'
     'annexb=1'
     'repeat-headers=0'
     'aud=0'
-    #'hrd=0'  # ???
+    'hrd=1'
     'info=0'
     'hash=2'
     'temporal-layers=0'
   )
 
-  if [ ${FFMPEG_VIDEO_ENCODER_PASSES} -gt 1 ] ; then
+  if [ ${FFMPEG_VIDEO_ENCODER_PASSES} -gt 1 ]; then
     __parameters+=(
       "pass=${__pass__}"
       #'slow-firstpass=0'
@@ -242,7 +262,7 @@ function FFmpeg::Video.codec:x265_params {
       "analysis-file=${__tmpdir__}/analysis"
     )
     # Determine analysis-mode
-    if [ ${__pass__} -eq 1 ] ; then
+    if [ ${__pass__} -eq 1 ]; then
       __parameters+=('analysis-mode=1')
     else
       __parameters+=('analysis-mode=2')

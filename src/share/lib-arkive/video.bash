@@ -31,34 +31,61 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-# function Video::ColorMatrix {
-#   Function::RequiredArgs '2' "$#"
-#   local -r File="${2}"
-#   local SourceCodecName
-#   local SourceColorPrimaries
-#   local -r Stream="${1}"
+function Video::ColorPrimaries {
+  Function::RequiredArgs '2' "$#"
+  local -r File="${2}"
+  local SourceColorPrimaries
+  local -r Stream="${1}"
 
-#   SourceCodecName="$(FFprobe '-' "${Stream}" 'stream' 'codec_name' "${File}")"
+  SourceColorPrimaries="$(
+    FFprobe '-' "${Stream}" 'stream' 'color_primaries' "${File}"
+  )"
 
-#   # We really only care to signal bt2020 for bt2020 sources, for all others
-#   # bt709 is signaled.  Ignore testing for bt2020 if the source codec doesn't
-#   # support it.
-#   case "${SourceCodecName}" in
-#     'h265'|'vp9')
-#       SourceColorPrimaries="$(FFprobe '-' "${Stream}" 'stream' 'color_primaries' "${File}")"
-#       SourcePixelFormat="$(FFprobe '-' "${Stream}" 'stream' 'pix_fmt' "${File}")"
-#       # FIXME: only supports yuv currently
-#       if [ "${SourcePixelFormat}" =~ yuv4([2]|[4])([0]|[2]|[4])10* ] ; then
-#         # FIXME: test for bt2020
-#         echo 'bt2020'
-#       else
-#         # 8bpcc cannot support bt2020, assume bt709
-#         echo 'bt709'
-#       fi
-#       ;;
-#     *) echo 'bt709' ;;
-#   esac
-# }
+  Var::Type.string "${SourceColorPrimaries}"
+
+  echo "${SourceColorPrimaries}"
+}
+
+function Video::ColorRange {
+  Function::RequiredArgs '2' "$#"
+  local -r File="${2}"
+  local SourceColorRange
+  local -r Stream="${1}"
+
+  SourceColorRange="$(FFprobe '-' "${Stream}" 'stream' 'color_range' "${File}")"
+
+  Var::Type.string "${SourceColorRange}"
+
+  echo "${SourceColorRange}"
+}
+
+function Video::ColorSpace {
+  Function::RequiredArgs '2' "$#"
+  local -r File="${2}"
+  local SourceColorSpace
+  local -r Stream="${1}"
+
+  SourceColorSpace="$(FFprobe '-' "${Stream}" 'stream' 'color_space' "${File}")"
+
+  Var::Type.string "${SourceColorSpace}"
+
+  echo "${SourceColorSpace}"
+}
+
+function Video::ColorTransfer {
+  Function::RequiredArgs '2' "$#"
+  local -r File="${2}"
+  local SourceColorTransfer
+  local -r Stream="${1}"
+
+  SourceColorTransfer="$(
+    FFprobe '-' "${Stream}" 'stream' 'color_transfer' "${File}"
+  )"
+
+  Var::Type.string "${SourceColorTransfer}"
+
+  echo "${SourceColorTransfer}"
+}
 
 function Video::FrameRate {
   Function::RequiredArgs '2' "$#"
