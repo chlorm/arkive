@@ -19,6 +19,7 @@ set -o functrace
 set -o nounset
 set -o pipefail
 
+HOME="${HOME:-}"
 XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 if [ "$XDG_DATA_HOME" != "$HOME/.local/share" ] && [ -z "$PREFIX" ]; then
   echo "non standard XDG_DATA_HOME, you must explicitly set PREFIX" >&2
