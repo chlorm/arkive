@@ -33,9 +33,9 @@ DIR="$(readlink -f "$(readlink -f "$(dirname "$(readlink -f "$0")")")")"
 BASH_BIN="$(type -P bash)"
 
 declare -a REQUIRED_UTILS=(
-  7za
   awk
   bash
+  bc
   curl
   cut
   dirname
@@ -49,7 +49,6 @@ declare -a REQUIRED_UTILS=(
   ln
   mkdir
   mktemp
-  rclone
   readlink
   rm
   sed
