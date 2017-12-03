@@ -85,7 +85,7 @@ if ! type lib-bash; then
       exit 1
     fi
     pushd "$DIR"
-      git submodule update --recursive
+      git submodule update --init --recursive
     popd
   fi
   install -D -m755 -v "$DIR"/vendor/lib-bash/src/bin/lib-bash \
