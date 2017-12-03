@@ -43,7 +43,8 @@ function Requires::Check.ffmpeg {
     Version='3.999.999'
   fi
 
-  String::Version.atleast "$Version" "$ReqVersion"
+  # FIXME
+  #String::Version.atleast "$Version" "$ReqVersion"
 }
 
 # Required dependencies
