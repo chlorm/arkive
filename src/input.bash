@@ -61,18 +61,18 @@ function Input::Check.tmp {
 function Input::Parser {
   local -r input="$@"   # Only for testing for input
 
-  if [ -z "$input" ]; then
-    Log::Message 'error' 'no input'
-    arkive::Usage
-    return 1
-  fi
-
   Args::Define 'short=i' 'long=input'  'variable=RAW_INPUTFILE' 'desc=Input video file'
   Args::Define 'short=o' 'long=output' 'variable=RAW_OUTPUTDIR' 'desc=Output directory'
   Args::Define 'short=p' 'long=profile' 'variable=RAW_PROFILE' 'desc=Specify profile to use'
   Args::Define 'short=b' 'long=bpp' 'variable=RAW_BITPERPIXEL' 'desc=Calculate bits per pixel'
   # Build and source script that parses $@
   source "$(Args::Build)"
+
+  if [ -z "$input" ]; then
+    Log::Message 'error' 'no input'
+    arkive::Usage
+    return 1
+  fi
 
   # Profiles
   if [ -f "$RAW_PROFILE" ]; then
