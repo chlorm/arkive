@@ -95,3 +95,4 @@ function Audio::SampleRate {
 
   echo "$SampleRate"
 }
+

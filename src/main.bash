@@ -1,7 +1,3 @@
-#!bash
-
-#                                  Arkive
-#
 # Copyright (c) 2013-2017, Cody Opel <codyopel@gmail.com>
 # All Rights Reserved.
 #
@@ -35,47 +31,9 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-# Unrelated:
-# http://www.afterdawn.com/glossary/
-# https://people.xiph.org/~xiphmont/demo/index.html
+# FIXME: merge audio specific portion into arkive itself
 
-# Performance:
-# 2.2fps =~ 12.6 hours encoding time w/ e3-1245v3
-
-set -o errexit
-set -o errtrace
-set -o functrace
-#set -o nounset
-set -o pipefail
-
-#PATH#
-
-LOG_LEVEL='debug'
-
-ARKIVE_VERSION='0.1.0'
-
-ARKIVE_PREFIX="$(readlink -f "$(readlink -f "$(dirname "$(readlink -f "${0}")")")"/..)"
-ARKIVE_LIB_DIR="${ARKIVE_PREFIX}/share/arkive"
-
-PROGRAM_NAME='arkive'
-
-################################ Load Libraries ################################
-
-source "$(lib-bash)"
-
-while read LoadLibrary; do
-  source "$(readlink -f "${LoadLibrary}")"
-done < <(find "${ARKIVE_LIB_DIR}" -type f -iname '*.bash')
-
-#################################### Traps #####################################
-
-trap 'Log::Func' DEBUG
-trap 'Tmp::Cleanup' SIGINT SIGTERM
-trap -- 'Tmp::Cleanup ; Log::Trace ; exit 1' ERR
-
-##################################### Main #####################################
-
-function Arkive::Main {
+function Arkive::MainRun {
   Function::RequiredArgs '0' "$#"
   local __filename__
   local __filenamefmt__
@@ -212,19 +170,140 @@ function Arkive::Main {
   done
 }
 
-################################## Execution ###################################
 
-Requires::Check
+function Arkive::MainAudioRun {
+  Function::RequiredArgs '0' "$#"
+  local __filename__
+  local __filenamefmt__
+  local __outputdir__
+  local __subtitlestreams__
+  local __tmpdir__
 
-Input::Parser "${@}"
+  local -a Audio
+  local AudioPass
+  local FFmpegArg
+  local -a FFmpegArgs
+  local FFmpegArgsList
+  local File
+  local Index=0
+  local Subtitle
+  local Metadata
+  local OutputFile
+  local -a StreamIndexMap
 
-if [ -n "${RAW_BITPERPIXEL}" ]; then
-  FFmpeg::Video.bpp "${RAW_BITPERPIXEL}"
+  # Stream identifiers
+  local as
+  local asa
+
+  File="${INPUTFILE}"
+  __filename__="$(Filename::Original.base "${File}")"
+  __filenamefmt__="$(Filename::Formatted "${File}")"
+  __tmpdir__="${TMPDIR}"
+  __outputdir__="${OUTPUTDIR}"
+  OutputFile="${__outputdir__}/${__filenamefmt__}.${FFMPEG_CONTAINER_FORMAT}"
+
+  #FFprobe 'v' '-' 'stream' 'index' "${File}"
+
+  asa=($(Stream::Select 'audio' "${File}"))
+  [[ ${#asa[@]} == 1 ]]  # Limit to one
+  for as in ${asa[@]}; do
+    # Assign stream index, assuming video is 0, and audio starts from 1 ->
+    # number of streams + 1.
+    StreamIndexMap[${Index}]="-map 0:${as}"
+    Audio+=($(FFmpeg::Audio "${as}" "${File}" "${Index}"))
+  done
+
+  # Metadata
+  #Metadata="$(FFmpeg::Metadata)"
+
+  # Always overwrite the file for multipass encodes or if requestedaaaaaa
+  if ${ARKIVE_ALLOW_OVERWRITING_FILES}; then
+    FFmpegArgs+=('-y')
+  else
+    FFmpegArgs+=('-n')
+  fi
+  FFmpegArgs+=(
+    '-nostdin'
+    '-hide_banner'
+    '-stats'
+    '-loglevel' 'info'
+    '-i' "${File}"
+    '-threads' '1'
+    '-map_metadata' '0'
+  )
+  FFmpegArgs+=(${StreamIndexMap[@]})
+  FFmpegArgs+=("${Audio[@]}")
+  FFmpegArgs+=("${OutputFile}")
+
+  echo "ffmpeg ${FFmpegArgs[@]}"
+  ffmpeg "${FFmpegArgs[@]}"
+
+  unset FFmpegArg FFmpegArgs FFmpegArgsList
+  __pass__=$(( ${__pass__} + 1 ))
+}
+
+function Arkive::Main() {
+  set -o errexit
+  set -o errtrace
+  set -o functrace
+  #set -o nounset
+  set -o pipefail
+
+  LOG_LEVEL='debug'
+
+  ARKIVE_VERSION='0.1.0'
+
+  PROGRAM_NAME='arkive'
+
+  trap 'Log::Func' DEBUG
+  trap 'Tmp::Cleanup' SIGINT SIGTERM
+  trap -- 'Tmp::Cleanup ; Log::Trace ; exit 1' ERR
+
+  #Requires::Check
+
+  Input::Parser "${@}"
+
+  if [ -n "${RAW_BITPERPIXEL}" ]; then
+    FFmpeg::Video.bpp "${RAW_BITPERPIXEL}"
+    exit 0
+  fi
+
+  Arkive::Main
+
+  Tmp::Cleanup
+
   exit 0
-fi
+}
 
-Arkive::Main
+function Arkive::MainAudio() {
+  set -o errexit
+  set -o errtrace
+  set -o functrace
+  #set -o nounset
+  set -o pipefail
 
-Tmp::Cleanup
+  LOG_LEVEL='debug'
 
-exit 0
+  ARKIVE_VERSION='0.1.0'
+
+  PROGRAM_NAME='arkive'
+
+  trap 'Log::Func' DEBUG
+  trap 'Tmp::Cleanup' SIGINT SIGTERM
+  trap -- 'Tmp::Cleanup ; Log::Trace ; exit 1' ERR
+
+  #Requires::Check
+
+  Input::Parser "${@}"
+
+  if [ -n "${RAW_BITPERPIXEL}" ]; then
+    FFmpeg::Video.bpp "${RAW_BITPERPIXEL}"
+    exit 0
+  fi
+
+  Arkive::Main
+
+  Tmp::Cleanup
+
+  exit 0
+}

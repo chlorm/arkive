@@ -79,34 +79,23 @@ for Path in "${ARKIVE_PATHS_FILTERED[@]}"; do
   ARKIVE_PATH+="${ARKIVE_PATH:+:}$Path"
 done
 
-if ! type lib-bash; then
-  if [ ! -f "$DIR"/vendor/lib-bash/src/bin/lib-bash ]; then
-    if ! type git; then
-      echo "need lib-bash or git to use vendored lib-bash git submodule" >&2
-      exit 1
-    fi
-    pushd "$DIR"
-      git submodule update --init --recursive
-    popd
-  fi
-  install -D -m755 -v "$DIR"/vendor/lib-bash/src/bin/lib-bash \
-    "$PREFIX"/bin/lib-bash
-  install -D -m644 -v "$DIR"/vendor/lib-bash/src/share/lib-bash/lib.bash \
-    "$PREFIX"/share/lib-bash/lib.bash
+# TODO: allow passing lib-bash path to override using git submodule
+if ! type git; then
+  echo "need lib-bash or git to use vendored lib-bash git submodule" >&2
+  exit 1
 fi
+cd "$DIR"
+git submodule update --init --recursive
 
-for bin in "$DIR"/src/bin/*; do
-  install -D -m755 -v "$bin" "$PREFIX/bin/$(basename "$bin")"
-  sed -i "$PREFIX/bin/$(basename "$bin")" \
-    -e "s,^#!bash,#!$BASH_BIN," \
-    -e "s,#PATH#,PATH=\"$ARKIVE_PATH\","
-done
+# FIXME: include all lib-bash utils
+SRCDIRS='src/,vendor/lib-bash/src/share' \
+ENTRYPOINTS='arkive=Arkive::Main,arkive-audio=Arkive::MainAudio' \
+LICENSE=LICENSE \
+INTERPRETER=$(type -P bash) \
+RUNTIMEPATH="$ARKIVE_PATH" \
+shell-packer
 
-if [ -d "$PREFIX"/share/arkive ]; then
-  rm -rv "$PREFIX"/share/arkive
-fi
-
-mapfile -t datafiles < <(find "$DIR/src/share/arkive/" -type f -printf "%P\n")
-for data in "${datafiles[@]}"; do
-  install -D -m644 -v "$DIR/src/share/arkive/$data" "$PREFIX/share/arkive/$data"
+for bin in 'arkive' 'arkive-audio'; do
+  install -D -m755 -v "$bin" "$PREFIX/bin/$bin"
+  rm "$bin"
 done
