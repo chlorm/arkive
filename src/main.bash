@@ -268,7 +268,7 @@ function Arkive::Main() {
     exit 0
   fi
 
-  Arkive::Main
+  Arkive::MainRun
 
   Tmp::Cleanup
 
@@ -301,7 +301,7 @@ function Arkive::MainAudio() {
     exit 0
   fi
 
-  Arkive::Main
+  Arkive::MainAudioRun
 
   Tmp::Cleanup
 
