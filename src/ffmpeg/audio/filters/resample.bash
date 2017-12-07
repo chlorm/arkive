@@ -35,6 +35,7 @@ function FFmpeg::Audio.filters:resample {
   Function::RequiredArgs '2' "$#"
   local ChannelCount
   local ChannelLayout
+  local ChannelLayoutMapTo
   local -r File="$2"
   local SampleFormat
   local SampleRate
@@ -44,6 +45,7 @@ function FFmpeg::Audio.filters:resample {
   ChannelLayout="$(Audio::ChannelLayout "$Stream" "$File")"
   SampleFormat="$(Audio::SampleFormat "$Stream" "$File")"
   SampleRate="$(Audio::SampleRate "$Stream" "$File")"
+  ChannelLayoutMapTo="${FFMPEG_AUDIO_CHANNEL_LAYOUT_MAPPINGS[$ChannelLayout]}"
 
   case $FFMPEG_AUDIO_SAMPLERATE in
     8000|11025|12000|16000|22050|24000|32000|44100|48000|\
@@ -70,8 +72,8 @@ function FFmpeg::Audio.filters:resample {
     "isf=$SampleFormat"
     "osf=$OutputSampleFormat"
     #'tsf=s32'  # FIXME
-    "icl=$ChannelLayout"
-    "ocl=$ChannelLayout"  # Leave input unchanged, pan filter will remap
+    "icl=$ChannelLayoutMapTo"
+    "ocl=$ChannelLayoutMapTo"  # Leave input unchanged, pan filter will remap
     'dither_method=0'
     'resampler=soxr'
     'linear_interp=0'
