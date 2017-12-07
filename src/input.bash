@@ -77,8 +77,8 @@ function Input::Parser {
   # Profiles
   if [ -f "$RAW_PROFILE" ]; then
     source "$RAW_PROFILE"
-  elif [ -f "$ARKIVE_LIB_DIR/profiles/$RAW_PROFILE.profile" ]; then
-    source "$ARKIVE_LIB_DIR/profiles/$RAW_PROFILE.profile"
+  elif type arkive_profile_$RAW_PROFILE >/dev/null; then
+    arkive_profile_$RAW_PROFILE
   else
     Log::Message 'error' "invalid profile specified: $RAW_PROFILE"
     return 1
