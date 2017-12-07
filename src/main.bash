@@ -261,6 +261,8 @@ function Arkive::Main() {
 
   #Requires::Check
 
+  arkive_declare_defaults
+
   Input::Parser "${@}"
 
   if [ -n "${RAW_BITPERPIXEL}" ]; then
@@ -293,6 +295,8 @@ function Arkive::MainAudio() {
   trap -- 'Tmp::Cleanup ; Log::Trace ; exit 1' ERR
 
   #Requires::Check
+
+  arkive_declare_defaults
 
   Input::Parser "${@}"
 
