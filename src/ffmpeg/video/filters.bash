@@ -41,7 +41,7 @@ function FFmpeg::Video.filters {
   # NOTE: the order of filters here is the order in which they are applied
   #Filters+=("$(FFmpeg::Video.filters:de_interlace "$Stream" "$File")")
   Filters+=("$(FFmpeg::Video.filters:black_bar_crop "$Stream" "$File")")
-  Filters+=("$(FFmpeg::Video.filters:colorspace "$Stream" "$File")")
+  #Filters+=("$(FFmpeg::Video.filters:colorspace "$Stream" "$File")")
   #Filters+=("$(FFmpeg::Video.filters:denoise)")
   #Filters+=("$(FFmpeg::Video.filters:scale "$Stream" "$File")")
   Filters+=("$(FFmpeg::Video.filters:zscale "$Stream" "$File")")
