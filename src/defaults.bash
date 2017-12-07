@@ -42,6 +42,7 @@ arkive_declare_defaults() {
 
   ################################### Video ####################################
 
+  ARKIVE_VIDEO=true
   # Video Codec (x264,x265,nvenc-h264,nvenc-h265,vaapi-h264,vp9)
   FFMPEG_VIDEO_ENCODER='x265'
 
@@ -86,6 +87,7 @@ arkive_declare_defaults() {
 
   ################################### Audio ####################################
 
+  ARKIVE_AUDIO=true
   # Frequency cutoff (4000,6000,8000,12000,20000)
   FFMPEG_AUDIO_CUTOFF=19600
   # Audio Codec (aac,ac3,eac3,ffaac,fdk-aac,flac,opus,vorbis)

@@ -1,5 +1,6 @@
 # Arkive opus/ogg audio
 arkive_profile_ogg_opus() {
+  ARKIVE_VIDEO=false
   FFMPEG_CONTAINER_FORMAT='ogg'
   FFMPEG_AUDIO_CHANNEL_BITRATE=36
   FFMPEG_AUDIO_ENCODER='opus'

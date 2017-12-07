@@ -89,7 +89,7 @@ git submodule update --init --recursive
 
 # FIXME: include all lib-bash utils
 SRCDIRS='src/,vendor/lib-bash/src/share' \
-ENTRYPOINTS='arkive=Arkive::Main,arkive-audio=Arkive::MainAudio' \
+ENTRYPOINTS='arkive=arkive_main' \
 LICENSE=LICENSE \
 INTERPRETER=$(type -P bash) \
 RUNTIMEPATH="$ARKIVE_PATH" \

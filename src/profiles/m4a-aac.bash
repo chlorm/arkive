@@ -1,5 +1,6 @@
 # Arkive m4a/aac-lc audio
 arkive_profile_m4a_aac() {
+  ARKIVE_VIDEO=false
   FFMPEG_CONTAINER_FORMAT='m4a'
   FFMPEG_AUDIO_CHANNEL_BITRATE=48
   FFMPEG_AUDIO_FILTER_EBUR128_I='-21.0'
