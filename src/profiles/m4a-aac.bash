@@ -2,12 +2,8 @@
 arkive_profile_m4a_aac() {
   ARKIVE_VIDEO=false
   FFMPEG_CONTAINER_FORMAT='m4a'
-  FFMPEG_AUDIO_CHANNEL_BITRATE=48
-  FFMPEG_AUDIO_FILTER_EBUR128_I='-21.0'
-  FFMPEG_AUDIO_FILTER_EBUR128_LRA='8.0'
-  # Negative values cause choppy harmonic distortion when applying gain.
-  FFMPEG_AUDIO_FILTER_EBUR128_TP='0.0'
-  FFMPEG_AUDIO_ENCODER='fdk-aac'
+  FFMPEG_AUDIO_CHANNEL_BITRATE=64
+  FFMPEG_AUDIO_ENCODER='ffaac'
   FFMPEG_AUDIO_CHANNEL_LAYOUT_MAPPINGS=(
     ['mono']='stereo'
     ['stereo']='stereo'
