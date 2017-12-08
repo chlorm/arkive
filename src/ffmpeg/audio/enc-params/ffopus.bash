@@ -31,43 +31,16 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio.encoder {
-  Function::RequiredArgs '3' "$#"
-  local Encoder EncoderParams
-  local -r File="$2"
-  local -r Index="$3"
-  local -r Stream="$1"
+function FFmpeg::Audio.encoder:ffopus {
+  Function::RequiredArgs '1' "$#"
+  local -r Index="$1"
+  local Parameter
+  local ParameterList
+  local -a Parameters
 
-  case "$FFMPEG_AUDIO_ENCODER" in
-    'copy')
-      Encoder='copy'
-      EncoderParams=()
-      ;;
-    'fdk-aac')
-      Encoder='libfdk_aac'
-      EncoderParams=("$(FFmpeg::Audio.encoder:fdk_aac "$Index")")
-      ;;
-    'ffaac')
-      Encoder='aac'
-      EncoderParams=("$(FFmpeg::Audio.encoder:ffaac "$Index")")
-      ;;
-    'ffopus')
-      Encoder='opus'
-      EncoderParams=("$(FFmpeg::Audio.encoder:ffopus "$Index")")
-      ;;
-    'flac')
-      Encoder='flac'
-      EncoderParams=("$(FFmpeg::Audio.encoder:flac "$Index")")
-      ;;
-    'opus')
-      Encoder='libopus'
-      EncoderParams=("$(FFmpeg::Audio.encoder:opus "$Index")")
-      ;;
-    *)
-      Log::Message 'error' "invalid audio encoder \`$FFMPEG_AUDIO_ENCODER' specified"
-      return 1
-      ;;
-  esac
+  Parameters=(
+    '-opus_delay' '20ms'
+  )
 
-  echo "-c:$Index" "$Encoder" "${EncoderParams[@]}"
+  echo "${Parameters[@]}"
 }
