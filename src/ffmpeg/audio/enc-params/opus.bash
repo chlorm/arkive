@@ -43,7 +43,6 @@ function FFmpeg::Audio.encoder:opus {
     "-compression_level:$Index"
         "$FFMPEG_AUDIO_ENCODER_OPUS_COMPRESSIONLEVEL"
     "-vbr:$Index" "$FFMPEG_AUDIO_ENCODER_OPUS_VBR"
-    #"-cutoff:$Index" "$FFMPEG_AUDIO_ENCODER_OPUS_CUTOFF"
     "-application:$Index" "$FFMPEG_AUDIO_ENCODER_OPUS_APPLICATION"
     "-mapping_family:$Index" '1'
   )
