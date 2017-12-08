@@ -51,5 +51,10 @@ function FFmpeg::Audio.encoder:opus {
     Parameters+=("$FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS")
   fi
 
+  # Opus isom muxing is still experimental
+  if [ "$FFMPEG_CONTAINER_FORMAT" == 'mp4' ]; then
+    Parameters+=('-strict' '-2')
+  fi
+
   echo "${Parameters[@]}"
 }

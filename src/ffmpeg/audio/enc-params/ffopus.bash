@@ -42,5 +42,10 @@ function FFmpeg::Audio.encoder:ffopus {
     '-opus_delay' '20ms'
   )
 
+  # Opus isom muxing is still experimental
+  if [ "$FFMPEG_CONTAINER_FORMAT" == 'mp4' ]; then
+    Parameters+=('-strict' '-2')
+  fi
+
   echo "${Parameters[@]}"
 }
