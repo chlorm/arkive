@@ -88,8 +88,10 @@ arkive_declare_defaults() {
   ################################### Audio ####################################
 
   ARKIVE_AUDIO=true
-  # Frequency cutoff (4000,6000,8000,12000,20000)
-  FFMPEG_AUDIO_CUTOFF=19600
+  # Frequency high/low cutoffs in Hz
+  # XXX: maybe convert to percentage based values
+  FFMPEG_AUDIO_HIGHPASS=10
+  FFMPEG_AUDIO_LOWPASS=19600
   # Audio Codec (aac,ac3,eac3,ffaac,fdk-aac,flac,opus,vorbis)
   FFMPEG_AUDIO_ENCODER='opus'
   # AAC codec options
@@ -98,7 +100,6 @@ arkive_declare_defaults() {
   FFMPEG_AUDIO_ENCODER_OPUS_FRAMEDURATION=20
   FFMPEG_AUDIO_ENCODER_OPUS_COMPRESSIONLEVEL=10
   FFMPEG_AUDIO_ENCODER_OPUS_VBR='on'
-  FFMPEG_AUDIO_ENCODER_OPUS_CUTOFF=${FFMPEG_AUDIO_CUTOFF}
   FFMPEG_AUDIO_ENCODER_OPUS_APPLICATION='audio'
   FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS=
   # Bitrate per audio channel in kbps (5.1 -> 6 * 64 = 384),

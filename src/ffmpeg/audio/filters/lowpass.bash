@@ -31,7 +31,22 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-# Cutoff frequencies above 19600Hz
+# Cutoff frequencies above FFMPEG_AUDIO_LOWPASS Hz
 function FFmpeg::Audio.filters:lowpass {
-  echo 'lowpass=f=19600:poles=1:width_type=h'
+  Function::RequiredArgs '2' "$#"
+  local -r File="$2"
+  local Frequency
+  local SampleRate
+  local -r Stream="$1"
+
+  SampleRate=$(Audio::SampleRate "$Stream" "$File")
+
+  # Frequency must be less than half of sample rate.
+  if [ $FFMPEG_AUDIO_LOWPASS -ge $(( $SampleRate / 2 )) ]; then
+    Frequency=$(( $SampleRate / 2 - 1 ))
+  else
+    Frequency=$FFMPEG_AUDIO_LOWPASS
+  fi
+
+  echo "lowpass=f=$Frequency:poles=1:width_type=h"
 }

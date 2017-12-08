@@ -35,7 +35,8 @@ function FFmpeg::Audio.cutoff {
   Function::RequiredArgs '1' "$#"
   local -r Stream="$1"
 
+  # XXX: isn't this reduntant with lowpass filter?
   if [ "$FFMPEG_AUDIO_ENCODER" != 'flac' ]; then
-    echo "-cutoff:$Stream $FFMPEG_AUDIO_CUTOFF"
+    echo "-cutoff:$Stream $FFMPEG_AUDIO_LOWPASS"
   fi
 }
