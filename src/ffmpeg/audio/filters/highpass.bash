@@ -32,6 +32,6 @@
 # purposes only.
 
 # Cutoff frequencies below 10Hz
-function FFmpeg::Audio.filters:highpass {
+function ffmpeg_audio_filters_highpass {
   echo 'highpass=f=10:poles=1:width_type=h'
 }

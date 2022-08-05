@@ -32,47 +32,47 @@
 # purposes only.
 
 # Use 1 keyframe per 20fps, e.g. 60fps = 3
-function FFmpeg::Video.min_keyframe_interval {
-  Function::RequiredArgs '2' "$#"
-  local -r File="$2"
-  local FrameRate
-  local FrameRateRounded
-  local KeyFrames
-  local MinKeyInt
-  local -r Stream="$1"
+function ffmpeg_video_min_keyframe_interval {
+  stl_func_reqargs '2' "$#"
+  local -r file="$2"
+  local frameRate
+  local frameRateRounded
+  local keyFrames
+  local minKeyInt
+  local -r stream="$1"
 
-  FrameRate="$(FFmpeg::Video.frame_rate:float "$Stream" "$File")"
+  frameRate="$(ffmpeg_video_frame_rate_float "$stream" "$file")"
 
-  FrameRateRounded=$(Math::RoundFloat "$FrameRate")
+  frameRateRounded=$(stl_conv_float_to_int "$frameRate")
 
   # Make sure we end up with at least 1 keyframe
-  if [ $FrameRateRounded -lt 20 ]; then
-    FrameRateRounded=20
+  if [ $frameRateRounded -lt 20 ]; then
+    frameRateRounded=20
   fi
 
-  KeyFrames=$(( $FrameRateRounded / 20 ))
+  keyFrames=$(( $frameRateRounded / 20 ))
 
-  [ $KeyFrames -ge 1 ]
+  [ $keyFrames -ge 1 ]
 
-  MinKeyInt="$(echo "$FrameRate/$KeyFrames" | bc -l)"
+  minKeyInt="$(echo "$brameRate/$keyFrames" | bc -l)"
 
-  MinKeyInt=$(Math::RoundFloat "$MinKeyInt")
+  minKeyInt=$(stl_conv_float_to_int "$minKeyInt")
 
-  Var::Type.integer "$MinKeyInt"
+  stl_type_int "$minKeyInt"
 
-  echo "$MinKeyInt"
+  echo "$minKeyInt"
 }
 
 # Use an interval of 10 seconds for keyframes
-function FFmpeg::Video.keyframe_interval {
-  local -r File="$2"
-  local KeyInt
-  local FrameRate
-  local -r Stream="$1"
+function ffmpeg_video_keyframe_interval {
+  local -r file="$2"
+  local keyInt
+  local frameRate
+  local -r stream="$1"
 
-  FrameRate="$(FFmpeg::Video.frame_rate:float "$Stream" "$File")"
+  frameRate="$(ffmpeg_video_frame_rate_float "$stream" "$file")"
 
-  KeyInt=$(Math::RoundFloat "$FrameRate")
+  keyInt=$(stl_conv_float_to_int "$frameRate")
 
-  echo "$KeyInt"
+  echo "$keyInt"
 }

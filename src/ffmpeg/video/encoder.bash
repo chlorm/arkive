@@ -31,46 +31,49 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Video.codec {
-  Function::RequiredArgs '3' "$#"
-  local Encoder
-  local -a EncoderParams
-  local -r File="$2"
-  local -r Index="$3"
-  local -r Stream="$1"
+function ffmpeg_video_codec {
+  stl_func_reqargs '3' "$#"
+  local encoder
+  local -a encoderParams
+  local -r file="$2"
+  local -r index="$3"
+  local -r stream="$1"
 
   case "$FFMPEG_VIDEO_ENCODER" in
     'copy')
-      Encoder='copy'
+      encoder='copy'
       ;;
     'x264')
-      Encoder='libx264'
-      EncoderParams=("$(FFmpeg::Video.codec:x264_params "$Stream" "$File")")
+      encoder='libx264'
+      encoderParams=("$(ffmpeg_video_codec_x264_params "$stream" "$file")")
       ;;
     'x265')
-      Encoder='libx265'
-      EncoderParams=("$(FFmpeg::Video.codec:x265_params "$Stream" "$File")")
+      encoder='libx265'
+      encoderParams=("$(ffmpeg_video_codec_x265_params "$stream" "$file")")
       ;;
     'nvenc-h264')
-      Encoder='h264_nvenc'
-      EncoderParams=(
-        "$(FFmpeg::Video.codec:nvenc_h264_params "$Stream" "$File" "$Index")"
+      encoder='h264_nvenc'
+      encoderParams=(
+        "$(ffmpeg_video_codec_nvenc_h264_params "$stream" "$file" "$Index")"
       )
       ;;
     'nvenc-h265') echo 'not implemented'; return 1 ;;
     'vaapi-h264')
-      Encoder='h264_vaapi'
-      EncoderParams=(
-        "$(FFmpeg::Video.codec:vaapi_h264_params "$Stream" "$File" "$Index")"
+      encoder='h264_vaapi'
+      encoderParams=(
+        "$(ffmpeg_video_codec_vaapi_h264_params "$stream" "$file" "$Index")"
       )
       ;;
     'vp9')
-      Encoder='libvpx-vp9'
-      EncoderParams=("$(FFmpeg::Video.codec:vp9_params "$Stream" "$File")")
+      encoder='libvpx-vp9'
+      encoderParams=("$(ffmpeg_video_codec_vp9_params "$stream" "$file")")
       ;;
-    'av1') echo 'not implemented'; return 1 ;;
+    'av1')
+      encoder='libaom-av1'
+      encoderParams=('-strict' 'experimental')
+      ;;
     *) return 1 ;;
   esac
 
-  echo "-c:$Index" "$Encoder" "${EncoderParams[@]}"
+  echo "-c:$index" "$encoder" "${encoderParams[@]}"
 }

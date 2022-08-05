@@ -32,26 +32,26 @@
 # purposes only.
 
 # Format filename w/ ext, w/ no path
-function Filename::Orginal {
-  Function::RequiredArgs '1' "$#"
-  local -r File="$1"
+function arkive_filename_original {
+  stl_func_reqargs '1' "$#"
+  local -r file="$1"
 
-  basename "$File"
+  basename "$file"
 }
 
 # Format filename w/o ext, w/ no path
-function Filename::Original.base {
-  Function::RequiredArgs '1' "$#"
-  local -r File="$1"
+function arkive_filename_original_base {
+  stl_func_reqargs '1' "$#"
+  local -r file="$1"
 
-  Filename::Orginal "$File" | sed -r 's/\.[[:alnum:]]+$//'
+  arkive_filename_original "$file" | sed -r 's/\.[[:alnum:]]+$//'
 }
 
-function Filename::Formatted {
-  Function::RequiredArgs '1' "$#"
-  local -r File="$1"
-  local Filename
-  local ArkMark
+function arkive_filename_formatted {
+  stl_func_reqargs '1' "$#"
+  local -r file="$1"
+  local filename
+  local arkMark
 
   # TODO: eventually this should handle more parsing, but for now,
   #       fuck it, ship it
@@ -61,8 +61,8 @@ function Filename::Formatted {
   # - include audio channel layout
   # - rip type (bluray/dvd/scene etc...)
 
-  Filename="$(Filename::Original.base "$File")"
-  ArkMark='-ARK'
+  filename="$(arkive_filename_original_base "$file")"
+  arkMark='-ARK'
 
-  echo "$Filename$ArkMark"
+  echo "$filename$arkMark"
 }

@@ -31,59 +31,59 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFprobe {
-  Function::RequiredArgs '5' "$#"
-  local StreamType="$1"
-  local Stream="$2"
-  local -r EntKey="$3"
-  local EntKey2
-  local -r EntVal="$4"
-  local -r File="$5"
-  local FFprobeArgs
-  local -a FFprobeArgsList
-  local -a FFprobeOutput
+function arkive_ffprobe {
+  stl_func_reqargs '5' "$#"
+  local streamType="$1"
+  local stream="$2"
+  local -r entKey="$3"
+  local entKey2
+  local -r entVal="$4"
+  local -r file="$5"
+  local ffprobeArgs
+  local -a ffprobeArgsList
+  local -a ffprobeOutput
 
-  Log::Message 'info' "1:$1, 2:$2, 3:$3, 4:$4, 5:$5,"
+  stl_log_info "1:$1, 2:$2, 3:$3, 4:$4, 5:$5,"
 
-  if [ "$StreamType" == '-' ]; then
-    unset StreamType
-  elif [[ ! "$StreamType" == @('a'|'s'|'v') ]]; then
-    Log::Message 'error' "invalid stream type: $StreamType"
+  if [ "$streamType" == '-' ]; then
+    unset streamType
+  elif [[ ! "$streamType" == @('a'|'s'|'v') ]]; then
+    stl_log_error "invalid stream type: $streamType"
   fi
 
-  if [ "$Stream" == '-' ]; then
-    unset Stream
-  elif [ ! $Stream -ge 0 ]; then
-    Log::Message 'error' "invalid stream id: $Stream"
+  if [ "$stream" == '-' ]; then
+    unset stream
+  elif [ ! $stream -ge 0 ]; then
+    stl_log_error "invalid stream id: $stream"
   fi
 
-  if [ ! -f "$File" ]; then
-    Log::Message 'error' "invalid file: $File"
+  if [ ! -f "$file" ]; then
+    stl_log_error "invalid file: $file"
   fi
 
-  FFprobeArgsList=(
+  ffprobeArgsList=(
     '-v' 'error'
-    '-select_streams' "$StreamType${StreamType:+${Stream:+:}}$Stream"
-    '-show_entries' "$EntKey=$EntVal"
+    '-select_streams' "$streamType${streamType:+${stream:+:}}$stream"
+    '-show_entries' "$entKey=$entVal"
     '-print_format' 'json'
-    "$File"
+    "$file"
   )
 
-  FFprobeArgs="${FFprobeArgsList[@]}"
-  Log::Message 'info' "ffprobe $FFprobeArgs"
-  if [ "$EntKey" == 'stream' ]; then
-    EntKey2='streams'
+  ffprobeArgs="${ffprobeArgsList[@]}"
+  stl_log_info "ffprobe $ffprobeArgs"
+  if [ "$entKey" == 'stream' ]; then
+    entKey2='streams'
   else
-    EntKey2="$EntKey"
+    entKey2="$entKey"
   fi
   # We have to use this fugly json hack because there is not way to
   # differentiate between programs/streams/key and streams/key.
   # Using -show_entries stream=key always return both if programs exists.
-  FFprobeOutput=($(ffprobe "${FFprobeArgsList[@]}" | jq -rcM ".$EntKey2[].$EntVal"))
+  ffprobeOutput=($(ffprobe "${ffprobeArgsList[@]}" | jq -rcM ".$entKey2[].$entVal"))
 
-  Var::Type.string "$FFprobeOutput"
+  stl_type_str "$ffprobeOutput"
 
-  Log::Message 'info' "ffprobe output: $FFprobeOutput"
+  stl_log_info "ffprobe output: $ffprobeOutput"
 
-  echo "${FFprobeOutput[@]}"
+  echo "${ffprobeOutput[@]}"
 }

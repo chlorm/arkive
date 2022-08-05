@@ -31,23 +31,23 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio.encoder:ffaac {
-  Function::RequiredArgs '1' "$#"
-  local -r Index="$1"
-  local Parameter
-  local ParameterList
-  local -a Parameters
+function ffmpeg_audio_encoder_ffaac {
+  stl_func_reqargs '1' "$#"
+  local -r index="$1"
+  local parameter
+  local parameterList
+  local -a parameters
 
-  Parameters=(
-    "-profile:$Index" "$FFMPEG_AUDIO_ENCODER_AAC_PROFILE"
-    "-aac_coder:$Index" 'twoloop'  # Also: amnr, requires -strict -2
-    "-aac_ms:$Index" 'auto'
-    "-aac_is:$Index" '1'
-    "-aac_pns:$Index" '1'
-    "-aac_tns:$Index" '1'
-    "-aac_ltp:$Index" '0'  # Requires aac_ltp profile
-    "-aac_pred:$Index" '0'  # Requires aac_main profile
+  parameters=(
+    "-profile:$index" "$FFMPEG_AUDIO_ENCODER_AAC_PROFILE"
+    "-aac_coder:$index" 'twoloop'  # Also: amnr, requires -strict -2
+    "-aac_ms:$index" 'auto'
+    "-aac_is:$index" '1'
+    "-aac_pns:$index" '1'
+    "-aac_tns:$index" '1'
+    "-aac_ltp:$index" '0'  # Requires aac_ltp profile
+    "-aac_pred:$index" '0'  # Requires aac_main profile
   )
 
-  echo "${Parameters[@]}"
+  echo "${parameters[@]}"
 }

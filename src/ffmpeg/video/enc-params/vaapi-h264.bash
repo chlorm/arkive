@@ -31,15 +31,13 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Video.codec:vaapi_h264_params {
-  Function::RequiredArgs '3' "$#"
-  local -r File="$2"
-  local -a Parameters
-  local -r Stream="$1"
+function ffmpeg_video_codec_vaapi_h264_params {
+  stl_func_reqargs '0' "$#"
+  local -a parameters
 
-  Parameters=(
+  parameters=(
     '-vaapi_device' '/dev/dri/renderD128'
   )
 
-  echo "${Parameters[@]}"
+  echo "${parameters[@]}"
 }

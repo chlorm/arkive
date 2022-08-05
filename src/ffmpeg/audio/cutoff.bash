@@ -31,12 +31,12 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio.cutoff {
-  Function::RequiredArgs '1' "$#"
-  local -r Stream="$1"
+function ffmpeg_audio_cutoff {
+  stl_func_reqargs '1' "$#"
+  local -r stream="$1"
 
   # XXX: isn't this reduntant with lowpass filter?
   if [ "$FFMPEG_AUDIO_ENCODER" != 'flac' ]; then
-    echo "-cutoff:$Stream $FFMPEG_AUDIO_LOWPASS"
+    echo "-cutoff:$stream $FFMPEG_AUDIO_LOWPASS"
   fi
 }

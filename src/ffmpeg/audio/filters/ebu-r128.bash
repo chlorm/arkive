@@ -31,78 +31,78 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-ffmpeg_audio_filters_ebu_r128() {
-  Function::RequiredArgs '2' "$#"
-  local EBUR128
-  local -r File="${2}"
-  local Parameter
-  local -a Parameters
-  local ParameterString
-  local R128I="${FFMPEG_AUDIO_FILTER_EBUR128_I}"
-  local R128LRA="${FFMPEG_AUDIO_FILTER_EBUR128_LRA}"
-  local R128TP="${FFMPEG_AUDIO_FILTER_EBUR128_TP}"
-  local R128THRESH
-  local R128OFFSET
-  local -r Stream="${1}"
+function ffmpeg_audio_filters_ebu_r128() {
+  stl_func_reqargs '2' "$#"
+  local ebur128
+  local -r file="${2}"
+  local parameter
+  local -a parameters
+  local parameterString
+  local r128I="${FFMPEG_AUDIO_FILTER_EBUR128_I}"
+  local r128LRA="${FFMPEG_AUDIO_FILTER_EBUR128_LRA}"
+  local r128TP="${FFMPEG_AUDIO_FILTER_EBUR128_TP}"
+  local r128THRESH
+  local r128OFFSET
+  local -r stream="${1}"
 
-  Log::Message 'info' 'detecting ebu r128 levels, this will take a while'
+  stl_log_info 'detecting ebu r128 levels, this will take a while'
 
-  EBUR128="$(
-    ffmpeg -i "${File}" \
+  ebur128="$(
+    ffmpeg -i "${file}" \
       -hide_banner \
-      -map 0:${Stream} \
-      -filter:0 "loudnorm=i=${R128I}:lra=${R128LRA}:tp=${R128TP}:dual_mono=1:print_format=json" \
+      -map 0:${stream} \
+      -filter:0 "loudnorm=i=${r128I}:lra=${r128LRA}:tp=${r128TP}:dual_mono=1:print_format=json" \
       -f null - 2>&1 || {
-        Log::Message 'error' "ebur filter failed"
+        stl_log_error "ebur filter failed"
         return 1
       }
   )"
 
   # FIXME: The output text and json are inter-mingled and this assumes
   #        that the last 12 lines are the json output.
-  EBUR128="$(echo "${EBUR128}" | tail -12)"
+  ebur128="$(echo "${ebur128}" | tail -12)"
 
-  R128I="$(echo "${EBUR128}" | jq -r -c -M '.input_i')"
-  Var::Type.string "${R128I}"
+  r128I="$(echo "${ebur128}" | jq -r -c -M '.input_i')"
+  stl_type_str "${r128I}"
   # Fallback for null audio
-  if [ "${R128I}" == '-inf' ]; then
-    R128I="${FFMPEG_AUDIO_FILTER_EBUR128_I}"
+  if [ "${r128I}" == '-inf' ]; then
+    r128I="${FFMPEG_AUDIO_FILTER_EBUR128_I}"
   fi
-  Log::Message 'info' "ebur128 I: ${R128I}"
-  R128LRA="$(echo "${EBUR128}" | jq -r -c -M '.input_lra')"
-  Var::Type.string "${R128LRA}"
-  Log::Message 'info' "ebur128 LRA: ${R128LRA}"
-  R128TP="$(echo "${EBUR128}" | jq -r -c -M '.input_tp')"
-  Var::Type.string "${R128TP}"
+  stl_log_info "ebur128 I: ${r128I}"
+  r128LRA="$(echo "${ebur128}" | jq -r -c -M '.input_lra')"
+  stl_type_str "${r128LRA}"
+  stl_log_info "ebur128 LRA: ${r128LRA}"
+  r128TP="$(echo "${ebur128}" | jq -r -c -M '.input_tp')"
+  stl_type_str "${r128TP}"
   # Fallback for null audio
-  if [ "${R128TP}" == '-inf' ]; then
-    R128TP="${FFMPEG_AUDIO_FILTER_EBUR128_TP}"
+  if [ "${r128TP}" == '-inf' ]; then
+    r128TP="${FFMPEG_AUDIO_FILTER_EBUR128_TP}"
   fi
-  Log::Message 'info' "ebur128 TP: ${R128TP}"
-  R128THRESH="$(echo "${EBUR128}" | jq -r -c -M '.input_thresh')"
-  Var::Type.string "${R128THRESH}"
-  Log::Message 'info' "ebur128 Thresh: ${R128THRESH}"
-  R128OFFSET="$(echo "${EBUR128}" | jq -r -c -M '.target_offset')"
-  Var::Type.string "${R128OFFSET}"
-  Log::Message 'info' "ebur128 Offset: ${R128OFFSET}"
+  stl_log_info "ebur128 TP: ${r128TP}"
+  r128THRESH="$(echo "${ebur128}" | jq -r -c -M '.input_thresh')"
+  stl_type_str "${r128THRESH}"
+  stl_log_info "ebur128 Thresh: ${r128THRESH}"
+  r128OFFSET="$(echo "${ebur128}" | jq -r -c -M '.target_offset')"
+  stl_type_str "${r128OFFSET}"
+  stl_log_info "ebur128 Offset: ${r128OFFSET}"
   # Fallback for null audio
-  if [ "${R128OFFSET}" == 'inf' ]; then
-    R128OFFSET='0'
+  if [ "${r128OFFSET}" == 'inf' ]; then
+    r128OFFSET='0'
   fi
 
-  Parameters=(
+  parameters=(
     "i=${FFMPEG_AUDIO_FILTER_EBUR128_I}"
     "lra=${FFMPEG_AUDIO_FILTER_EBUR128_LRA}"
     "tp=${FFMPEG_AUDIO_FILTER_EBUR128_TP}"
-    "measured_i=${R128I}"
-    "measured_lra=${R128LRA}"
-    "measured_tp=${R128TP}"
-    "measured_thresh=${R128THRESH}"
-    "offset=${R128OFFSET}"
+    "measured_i=${r128I}"
+    "measured_lra=${r128LRA}"
+    "measured_tp=${r128TP}"
+    "measured_thresh=${r128THRESH}"
+    "offset=${r128OFFSET}"
     'linear=1'
     'dual_mono=1'
   )
 
   local IFS=":"
-  echo "loudnorm=${Parameters[*]}"
+  echo "loudnorm=${parameters[*]}"
 }

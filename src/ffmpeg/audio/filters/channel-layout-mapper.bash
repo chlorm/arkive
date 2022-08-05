@@ -32,15 +32,15 @@
 # purposes only.
 
 # Enforce a consistent audio channel layout by remapping non-conformant streams.
-function FFmpeg::Audio.filters:channel_layout_map {
-  Function::RequiredArgs '2' "$#"
-  local ChannelLayout
-  local ChannelLayoutMap
-  local ChannelLayoutMapTo
-  local -A ChannelOrderMap
-  local -r File="$2"
-  local -A PanArgsList
-  local -r Stream="$1"
+function ffmpeg_audio_filters_channel_layout_map {
+  stl_func_reqargs '2' "$#"
+  local channelLayout
+  local channelLayoutMap
+  local channelLayoutMapTo
+  local -A channelOrderMap
+  local -r file="$2"
+  local -A panArgsList
+  local -r stream="$1"
 
   # https://github.com/FFmpeg/FFmpeg/blob/master/libavutil/channel_layout.c
   # https://github.com/FFmpeg/FFmpeg/blob/master/doc/utils.texi
@@ -130,12 +130,12 @@ function FFmpeg::Audio.filters:channel_layout_map {
   # - TOP channel support
   # - mix flc/frc in fc/fl/fr for 5.0 & 7.0
 
-  ChannelLayout="$(Audio::ChannelLayout "$Stream" "$File")"
+  channelLayout="$(arkive_audio_channel_layout "$stream" "$file")"
 
-  Log::Message 'info' "$ChannelLayout"
+  stl_log_info "$channelLayout"
 
   # FIXME: Mix in Top channels
-  PanArgsList=(
+  panArgsList=(
     ['stereo']='pan=stereo|FL<FL+FC+LFE+BL+FLC+BC+SL+TC+TFL+TFC+TBL+TBC+DL+WL+SDL|FR<FR+FC+LFE+BR+FRC+BC+SR+TC+TFR+TBR+TBC+DR+WR+SDR'
     # MPEG_5_1_A
     # MPEG_5_1_B
@@ -147,12 +147,12 @@ function FFmpeg::Audio.filters:channel_layout_map {
     ['7.1']='pan=7.1|FL<FL+FLC+LFE|FR<FR+FRC+LFE|FC<FC+FLC+FRC+LFE|LFE<LFE|SL<SL+LFE|SR<SR+LFE|BL<BL+LFE|BR<BR+LFE'
   )
 
-  ChannelLayoutMapTo="${FFMPEG_AUDIO_CHANNEL_LAYOUT_MAPPINGS[$ChannelLayout]}"
+  channelLayoutMapTo="${FFMPEG_AUDIO_CHANNEL_LAYOUT_MAPPINGS[$channelLayout]}"
 
   # TODO: Make sure string is a valid channel layout
-  Var::Type.string "$ChannelLayoutMapTo"
+  stl_type_str "$channelLayoutMapTo"
 
-  ChannelLayoutMap="${PanArgsList[$ChannelLayoutMapTo]}"
+  channelLayoutMap="${panArgsList[$channelLayoutMapTo]}"
 
-  echo "$ChannelLayoutMap"
+  echo "$channelLayoutMap"
 }

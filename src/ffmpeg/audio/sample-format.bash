@@ -33,16 +33,16 @@
 
 # http://forum.videohelp.com/threads/373264-FFMpeg-List-of-working-sample-formats-per-format-and-encoder
 
-function FFmpeg::Audio.sample_format {
-  Function::RequiredArgs '2' "$#"
-  local -r File="$2"
-  local SampleFormat
-  local -r Stream="$1"
+function ffmpeg_audio_sample_format {
+  stl_func_reqargs '2' "$#"
+  local -r file="$2"
+  local sampleFormat
+  local -r stream="$1"
 
-  SampleFormat="$(Audio::SampleFormat "$Stream" "$File")"
+  sampleFormat="$(arkive_audio_sample_format "$stream" "$file")"
 
   case "$FFMPEG_AUDIO_ENCODER" in
-    'flac') echo "$SampleFormat" ;;
+    'flac') echo "$sampleFormat" ;;
     'opus') echo 'flt' ;;
   esac
 }

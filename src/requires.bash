@@ -31,37 +31,37 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function Requires::Check.ffmpeg {
-  Function::RequiredArgs '0' "$#"
-  local -r ReqVersion='3.4.0'
-  local Version
+function arkive_requires_check_ffmpeg {
+  stl_func_reqargs '0' "$#"
+  local -r reqVersion='3.4.0'
+  local version
 
-  Version="$(ffmpeg -version | awk -F' ' '/ffmpeg version/ {print $3 ; exit}')"
+  version="$(ffmpeg -version | awk -F' ' '/ffmpeg version/ {print $3 ; exit}')"
 
   # Handle FFmpeg git version strings
-  if [[ "$Version" =~ ^.*\.git ]]; then
-    Version='3.999.999'
+  if [[ "$version" =~ ^.*\.git ]]; then
+    version='3.999.999'
   fi
 
   # FIXME
-  #String::Version.atleast "$Version" "$ReqVersion"
+  #stl_symver_atleast "$version" "$reqVersion"
 }
 
 # Required dependencies
-function Requires::Check {
-  Function::RequiredArgs '0' "$#"
-  Path::Check 'bc'
-  Path::Check 'jq'
+function arkive_requires_check {
+  stl_func_reqargs '0' "$#"
+  stl_path_has 'bc'
+  stl_path_has 'jq'
   # libx264 (compiled with target bit depth)
   # libx265 >= 2.4 (compiled with multilib or at least target bit depth)
   # libopus >= 1.1 (surround sound improvements)
-  Path::Check 'ffmpeg'
-  Path::Check 'ffprobe'
-  Requires::Check.ffmpeg
+  stl_path_has 'ffmpeg'
+  stl_path_has 'ffprobe'
+  arkive_requires_check_ffmpeg
 
   # Optional, used to convert bitmap subs to plain text
   # if not available, bitmap subs are ignored
-  #Path::Check 'vobsub2srt'
+  #stl_path_has 'vobsub2srt'
 
-  [ $(Cpu::AddressSpace) -eq 64 ]
+  [ $(stl_cpu_address_space) -eq 64 ]
 }

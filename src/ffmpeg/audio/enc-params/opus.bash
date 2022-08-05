@@ -31,30 +31,30 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio.encoder:opus {
-  Function::RequiredArgs '1' "$#"
-  local -r Index="$1"
-  local Parameter
-  local ParameterList
-  local -a Parameters
+function ffmpeg_audio_encoder_opus {
+  stl_func_reqargs '1' "$#"
+  local -r index="$1"
+  local parameter
+  local parameterList
+  local -a parameters
 
-  Parameters=(
-    "-frame_duration:$Index" "$FFMPEG_AUDIO_ENCODER_OPUS_FRAMEDURATION"
-    "-compression_level:$Index"
+  parameters=(
+    "-frame_duration:$index" "$FFMPEG_AUDIO_ENCODER_OPUS_FRAMEDURATION"
+    "-compression_level:$index"
         "$FFMPEG_AUDIO_ENCODER_OPUS_COMPRESSIONLEVEL"
-    "-vbr:$Index" "$FFMPEG_AUDIO_ENCODER_OPUS_VBR"
-    "-application:$Index" "$FFMPEG_AUDIO_ENCODER_OPUS_APPLICATION"
-    "-mapping_family:$Index" '1'
+    "-vbr:$index" "$FFMPEG_AUDIO_ENCODER_OPUS_VBR"
+    "-application:$index" "$FFMPEG_AUDIO_ENCODER_OPUS_APPLICATION"
+    "-mapping_family:$index" '1'
   )
 
   if [ -n "$FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS" ]; then
-    Parameters+=("$FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS")
+    parameters+=("$FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS")
   fi
 
   # Opus isom muxing is still experimental
   if [ "$FFMPEG_CONTAINER_FORMAT" == 'mp4' ]; then
-    Parameters+=('-strict' '-2')
+    parameters+=('-strict' '-2')
   fi
 
-  echo "${Parameters[@]}"
+  echo "${parameters[@]}"
 }

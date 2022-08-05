@@ -31,23 +31,23 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio.encoder:fdk_aac {
-  Function::RequiredArgs '1' "$#"
-  local -r Index="$1"
-  local Parameter
-  local ParameterList
-  local -a Parameters
+function ffmpeg_audio_encoder_fdk_aac {
+  stl_func_reqargs '1' "$#"
+  local -r index="$1"
+  local parameter
+  local parameterList
+  local -a parameters
 
-  Parameters=(
-    "-profile:$Index" "$FFMPEG_AUDIO_ENCODER_AAC_PROFILE"
-    "-vbr:$Index" '0'  # CBR mode
-    "-afterburner:$Index" '1'
-    "-eld_sbr:$Index" '1'
+  parameters=(
+    "-profile:$index" "$FFMPEG_AUDIO_ENCODER_AAC_PROFILE"
+    "-vbr:$index" '0'  # CBR mode
+    "-afterburner:$index" '1'
+    "-eld_sbr:$index" '1'
   )
 
-  # if [ -n "$FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS" ] ; then
-  #   Parameters+=("$FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS")
+  # if [ -n "$FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS" ]; then
+  #   parameters+=("$FFMPEG_AUDIO_ENCODER_OPUS_EXTRAARGS")
   # fi
 
-  echo "${Parameters[@]}"
+  echo "${parameters[@]}"
 }

@@ -32,22 +32,22 @@
 # purposes only.
 
 # Equivalent to 2 seconds of video
-function FFmpeg::Video.motion_estimation_range {
-  Function::RequiredArgs '2' "$#"
-  local -r File="$2"
-  local FrameRate
-  local MeRange
-  local -r Stream="$1"
+function ffmpeg_video_motion_estimation_range {
+  stl_func_reqargs '2' "$#"
+  local -r file="$2"
+  local frameRate
+  local meRange
+  local -r stream="$1"
 
   if [ "$FFMPEG_VIDEO_FRAMERATE" == 'source' ]; then
-    FrameRate="$(Video::FrameRate "$Stream" "$File")"
+    frameRate="$(arkive_video_frame_rate "$stream" "$file")"
   else
-    FrameRate="$FFMPEG_VIDEO_FRAMERATE"
+    frameRate="$FFMPEG_VIDEO_FRAMERATE"
   fi
 
-  MeRange=$(( $FrameRate * 3 ))
+  meRange=$(( $frameRate * 3 ))
 
-  Var::Type.integer "$MeRange"
+  stl_type_int "$meRange"
 
-  echo "$MeRange"
+  echo "$meRange"
 }

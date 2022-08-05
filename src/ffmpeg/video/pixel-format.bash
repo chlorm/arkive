@@ -31,23 +31,23 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Video.pixel_format {
-  Function::RequiredArgs '0' "$#"
-  local BitDepth
-  local ChrSubSam
-  local Endian
+function ffmpeg_video_pixel_format {
+  stl_func_reqargs '0' "$#"
+  local bitDepth
+  local chrSubSam
+  local endian
 
-  BitDepth="$FFMPEG_VIDEO_BITDEPTH"
-  ChrSubSam="$FFMPEG_VIDEO_CHROMASUBSAMPLING"
+  bitDepth="$FFMPEG_VIDEO_BITDEPTH"
+  chrSubSam="$FFMPEG_VIDEO_CHROMASUBSAMPLING"
 
   [[ $FFMPEG_VIDEO_CHROMASUBSAMPLING == +(420|422|444) ]]
 
   if [[ $FFMPEG_VIDEO_BITDEPTH -gt 8 ]]; then
-    Endian='le'
+    endian='le'
   else
-    unset BitDepth
-    unset Endian
+    unset bitDepth
+    unset endian
   fi
 
-  echo "yuv${ChrSubSam}p${BitDepth:+$BitDepth}${Endian:+$Endian}"
+  echo "yuv${chrSubSam}p${bitDepth:+$bitDepth}${endian:+$endian}"
 }

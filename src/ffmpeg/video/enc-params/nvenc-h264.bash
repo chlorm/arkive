@@ -31,20 +31,20 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Video.codec:nvenc_h264_params {
-  Function::RequiredArgs '3' "$#"
-  local -r File="$2"
-  local FrameRate
-  local -r Index="$3"
-  local -a Parameters=()
-  local -r Stream="$1"
+function ffmpeg_video_codec_nvenc_h264_params {
+  stl_func_reqargs '3' "$#"
+  local -r file="$2"
+  local frameRate
+  local -r index="$3"
+  local -a parameters=()
+  local -r stream="$1"
 
-  FrameRate="$(
-    echo "scale=10;$(FFmpeg::Video.frame_rate "$Stream" "$File")" |
+  frameRate="$(
+    echo "scale=10;$(ffmpeg_video_frame_rate "$stream" "$file")" |
         bc -l |
         xargs printf "%1.0f"
   )"
-  RcLookahead=${FrameRate}
+  rcLookahead=${frameRate}
 
 # h264_nvenc AVOptions:
 #   -preset            <int>        E..V.... Set the encoding preset (from 0 to 11) (default medium)
@@ -115,22 +115,22 @@ function FFmpeg::Video.codec:nvenc_h264_params {
 #   -strict_gop        <boolean>    E..V.... Set 1 to minimize GOP-to-GOP rate fluctuations (default false)
 #   -aq-strength       <int>        E..V.... When Spatial AQ is enabled, this field is used to specify AQ strength. AQ strength scale is from 1 (low) - 15 (aggressive) (from 1 to 15) (default 8)
 #   -cq                <int>        E..V.... Set target quality level (0 to 51, 0 means automatic) for constant quality mode in VBR rate control (from 0 to 51) (default 0)
-  Parameters+=(
-    "-preset:$Index" 'slow'
-    "-profile:$Index" 'main'
+  parameters+=(
+    "-preset:$index" 'slow'
+    "-profile:$index" 'main'
   )
-  Parameters+=(
-    "-level:$Index" "$(FFmpeg::Video.level:h264 "$Stream" "$File")"
+  parameters+=(
+    "-level:$index" "$(ffmpeg_video_level_h264 "$stream" "$file")"
   )
-  Parameters+=(
-    "-rc:$Index" 'cbr'
-    "-rc-lookahead:$Index" "$RcLookahead"
-    #"-surfaces:$Index $RcLookahead"
-    "-cbr:$Index" '1'
-    "-2pass:$Index" '1'
-    "-gpu:$Index" 'any'
-    #"-delay:$Index" '3000'
-    "-no-scenecut:$Index" '1'
+  parameters+=(
+    "-rc:$index" 'cbr'
+    "-rc-lookahead:$index" "$rcLookahead"
+    #"-surfaces:$index $rcLookahead"
+    "-cbr:$index" '1'
+    "-2pass:$index" '1'
+    "-gpu:$index" 'any'
+    #"-delay:$index" '3000'
+    "-no-scenecut:$index" '1'
     "-forced-idr" '0'
     "-b_adapt" '1'
     "-spatial-aq" '1'
@@ -144,5 +144,5 @@ function FFmpeg::Video.codec:nvenc_h264_params {
     "-qmax" '1'
   )
 
-  echo "${Parameters[@]}"
+  echo "${parameters[@]}"
 }

@@ -31,132 +31,132 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function Video::AspectRatio {
-  Function::RequiredArgs '2' "$#"
-  local -r File="$2"
-  local SourceAspectRatio
-  local -r Stream="$1"
+function arkive_video_aspect_ratio {
+  stl_func_reqargs '2' "$#"
+  local -r file="$2"
+  local sourceAspectRatio
+  local -r stream="$1"
 
-  SourceAspectRatio="$(
-    FFprobe '-' "$Stream" 'stream' 'display_aspect_ratio' "$File"
+  sourceAspectRatio="$(
+    arkive_ffprobe '-' "$stream" 'stream' 'display_aspect_ratio' "$file"
   )"
 
-  Var::Type.string "$SourceAspectRatio"
+  stl_type_str "$sourceAspectRatio"
 
-  echo "$SourceAspectRatio"
+  echo "$sourceAspectRatio"
 }
 
-function Video::ColorPrimaries {
-  Function::RequiredArgs '2' "$#"
-  local -r File="$2"
-  local SourceColorPrimaries
-  local -r Stream="$1"
+function arkive_video_color_primaries {
+  stl_func_reqargs '2' "$#"
+  local -r file="$2"
+  local sourceColorPrimaries
+  local -r stream="$1"
 
-  SourceColorPrimaries="$(
-    FFprobe '-' "$Stream" 'stream' 'color_primaries' "$File"
-  )"
-
-  # Fallback
-  if [ "$SourceColorPrimaries" == 'unknown' ]; then
-    SourceColorPrimaries='bt709'
-  fi
-
-  Var::Type.string "$SourceColorPrimaries"
-
-  echo "$SourceColorPrimaries"
-}
-
-function Video::ColorRange {
-  Function::RequiredArgs '2' "$#"
-  local -r File="$2"
-  local SourceColorRange
-  local -r Stream="$1"
-
-  SourceColorRange="$(FFprobe '-' "$Stream" 'stream' 'color_range' "$File")"
-
-  # Fallback
-  if [ "$SourceColorRange" == 'N/A' ]; then
-    SourceColorRange='mpeg'
-  fi
-
-  Var::Type.string "$SourceColorRange"
-
-  echo "$SourceColorRange"
-}
-
-function Video::ColorSpace {
-  Function::RequiredArgs '2' "$#"
-  local -r File="$2"
-  local SourceColorSpace
-  local -r Stream="$1"
-
-  SourceColorSpace="$(FFprobe '-' "$Stream" 'stream' 'color_space' "$File")"
-
-  # Fallback
-  if [ "$SourceColorSpace" == 'unknown' ]; then
-    SourceColorSpace='bt709'
-  fi
-
-  Var::Type.string "$SourceColorSpace"
-
-  echo "$SourceColorSpace"
-}
-
-function Video::ColorTransfer {
-  Function::RequiredArgs '2' "$#"
-  local -r File="$2"
-  local SourceColorTransfer
-  local -r Stream="$1"
-
-  SourceColorTransfer="$(
-    FFprobe '-' "$Stream" 'stream' 'color_transfer' "$File"
+  sourceColorPrimaries="$(
+    arkive_ffprobe '-' "$stream" 'stream' 'color_primaries' "$file"
   )"
 
   # Fallback
-  if [ "$SourceColorTransfer" == 'unknown' ]; then
-    SourceColorTransfer='bt709'
+  if [ "$sourceColorPrimaries" == 'unknown' ]; then
+    sourceColorPrimaries='bt709'
   fi
 
-  Var::Type.string "$SourceColorTransfer"
+  stl_type_str "$sourceColorPrimaries"
 
-  echo "$SourceColorTransfer"
+  echo "$sourceColorPrimaries"
 }
 
-function Video::FrameRate {
-  Function::RequiredArgs '2' "$#"
-  local -r File="$2"
-  local SourceFrameRate
-  local -r Stream="$1"
+function arkive_video_color_range {
+  stl_func_reqargs '2' "$#"
+  local -r file="$2"
+  local sourceColorRange
+  local -r stream="$1"
 
-  SourceFrameRate="$(FFprobe '-' "$Stream" 'stream' 'r_frame_rate' "$File")"
+  sourceColorRange="$(arkive_ffprobe '-' "$stream" 'stream' 'color_range' "$file")"
 
-  Var::Type.string "$SourceFrameRate"
+  # Fallback
+  if [ "$sourceColorRange" == 'N/A' ]; then
+    sourceColorRange='mpeg'
+  fi
 
-  echo "$SourceFrameRate"
+  stl_type_str "$sourceColorRange"
+
+  echo "$sourceColorRange"
 }
 
-function Video::Height {
-  Function::RequiredArgs '2' "$#"
-  local -r File="$2"
-  local Height
-  local -r Stream="$1"
+function arkive_video_color_space {
+  stl_func_reqargs '2' "$#"
+  local -r file="$2"
+  local sourceColorSpace
+  local -r stream="$1"
 
-  Height=$(FFprobe '-' "$Stream" 'stream' 'height' "$File")
+  sourceColorSpace="$(arkive_ffprobe '-' "$stream" 'stream' 'color_space' "$file")"
 
-  Var::Type.integer "$Height"
+  # Fallback
+  if [ "$sourceColorSpace" == 'unknown' ]; then
+    sourceColorSpace='bt709'
+  fi
 
-  echo "$Height"
+  stl_type_str "$sourceColorSpace"
+
+  echo "$sourceColorSpace"
 }
 
-function Video::Width {
-  Function::RequiredArgs '2' "$#"
-  local -r File="$2"
-  local -r Stream="$1"
-  local Width
+function arkive_video_color_transfer {
+  stl_func_reqargs '2' "$#"
+  local -r file="$2"
+  local sourceColorTransfer
+  local -r stream="$1"
 
-  Width=$(FFprobe '-' "$Stream" 'stream' 'width' "$File")
+  sourceColorTransfer="$(
+    arkive_ffprobe '-' "$stream" 'stream' 'color_transfer' "$file"
+  )"
 
-  Var::Type.integer "$Width"
+  # Fallback
+  if [ "$sourceColorTransfer" == 'unknown' ]; then
+    sourceColorTransfer='bt709'
+  fi
 
-  echo "$Width"
+  stl_type_str "$sourceColorTransfer"
+
+  echo "$sourceColorTransfer"
+}
+
+function arkive_video_frame_rate {
+  stl_func_reqargs '2' "$#"
+  local -r file="$2"
+  local sourceFrameRate
+  local -r stream="$1"
+
+  sourceFrameRate="$(arkive_ffprobe '-' "$stream" 'stream' 'r_frame_rate' "$file")"
+
+  stl_type_str "$sourceFrameRate"
+
+  echo "$sourceFrameRate"
+}
+
+function arkive_video_height {
+  stl_func_reqargs '2' "$#"
+  local -r file="$2"
+  local height
+  local -r stream="$1"
+
+  height=$(arkive_ffprobe '-' "$stream" 'stream' 'height' "$file")
+
+  stl_type_int "$height"
+
+  echo "$height"
+}
+
+function arkive_video_width {
+  stl_func_reqargs '2' "$#"
+  local -r file="$2"
+  local -r stream="$1"
+  local width
+
+  width=$(arkive_ffprobe '-' "$stream" 'stream' 'width' "$file")
+
+  stl_type_int "$width"
+
+  echo "$width"
 }

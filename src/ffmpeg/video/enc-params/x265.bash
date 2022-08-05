@@ -32,47 +32,47 @@
 # purposes only.
 
 # Generates formatted ffmpeg x265-params key/values
-function FFmpeg::Video.codec:x265_params {
-  Function::RequiredArgs '2' "$#"
-  local Bitrate
-  local BufSize
-  local ColorTransfer
-  local -r File="$2"
-  local FrameRate
-  local -i HighBitDepth=0
-  local MeRange
-  local Param
+function ffmpeg_video_codec_x265_params {
+  stl_func_reqargs '2' "$#"
+  local bitrate
+  local bufSize
+  local colorTransfer
+  local -r file="$2"
+  local frameRate
+  local -i highBitDepth=0
+  local meRange
+  local param
   local -a __parameters
-  local ParamHasValue
-  local ParamList
-  local RcLookahead
-  local -r Stream="$1"
+  local paramHasValue
+  local paramList
+  local rcLookahead
+  local -r stream="$1"
 
-  Bitrate="$(FFmpeg::Video.bitrate "$Stream" "$File")"
+  bitrate="$(ffmpeg_video_bitrate "$stream" "$file")"
 
   # Buffer size is bitrate +10%
-  BufSize=$(echo "scale=10;$Bitrate*1.10)" | bc -l | xargs printf "%1.0f")
+  bufSize=$(echo "scale=10;$bitrate*1.10)" | bc -l | xargs printf "%1.0f")
 
-  FrameRate="$(
-    echo "scale=10;$(FFmpeg::Video.frame_rate "$Stream" "$File")" |
+  frameRate="$(
+    echo "scale=10;$(ffmpeg_video_frame_rate "$stream" "$file")" |
         bc -l |
         xargs printf "%1.0f"
   )"
-  if [ $FrameRate -gt 500 ]; then
-    RcLookahead=250
+  if [ $frameRate -gt 500 ]; then
+    rcLookahead=250
   else
-    RcLookahead=$FrameRate
+    rcLookahead=$frameRate
   fi
 
-  MeRange="$(FFmpeg::Video.motion_estimation_range "$Stream" "$File")"
+  meRange="$(ffmpeg_video_motion_estimation_range "$stream" "$file")"
   # Motion Estimation ranges below 57 reduce coding efficiency
   # http://forum.doom9.org/showthread.php?p=1713094#post1713094
-  if [ $MeRange -lt 58 ]; then
-    MeRange=58
+  if [ $meRange -lt 58 ]; then
+    meRange=58
   fi
 
   if [ $FFMPEG_VIDEO_BITDEPTH -gt 8 ]; then
-    HighBitDepth=1
+    highBitDepth=1
   fi
 
   __parameters+=(
@@ -83,7 +83,7 @@ function FFmpeg::Video.codec:x265_params {
     # are blurred or not very well defined it is usually due to this issue.
     'frame-threads=1'
   )
-  __parameters+=("pools=$(Cpu::Logical)") # FIXME
+  __parameters+=("pools=$(stl_cpu_logical)") # FIXME
     #numa-pools # char
   __parameters+=(
     'wpp=1'
@@ -92,7 +92,7 @@ function FFmpeg::Video.codec:x265_params {
     #'dither'
     'interlace=0'
   )
-  __parameters+=("level-idc=$(FFmpeg::Video.level:h265 "$Stream" "$File")")
+  __parameters+=("level-idc=$(ffmpeg_video_level_h265 "$stream" "$file")")
   __parameters+=(
     'high-tier=0'
     # value <= 6 due to b-frames & b-pyramid
@@ -127,7 +127,7 @@ function FFmpeg::Video.codec:x265_params {
     'me=2'  # 3(star) produces blocking artifacts in high energy scenes
             # that contain a lot of motion.
     'subme=2'
-    "merange=$MeRange"
+    "merange=$meRange"
     'temporal-mvp=1'  # TODO
     'weightp=1'
     # Segfault if weightb is disabled (possibly only when in combination
@@ -147,11 +147,11 @@ function FFmpeg::Video.codec:x265_params {
   __parameters+=(
     # Ensure 1 keyframe per GOP
     # FIXME: make keyframe interval a multiple of 4
-    "keyint=$(FFmpeg::Video.keyframe_interval "$Stream" "$File")"
+    "keyint=$(ffmpeg_video_keyframe_interval "$stream" "$file")"
   )
   __parameters+=(
     # For high frame rates ensure multiple keyframes per second
-    "min-keyint=$(FFmpeg::Video.min_keyframe_interval "$Stream" "$File")"
+    "min-keyint=$(ffmpeg_video_min_keyframe_interval "$stream" "$file")"
   )
   __parameters+=(
     'scenecut=0'
@@ -159,15 +159,15 @@ function FFmpeg::Video.codec:x265_params {
     'intra-refresh=0'
     # Set lookahead to same as key-frame interval to make sure the encoder
     # has the entire GOP for decision making.
-    "rc-lookahead=$RcLookahead"  # (> bframes & < 250)
+    "rc-lookahead=$rcLookahead"  # (> bframes & < 250)
     'lookahead-slices=0'
     'b-adapt=2'
     # Using > 3 bframes has a large performance penalty
     'bframes=3'
     'bframe-bias=0'
     'b-pyramid=1'
-    "vbv-bufsize=$BufSize"
-    "vbv-maxrate=$BufSize"
+    "vbv-bufsize=$bufSize"
+    "vbv-maxrate=$bufSize"
     'vbv-init=0.9'  # float
     'lossless=0'
     'aq-mode=1'
@@ -203,7 +203,7 @@ function FFmpeg::Video.codec:x265_params {
   )
   __parameters+=(
     "colorprim=$(
-      if [ $HighBitDepth -eq 1 ]; then
+      if [ $highBitDepth -eq 1 ]; then
         echo 'bt2020'
       else
         echo 'bt709'
@@ -212,7 +212,7 @@ function FFmpeg::Video.codec:x265_params {
   )
   __parameters+=(
     "transfer=$(
-      if [ $HighBitDepth -eq 1 ]; then
+      if [ $highBitDepth -eq 1 ]; then
         echo "bt2020-$FFMPEG_VIDEO_BITDEPTH"
       else
         echo 'bt709'
@@ -221,21 +221,21 @@ function FFmpeg::Video.codec:x265_params {
   )
   __parameters+=(
     "colormatrix=$(
-      if [ $HighBitDepth -eq 1 ]; then
+      if [ $highBitDepth -eq 1 ]; then
         echo 'bt2020nc'
       else
         echo 'bt709'
       fi
     )"
   )
-  if [ ${HighBitDepth} -eq 1 ]; then
+  if [ ${highBitDepth} -eq 1 ]; then
     __parameters+=('chromaloc=2')
   fi
   __parameters+=(
     #'master-display'
     #'max-cll'
-    "hdr=$HighBitDepth"
-    "hdr-opt=$HighBitDepth"
+    "hdr=$highBitDepth"
+    "hdr-opt=$highBitDepth"
     #"dhdr10-info"
     'dhdr10-opt=1'
     #'min-luma'
@@ -266,5 +266,5 @@ function FFmpeg::Video.codec:x265_params {
     __parameters+=('analysis-mode=0')
   fi
 
-  echo '-x265-params' "$(FFmpeg::Video.x26x_params)"
+  echo '-x265-params' "$(ffmpeg_video_x26x_params)"
 }

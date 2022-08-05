@@ -31,29 +31,29 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Video.filters {
-  Function::RequiredArgs '3' "$#"
-  local -r File="$2"
-  local -a Filters
-  local -r Index="$3"
-  local -r Stream="$1"
+function ffmpeg_video_filters {
+  stl_func_reqargs '3' "$#"
+  local -r file="$2"
+  local -a filters
+  local -r index="$3"
+  local -r stream="$1"
 
   # NOTE: the order of filters here is the order in which they are applied
-  #Filters+=("$(FFmpeg::Video.filters:de_interlace "$Stream" "$File")")
-  Filters+=("$(FFmpeg::Video.filters:black_bar_crop "$Stream" "$File")")
-  #Filters+=("$(FFmpeg::Video.filters:colorspace "$Stream" "$File")")
-  #Filters+=("$(FFmpeg::Video.filters:denoise)")
-  #Filters+=("$(FFmpeg::Video.filters:scale "$Stream" "$File")")
-  Filters+=("$(FFmpeg::Video.filters:zscale "$Stream" "$File")")
+  #filters+=("$(ffmpeg_video_filters_de_interlace "$stream" "$file")")
+  filters+=("$(ffmpeg_video_filters_black_bar_crop "$stream" "$file")")
+  #filters+=("$(ffmpeg_video_filters_colorspace "$stream" "$file")")
+  #filters+=("$(ffmpeg_video_filters_denoise)")
+  #filters+=("$(ffmpeg_video_filters_scale "$stream" "$file")")
+  filters+=("$(ffmpeg_video_filters_zscale "$stream" "$file")")
   if [ "$FFMPEG_VIDEO_ENCODER" == 'vaapi-h264' ]; then
-    Filters+=(
+    filters+=(
       'format=nv12'
       'hwupload'
     )
   fi
 
-  if [ -n "${Filters[*]}" ]; then
+  if [ -n "${filters[*]}" ]; then
     local IFS=","
-    echo "-filter:$Index" "${Filters[*]}"
+    echo "-filter:$index" "${filters[*]}"
   fi
 }

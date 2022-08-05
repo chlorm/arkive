@@ -34,8 +34,8 @@
 # This function uses the ffmpeg cropdetect filter to check for blackbars
 # at 5 second intervals until 10 identical results for both width and
 # height are found.
-function FFmpeg::Video.filters:black_bar_crop {
-  Function::RequiredArgs '2' "$#"
+function ffmpeg_video_filters_black_bar_crop {
+  stl_func_reqargs '2' "$#"
   # TODO:
   # - fix setting crop rounding value dynamically
   #   h264: prefer multiples of 16 for compression efficiency, or multiple
@@ -43,145 +43,129 @@ function FFmpeg::Video.filters:black_bar_crop {
   #   h265: use multiple of min CU size
   #   vp9: multiple of 16, cite bug
 
-  local CropDetect
-  local CropDetectArgs
-  local -a CropDetectArgsList
-  local CropHeight
-  local CropHeightArray
-  local CropHeightMatches
-  local CropWidth
-  local CropWidthArray
-  local CropWidthMatches
-  local CropXOffset
-  local CropXOffsetArray
-  local CropYOffset
-  local CropYOffsetArray
-  local -r File="$2"
-  local LoopIter
-  local Skip
-  local SourceHeight
-  local SourceWidth
-  local -r Stream="$1"
+  local cropDetect
+  local cropDetectArgs
+  local -a cropDetectArgsList
+  local cropHeight
+  local cropHeightArray
+  local cropHeightMatches
+  local cropWidth
+  local cropWidthArray
+  local cropWidthMatches
+  local cropXOffset
+  local cropXOffsetArray
+  local cropYOffset
+  local cropYOffsetArray
+  local -r file="$2"
+  local loopIter
+  local skip
+  local sourceHeight
+  local sourceWidth
+  local -r stream="$1"
 
-  CropHeight=0
-  CropHeightArray=()
-  CropHeightMatches=0
-  CropWidth=0
-  CropWidthArray=()
-  CropWidthMatches=0
-  CropXOffsetArray=()
-  CropXOffsetMatches=0
-  CropYOffsetArray=()
-  CropYOffsetMatches=0
-  LoopIter=1
-  SourceHeight=$(Video::Height "$Stream" "$File")
-  Log::Message 'info' "source height: $SourceHeight"
-  SourceWidth=$(Video::Width "$Stream" "$File")
-  Log::Message 'info' "source width: $SourceWidth"
+  cropHeight=0
+  cropHeightArray=()
+  cropHeightMatches=0
+  cropWidth=0
+  cropWidthArray=()
+  cropWidthMatches=0
+  cropXOffsetArray=()
+  cropXOffsetMatches=0
+  cropYOffsetArray=()
+  cropYOffsetMatches=0
+  loopIter=1
+  sourceHeight=$(arkibe_video_height "$stream" "$file")
+  stl_log_info "source height: $sourceHeight"
+  sourceWidth=$(arkibe_video_width "$stream" "$file")
+  stl_log_info "source width: $sourceWidth"
 
-  function mode {
-    echo "${@}" |
-      sed -r 's/[[:space:]]+/\n/g' |
-      uniq -c |
-      sort -n -k 1 -r |
-      awk '{ print $2 ; exit }'
-  }
-
-  function mode_count {
-    echo "${@}" |
-      sed -r 's/[[:space:]]+/\n/g' |
-      uniq -c |
-      sort -n -k 1 -r |
-      awk '{ print $1 ; exit }'
-  }
-
-  while [[ $CropHeightMatches -lt 5 && \
-           $CropWidthMatches -lt 5 && \
-           $CropXOffsetMatches -lt 5 && \
-           $CropYOffsetMatches -lt 5 ]]; do
-    Skip=$(( $LoopIter * 5 ))
+  while [[ $cropHeightMatches -lt 5 && \
+           $cropWidthMatches -lt 5 && \
+           $cropXOffsetMatches -lt 5 && \
+           $cropYOffsetMatches -lt 5 ]]; do
+    skip=$(( $loopIter * 5 ))
     # https://ffmpeg.org/pipermail/ffmpeg-user/2011-July/001795.html
     # https://ffmpeg.org/pipermail/ffmpeg-user/2012-August/008767.html
     # -ss before -i uses seeking, -ss after -i uses skipping and is very slow
-    CropDetectArgsList=(
+    cropDetectArgsList=(
       '-nostdin'
       '-hide_banner'
       '-loglevel' 'info'
       '-threads' "$(Cpu::Logical)"
-      '-ss' "$Skip"
-      '-i' "$File"
+      '-ss' "$skip"
+      '-i' "$file"
       '-ss' '0'
       '-t' '1'
       # The file index must be specified or cropdetect with fail when the
       # video stream index is not 0.
-      "-filter:0:$Stream" 'cropdetect=30:0:0'
+      "-filter:0:$stream" 'cropdetect=30:0:0'
       '-an'
       '-f' 'null' '-'
     )
 
-    CropDetectArgs="${CropDetectArgsList[@]}"
-    Log::Message 'info' "ffmpeg $CropDetectArgs"
+    cropDetectArgs="${cropDetectArgsList[@]}"
+    stl_log_info "ffmpeg $cropDetectArgs"
 
-    CropDetect="$(
-      ffmpeg "${CropDetectArgsList[@]}" 2>&1 |
+    cropDetect="$(
+      ffmpeg "${cropDetectArgsList[@]}" 2>&1 |
         awk -F'=' '/crop/ { print $NF }' |
         tail -1
     )"
 
-    Log::Message 'info' "$LoopIter: $CropDetect"
+    stl_log_info "$loopIter: $cropDetect"
 
     # Find crop height
-    CropHeight=$(echo "$CropDetect" | awk -F':' '{ print $2 ; exit }')
+    cropHeight=$(echo "$cropDetect" | awk -F':' '{ print $2 ; exit }')
     # Find crop width
-    CropWidth=$(echo "$CropDetect" | awk -F':' '{ print $1 ; exit }')
+    cropWidth=$(echo "$cropDetect" | awk -F':' '{ print $1 ; exit }')
     # Sanity check
-    if [[ $CropHeight -gt $(( $SourceHeight / 2 )) && \
-          $CropWidth -gt $(( $SourceWidth / 2 )) ]]; then
-      CropXOffsetArray+=(
-        "$(echo "$CropDetect" | awk -F':' '{ print $3 ; exit }')"
+    if [[ $cropHeight -gt $(( $sourceHeight / 2 )) && \
+          $cropWidth -gt $(( $sourceWidth / 2 )) ]]; then
+      cropXOffsetArray+=(
+        "$(echo "$cropDetect" | awk -F':' '{ print $3 ; exit }')"
       )
-      CropYOffsetArray+=(
-        "$(echo "$CropDetect" | awk -F':' '{ print $4 ; exit }')"
+      cropYOffsetArray+=(
+        "$(echo "$cropDetect" | awk -F':' '{ print $4 ; exit }')"
       )
-      CropHeightArray+=("$CropHeight")
-      CropWidthArray+=("$CropWidth")
+      cropHeightArray+=("$cropHeight")
+      cropWidthArray+=("$cropWidth")
     fi
 
-    Log::Message 'info' "${LoopIter} - W:$CropWidth H:$CropHeight X:${CropXOffsetArray[-1]} Y:${CropYOffsetArray[-1]}"
+    stl_log_info "${loopIter} - W:$cropWidth H:$cropHeight X:${cropXOffsetArray[-1]} Y:${cropYOffsetArray[-1]}"
 
     # Find count of mode values
-    CropWidthMatches=$(mode_count "${CropWidthArray[@]}")
-    CropHeightMatches=$(mode_count "${CropHeightArray[@]}")
-    CropXOffsetMatches=$(mode_count "${CropXOffsetArray[@]}")
-    CropYOffsetMatches=$(mode_count "${CropYOffsetArray[@]}")
+    cropWidthMatches=$(STL_MATH_MODE_COUNT=1 stl_math_mode "${cropWidthArray[@]}")
+    cropHeightMatches=$(STL_MATH_MODE_COUNT=1 stl_math_mode "${cropHeightArray[@]}")
+    cropXOffsetMatches=$(STL_MATH_MODE_COUNT=1 stl_math_mode "${cropXOffsetArray[@]}")
+    cropYOffsetMatches=$(STL_MATH_MODE_COUNT=1 stl_math_mode "${cropYOffsetArray[@]}")
 
-    Log::Message 'info' "MODE - W:$CropWidthMatches H:$CropHeightMatches X:$CropXOffsetMatches Y:$CropYOffsetMatches"
+    stl_log_info "MODE - W:$cropWidthMatches H:$cropHeightMatches X:$cropXOffsetMatches Y:$cropYOffsetMatches"
 
-    (( LoopIter++ ))
+    (( loopIter++ ))
 
-    unset CropDetectArg CropDetectArgs CropDetectArgsList
+    unset cropDetectArg cropDetectArgs cropDetectArgsList
 
     # Exit if cropdetect is probably failing to prevent infinite loops
-    [ $LoopIter -le 50 ]
+    [ $loopIter -le 50 ]
   done
 
   # Find crop width mode
-  CropWidth=$(mode "${CropWidthArray[@]}")
-  Var::Type.integer "$CropWidth"
+  cropWidth=$(stl_math_mode "${cropWidthArray[@]}")
+  stl_type_int "$cropWidth"
 
   # Find crop height mode
-  CropHeight=$(mode "${CropHeightArray[@]}")
-  Var::Type.integer "$CropHeight"
+  cropHeight=$(stl_math_mode "${cropHeightArray[@]}")
+  stl_type_int "$cropHeight"
 
   # Find X offset mode
-  CropXOffset=$(mode "${CropXOffsetArray[@]}")
-  Var::Type.integer "$CropXOffset"
+  cropXOffset=$(stl_math_mode "${cropXOffsetArray[@]}")
+  stl_type_int "$cropXOffset"
 
   # Find Y offset mode
-  CropYOffset=$(mode "${CropYOffsetArray[@]}")
-  Var::Type.integer "$CropYOffset"
+  cropYOffset=$(stl_math_mode "${cropYOffsetArray[@]}")
+  stl_type_int "$cropYOffset"
 
-  Log::Message 'info' "FINAL: W:$CropWidth H:$CropHeight X:$CropXOffset Y:$CropYOffset"
+  stl_log_info "FINAL: W:$cropWidth H:$cropHeight X:$cropXOffset Y:$cropYOffset"
 
-  echo "crop=${CropWidth}:${CropHeight}:${CropXOffset}:${CropYOffset}"
+  echo "crop=${cropWidth}:${cropHeight}:${cropXOffset}:${cropYOffset}"
 }

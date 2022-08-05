@@ -31,67 +31,67 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function Audio::Bitrate {
-  Function::RequiredArgs '2' "$#"
-  local -i Bitrate
-  local -r File="$2"
-  local -r Stream="$1"
+function arkive_audio_bitrate {
+  stl_func_reqargs '2' "$#"
+  local -i bitrate
+  local -r file="$2"
+  local -r stream="$1"
 
-  Bitrate=$(FFprobe '-' "$Stream" 'stream' 'bit_rate' "$File")
+  bitrate=$(arkive_ffprobe '-' "$stream" 'stream' 'bit_rate' "$file")
 
-  Var::Type.integer "$Bitrate"
+  stl_type_int "$bitrate"
 
-  echo "$Bitrate"
+  echo "$bitrate"
 }
 
-function Audio::ChannelLayout {
-  Function::RequiredArgs '2' "$#"
-  local ChannelLayout
-  local -r File="$2"
-  local -r Stream="$1"
+function arkive_audio_channel_layout {
+  stl_func_reqargs '2' "$#"
+  local channelLayout
+  local -r file="$2"
+  local -r stream="$1"
 
-  ChannelLayout="$(FFprobe '-' "$Stream" 'stream' 'channel_layout' "$File")"
+  channelLayout="$(arkive_ffprobe '-' "$stream" 'stream' 'channel_layout' "$file")"
 
-  Var::Type.string "$ChannelLayout"
+  stl_type_str "$channelLayout"
 
-  echo "$ChannelLayout"
+  echo "$channelLayout"
 }
 
-function Audio::Channels {
-  Function::RequiredArgs '2' "$#"
-  local -i Channels
-  local -r File="$2"
-  local -r Stream="$1"
+function arkive_audio_channels {
+  stl_func_reqargs '2' "$#"
+  local -i channels
+  local -r file="$2"
+  local -r stream="$1"
 
-  Channels=$(FFprobe '-' "$Stream" 'stream' 'channels' "$File")
+  channels=$(arkive_ffprobe '-' "$stream" 'stream' 'channels' "$file")
 
-  Var::Type.integer "$Channels"
+  stl_type_int "$channels"
 
-  echo "$Channels"
+  echo "$channels"
 }
 
-function Audio::SampleFormat {
-  Function::RequiredArgs '2' "$#"
-  local -r File="$2"
-  local SampleFormat
-  local -r Stream="$1"
+function arkive_audio_sample_format {
+  stl_func_reqargs '2' "$#"
+  local -r file="$2"
+  local sampleFormat
+  local -r stream="$1"
 
-  SampleFormat=$(FFprobe '-' "$Stream" 'stream' 'sample_fmt' "$File")
+  sampleFormat=$(arkive_ffprobe '-' "$stream" 'stream' 'sample_fmt' "$file")
 
-  Var::Type.string "$SampleFormat"
+  stl_type_str "$sampleFormat"
 
-  echo "$SampleFormat"
+  echo "$sampleFormat"
 }
 
-function Audio::SampleRate {
-  Function::RequiredArgs '2' "$#"
-  local -r File="$2"
-  local -i SampleRate
-  local -r Stream="$1"
+function arkive_audio_sample_rate {
+  stl_func_reqargs '2' "$#"
+  local -r file="$2"
+  local -i sampleRate
+  local -r stream="$1"
 
-  SampleRate=$(FFprobe '-' "$Stream" 'stream' 'sample_rate' "$File")
+  sampleRate=$(arkive_ffprobe '-' "$stream" 'stream' 'sample_rate' "$file")
 
-  Var::Type.integer "$SampleRate"
+  stl_type_int "$sampleRate"
 
-  echo "$SampleRate"
+  echo "$sampleRate"
 }

@@ -31,10 +31,10 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function Input::Check.input {
-  Function::RequiredArgs '1' "$#"
-  local -r File="$1"
-  [ -f "$File" ]
+function arkive_input_check {
+  stl_func_reqargs '1' "$#"
+  local -r file="$1"
+  [ -f "$file" ]
   #[ "${file##*.}" == 'mkv' ]
   # FIXME: check requirements
   # audio streams (== 1/2 & lang codes)
@@ -43,14 +43,14 @@ function Input::Check.input {
   # chapter streams (== 0/1)
 }
 
-function Input::Check.output {
-  Function::RequiredArgs '1' "$#"
+function arkive_input_check_output {
+  stl_func_reqargs '1' "$#"
   [ -n "$1" ]
   [ -d "$1" ]
 }
 
-function Input::Check.tmp {
-  Function::RequiredArgs '1' "$#"
+function arkive_input_check_tmp {
+  stl_func_reqargs '1' "$#"
   if [ ! -d "$1" ]; then
     # Don't use --parents, we want it to fail
     mkdir "$1"
@@ -58,19 +58,19 @@ function Input::Check.tmp {
 }
 
 # Parses, validates, and exports input
-function Input::Parser {
+function arkive_cli_parser {
   local -r input="$@"   # Only for testing for input
 
-  Args::Define 'short=i' 'long=input'  'variable=RAW_INPUTFILE' 'desc=Input video file'
-  Args::Define 'short=o' 'long=output' 'variable=RAW_OUTPUTDIR' 'desc=Output directory'
-  Args::Define 'short=p' 'long=profile' 'variable=RAW_PROFILE' 'desc=Specify profile to use'
-  Args::Define 'short=b' 'long=bpp' 'variable=RAW_BITPERPIXEL' 'desc=Calculate bits per pixel'
+  stl_arg_define 'short=i' 'long=input'  'variable=RAW_INPUTFILE' 'desc=Input video file'
+  stl_arg_define 'short=o' 'long=output' 'variable=RAW_OUTPUTDIR' 'desc=Output directory'
+  stl_arg_define 'short=p' 'long=profile' 'variable=RAW_PROFILE' 'desc=Specify profile to use'
+  stl_arg_define 'short=b' 'long=bpp' 'variable=RAW_BITPERPIXEL' 'desc=Calculate bits per pixel'
   # Build and source script that parses $@
-  source "$(Args::Build)"
+  source "$(stl_args_build)"
 
   if [ -z "$input" ]; then
-    Log::Message 'error' 'no input'
-    arkive::Usage
+    stl_log_error 'no input'
+    arkive_usage
     return 1
   fi
 
@@ -80,16 +80,16 @@ function Input::Parser {
   elif type arkive_profile_$RAW_PROFILE >/dev/null; then
     arkive_profile_$RAW_PROFILE
   else
-    Log::Message 'error' "invalid profile specified: $RAW_PROFILE"
+    stl_log_error "invalid profile specified: $RAW_PROFILE"
     return 1
   fi
 
   if [ -z "$RAW_BITPERPIXEL" ]; then
-    Input::Check.input "$RAW_INPUTFILE"
+    arkive_input_check "$RAW_INPUTFILE"
     INPUTFILE="$(readlink -f "$RAW_INPUTFILE")"
     INPUTDIR="$(dirname "$INPUTFILE")"
 
-    if Input::Check.output "$RAW_OUTPUTDIR"; then
+    if arkive_input_check_output "$RAW_OUTPUTDIR"; then
       OUTPUTDIR="$(readlink -f "$RAW_OUTPUTDIR")"
     else
       export OUTPUTDIR="$INPUTDIR"
@@ -99,11 +99,11 @@ function Input::Parser {
       if [ -f "$ARKIVE_LIB_DIR/profiles/$RAW_PROFILE.profile" ]; then
         ARKIVE_PROFILE="$ARKIVE_LIB_DIR/profiles/$RAW_PROFILE.profile"
       else
-        Log::Message 'error' "specified profile does not exist: $RAW_PROFILE"
+        stl_log_error "specified profile does not exist: $RAW_PROFILE"
       fi
     fi
 
     export TMPDIR="$INPUTDIR/.arkive.$RANDOM"
-    Input::Check.tmp "$TMPDIR"
+    arkive_input_check_tmp "$TMPDIR"
   fi
 }

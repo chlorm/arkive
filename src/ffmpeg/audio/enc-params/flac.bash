@@ -31,15 +31,15 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio.encoder:flac {
-  Parameters=(
+function ffmpeg_audio_encoder_flac {
+  parameters=(
     '-compression_level' '10'
   )
 
   # Flac isom muxing is still experimental
   if [ "$FFMPEG_CONTAINER_FORMAT" == 'mp4' ]; then
-    Parameters+=('-strict' '-2')
+    parameters+=('-strict' '-2')
   fi
 
-  echo "${Parameters[@]}"
+  echo "${parameters[@]}"
 }

@@ -32,44 +32,44 @@
 # purposes only.
 
 # Generates formatted ffmpeg x264-params key/values
-function FFmpeg::Video.codec:x264_params {
-  Function::RequiredArgs '2' "$#"
-  local Bitrate
-  local BufSize
-  local -r File="$2"
-  local MeRange
+function ffmpeg_video_codec:x264_params {
+  stl_func_reqargs '2' "$#"
+  local bitrate
+  local bufSize
+  local -r file="$2"
+  local meRange
   local -a __parameters=()
-  local RcLookahead
-  local -r Stream="$1"
-  local X26xParams
+  local rcLookahead
+  local -r stream="$1"
+  local x26xParams
 
-  Bitrate="$(FFmpeg::Video.bitrate "$Stream" "$File")"
+  bitrate="$(ffmpeg_video_bitrate "$stream" "$file")"
 
   # Buffer size is bitrate +10%
-  BufSize=$(echo "scale=10;$Bitrate*1.10)" | bc -l | xargs printf "%1.0f")
+  bufSize=$(echo "scale=10;$bitrate*1.10)" | bc -l | xargs printf "%1.0f")
 
-  FrameRate="$(
-    echo "scale=10;$(FFmpeg::Video.frame_rate "$Stream" "$File")" |
+  frameRate="$(
+    echo "scale=10;$(ffmpeg_video_frame_rate "$stream" "$file")" |
         bc -l |
         xargs printf "%1.0f"
   )"
-  RcLookahead=${FrameRate}
-  if [ $RcLookahead -gt 250 ]; then
-    RcLookahead=250
+  rcLookahead=${frameRate}
+  if [ $rcLookahead -gt 250 ]; then
+    rcLookahead=250
   fi
 
-  MeRange="$(FFmpeg::Video.motion_estimation_range "$Stream" "$File")"
+  meRange="$(ffmpeg_video_motion_estimation_range "$stream" "$file")"
   # Motion Estimation ranges below 57 reduce coding efficiency
   # http://forum.doom9.org/showthread.php?p=1713094#post1713094
-  if [ $MeRange -lt 58 ]; then
-    MeRange=58
+  if [ $meRange -lt 58 ]; then
+    meRange=58
   fi
 
   __parameters+=(
-    "keyint=$(FFmpeg::Video.keyframe_interval "$Stream" "$File")"
+    "keyint=$(ffmpeg_video_keyframe_interval "$stream" "$file")"
   )
   __parameters+=(
-    "min-keyint=$(FFmpeg::Video.min_keyframe_interval "$Stream" "$File")"
+    "min-keyint=$(ffmpeg_video_min_keyframe_interval "$stream" "$file")"
   )
   __parameters+=(
     'scenecut=0'
@@ -95,9 +95,9 @@ function FFmpeg::Video.codec:x264_params {
     'interlaced=0'
     # TODO: support alternative frame-packing for 3D sources
     'frame-packing=6'
-    "rc-lookahead=$RcLookahead"
-    "vbv-maxrate=$BufSize"
-    "vbv-bufsize=$BufSize"
+    "rc-lookahead=$rcLookahead"
+    "vbv-maxrate=$bufSize"
+    "vbv-bufsize=$bufSize"
     'vbv-init=0.9'
     'qpmin=14'
     'qpmax=51'
@@ -121,7 +121,7 @@ function FFmpeg::Video.codec:x264_params {
     'weightb=1'
     'weightp=2'
     'me=umh'
-    "merange=$MeRange"
+    "merange=$meRange"
     'subme=10'
     'psy-rd=0.7\:0.3'
     'psy=1'
@@ -153,7 +153,7 @@ function FFmpeg::Video.codec:x264_params {
     # Without specifing the level some decoders such as Chromium's incorrectly
     # detect the level which results in stuttering playback (chromium falls
     # back to 3.0).
-    "level=$(FFmpeg::Video.level:h264 "$Stream" "$File")"
+    "level=$(ffmpeg_video_level_h264 "$stream" "$file")"
   )
   __parameters+=(
     'bluray-compat=0'
@@ -191,7 +191,7 @@ function FFmpeg::Video.codec:x264_params {
     )
   fi
 
-  X26xParams="$(FFmpeg::Video.x26x_params)"
+  x26xParams="$(ffmpeg_video_x26x_params)"
 
-  echo '-x264-params' "$X26xParams"
+  echo '-x264-params' "$x26xParams"
 }

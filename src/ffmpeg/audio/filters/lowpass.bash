@@ -32,21 +32,21 @@
 # purposes only.
 
 # Cutoff frequencies above FFMPEG_AUDIO_LOWPASS Hz
-function FFmpeg::Audio.filters:lowpass {
-  Function::RequiredArgs '2' "$#"
-  local -r File="$2"
-  local Frequency
-  local SampleRate
-  local -r Stream="$1"
+function ffmpeg_audio_filters_lowpass {
+  stl_func_reqargs '2' "$#"
+  local -r file="$2"
+  local frequency
+  local sampleRate
+  local -r stream="$1"
 
-  SampleRate=$(Audio::SampleRate "$Stream" "$File")
+  sampleRate=$(arkive_audio_sample_rate "$stream" "$file")
 
   # Frequency must be less than half of sample rate.
-  if [ $FFMPEG_AUDIO_LOWPASS -ge $(( $SampleRate / 2 )) ]; then
-    Frequency=$(( $SampleRate / 2 - 1 ))
+  if [ $FFMPEG_AUDIO_LOWPASS -ge $(( $sampleRate / 2 )) ]; then
+    frequency=$(( $sampleRate / 2 - 1 ))
   else
-    Frequency=$FFMPEG_AUDIO_LOWPASS
+    frequency=$FFMPEG_AUDIO_LOWPASS
   fi
 
-  echo "lowpass=f=$Frequency:poles=1:width_type=h"
+  echo "lowpass=f=$frequency:poles=1:width_type=h"
 }

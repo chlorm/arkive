@@ -31,24 +31,23 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio.filters {
-  Function::RequiredArgs '3' "$#"
-  local -r File="$2"
-  local Filter
-  local FilterList
-  local -a Filters
-  local -r Index="$3"
-  local -r Stream="$1"
+function ffmpeg_audio_filters {
+  stl_func_reqargs '3' "$#"
+  local -r file="$2"
+  local filter
+  local filterList
+  local -a filters
+  local -r index="$3"
+  local -r stream="$1"
 
-  Filters+=("$(FFmpeg::Audio.filters:channel_layout_map "$Stream" "$File")")
-  Filters+=("$(FFmpeg::Audio.filters:highpass)")
-  Filters+=("$(FFmpeg::Audio.filters:lowpass "$Stream" "$File")")
-  # FIXME: uncomment this
-  #Filters+=("$(ffmpeg_audio_filters_ebu_r128 "$Stream" "$File")")
-  Filters+=("$(FFmpeg::Audio.filters:resample "$Stream" "$File")")
+  filters+=("$(ffmpeg_audio_filters_channel_layout_map "$stream" "$file")")
+  filters+=("$(ffmpeg_audio_filters_highpass)")
+  filters+=("$(ffmpeg_audio_filters_lowpass "$stream" "$file")")
+  filters+=("$(ffmpeg_audio_filters_ebu_r128 "$stream" "$file")")
+  filters+=("$(ffmpeg_audio_filters_resample "$stream" "$file")")
 
-  if [ -n "${Filters[*]}" ]; then
+  if [ -n "${filters[*]}" ]; then
     local IFS=","
-    echo "-filter:$Index" "${Filters[*]}"
+    echo "-filter:$index" "${filters[*]}"
   fi
 }

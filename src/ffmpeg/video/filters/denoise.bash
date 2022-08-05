@@ -31,7 +31,7 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Video.filters:denoise {
+function ffmpeg_video_filters_denoise {
   #echo 'hqdn3d=luma_spatial=1.0:chroma_spatial=1.0:luma_tmp=4.0:chroma_tmp=4.0'
   echo 'hqdn3d'
 }

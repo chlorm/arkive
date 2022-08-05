@@ -31,46 +31,47 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Video.filters:denoise {
-  local -r File="$1"
-  local Height
-  local HeightTarget
-  local -a Paramaters
-  local -r Stream="$2"
-  local Width
-  local WidthTarget
+function ffmpeg_video_filters_scale {
+  stl_func_reqargs '2' "$#"
+  local -r file="$1"
+  local height
+  local heightTarget
+  local -a paramaters
+  local -r stream="$2"
+  local width
+  local widthTarget
 
   if [ "$FFMPEG_VIDEO_HEIGHT" == 'source' ] && \
      [ "$FFMPEG_VIDEO_WIDTH" == 'source' ]; then
     return 0
   fi
 
-  Height="$(Video::Height "$File" "$Stream")"
-  Width="$(Video::Width "$File" "$Stream")"
+  height="$(arkive_video_height "$file" "$stream")"
+  width="$(arkive_video_width "$file" "$stream")"
 
   if [ "$FFMPEG_VIDEO_HEIGHT" == 'source' ]; then
-    HeightTarget=$Height
+    heightTarget=$height
   else
-    HeightTarget=$FFMPEG_VIDEO_HEIGHT
+    heightTarget=$FFMPEG_VIDEO_HEIGHT
   fi
 
   if [ "$FFMPEG_VIDEO_WIDTH" == 'source' ]; then
-    WidthTarget=$Width
+    widthTarget=$width
   else
-    WidthTarget=$FFMPEG_VIDEO_WIDTH
+    widthTarget=$FFMPEG_VIDEO_WIDTH
   fi
 
-  if [ $Height -eq $HeightTarget ] && \
-     [ $Width -eq $WidthTarget ]; then
+  if [ $height -eq $heightTarget ] && \
+     [ $width -eq $widthTarget ]; then
     return 0
   fi
 
-  Paramaters=(
-    "h=$HeightTarget"
-    "w=$WidthTarget"
+  paramaters=(
+    "h=$heightTarget"
+    "w=$widthTarget"
     'force_original_aspect_ratio=decrease'
   )
 
   local IFS=":"
-  echo "scale=${Paramaters[*]}"
+  echo "scale=${paramaters[*]}"
 }

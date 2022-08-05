@@ -33,43 +33,43 @@
 
 # FIXME: make max stream count for each type configurable and defined in defaults
 
-function Stream::Select {
-  Function::RequiredArgs '2' "$#"
-  local -A FFtypes
-  local -r File="$2"
-  local -A ReqMaxsStm
-  local -A ReqMinsStm
-  local -a Streams
-  local -r Type="$1"
+function arkive_stream_select {
+  stl_func_reqargs '2' "$#"
+  local -A fftypes
+  local -r file="$2"
+  local -A reqMaxsStm
+  local -A reqMinsStm
+  local -a streams
+  local -r type="$1"
 
   # Translate strings to ffmpeg stream type identifiers
-  FFtypes=(
+  fftypes=(
     ['audio']='a'
     ['chapter']='c'
     ['subtitle']='s'
     ['video']='v'
   )
 
-  mapfile -t Streams < <(
-    FFprobe "${FFtypes[$Type]}" '-' 'stream' 'index' "$File"
+  mapfile -t streams < <(
+    arkive_ffprobe "${fftypes[$type]}" '-' 'stream' 'index' "$file"
   )
 
   # Minimum number of streams allowed for each type
-  ReqMinsStm=(
+  reqMinsStm=(
     ['audio']=1
     ['chapter']=0
     ['subtitle']=0
     ['video']=1
   )
 
-  [ ${#Streams[@]} -ge ${ReqMinsStm[$Type]} ] || {
-    Log::Message 'error' \
-        "At least \`${ReqMinsStm[$Type]}\` $Type stream is required, but \`${#Streams[@]}\` found"
+  [ ${#streams[@]} -ge ${reqMinsStm[$Type]} ] || {
+    stl_log_error \
+        "At least \`${reqMinsStm[$Type]}\` $type stream is required, but \`${#streams[@]}\` found"
     return 1
   }
 
   # Maximum number of streams allowed for each type
-  ReqMaxsStm=(
+  reqMaxsStm=(
     ['audio']=2
     ['chapter']=1
     ['subtitle']=2
@@ -83,15 +83,15 @@ function Stream::Select {
   #   return 1
   # }
 
-  if [ ${#Streams[@]} -eq 1 ]; then
+  if [ ${#streams[@]} -eq 1 ]; then
     # FIXME: make sure stream meets requirements
-    Stream=${Streams[0]}
+    stream=${streams[0]}
 
   # If multiple audio streams exist, select the correct one(s)
-  elif [ ${#Streams[@]} -gt 1 ]; then
+  elif [ ${#streams[@]} -gt 1 ]; then
 
     # FIXME
-    Stream=${Streams[0]}
+    stream=${streams[0]}
 
     # # Remove streams that contain matching keywords in the stream title
     # for Stream in ${Streams[@]}; do
@@ -123,5 +123,5 @@ function Stream::Select {
     # fi
   fi
 
-  echo "$Stream"
+  echo "$stream"
 }

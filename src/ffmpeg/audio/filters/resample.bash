@@ -31,49 +31,49 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio.filters:resample {
-  Function::RequiredArgs '2' "$#"
-  local ChannelCount
-  local ChannelLayout
-  local ChannelLayoutMapTo
-  local -r File="$2"
-  local SampleFormat
-  local SampleRate
-  local -r Stream="$1"
+function ffmpeg_audio_filters_resample {
+  stl_func_reqargs '2' "$#"
+  local channelCount
+  local channelLayout
+  local channelLayoutMapTo
+  local -r file="$2"
+  local sampleFormat
+  local sampleRate
+  local -r stream="$1"
 
-  ChannelCount="$(Audio::Channels "$Stream" "$File")"
-  ChannelLayout="$(Audio::ChannelLayout "$Stream" "$File")"
-  SampleFormat="$(Audio::SampleFormat "$Stream" "$File")"
-  SampleRate="$(Audio::SampleRate "$Stream" "$File")"
-  ChannelLayoutMapTo="${FFMPEG_AUDIO_CHANNEL_LAYOUT_MAPPINGS[$ChannelLayout]}"
+  channelCount="$(arkive_audio_channels "$stream" "$file")"
+  channelLayout="$(arkive_audio_channel_layout "$stream" "$file")"
+  sampleFormat="$(arkive_audio_sample_format "$stream" "$file")"
+  sampleRate="$(arkive_audio_sample_rate "$stream" "$file")"
+  channelLayoutMapTo="${FFMPEG_AUDIO_CHANNEL_LAYOUT_MAPPINGS[$channelLayout]}"
 
   case $FFMPEG_AUDIO_SAMPLERATE in
     8000|11025|12000|16000|22050|24000|32000|44100|48000|\
         64000|88200|96000|176400|192000) true ;;
     *)
-      Log::Message 'error' "invalid samplerate: $FFMPEG_AUDIO_SAMPLERATE"
+      stl_log_error "invalid samplerate: $FFMPEG_AUDIO_SAMPLERATE"
       return 1
       ;;
   esac
 
   # http://forum.videohelp.com/threads/373264-FFMpeg-List-of-working-sample-formats-per-format-and-encoder
   case "$FFMPEG_AUDIO_ENCODER" in
-    'flac') OutputSampleFormat='s32' ;;
-    'opus') OutputSampleFormat='flt' ;;
-    'ac3'|'ffaac'|'fdk-aac'|'eac3'|'vorbis') OutputSampleFormat='s16' ;;
+    'flac') outputSampleFormat='s32' ;;
+    'opus') outputSampleFormat='flt' ;;
+    'ac3'|'ffaac'|'fdk-aac'|'eac3'|'vorbis') outputSampleFormat='s16' ;;
   esac
 
-  Parameters=(
-    "ich=$ChannelCount"
-    "och=$ChannelCount"  # Leave input unchanged, pan filter will remap
-    "uch=$ChannelCount"
-    "isr=$SampleRate"
+  parameters=(
+    "ich=$channelCount"
+    "och=$channelCount"  # Leave input unchanged, pan filter will remap
+    "uch=$channelCount"
+    "isr=$sampleRate"
     "osr=$FFMPEG_AUDIO_SAMPLERATE"
-    "isf=$SampleFormat"
-    "osf=$OutputSampleFormat"
+    "isf=$sampleFormat"
+    "osf=$outputSampleFormat"
     #'tsf=s32'  # FIXME
-    "icl=$ChannelLayoutMapTo"
-    "ocl=$ChannelLayoutMapTo"  # Leave input unchanged, pan filter will remap
+    "icl=$channelLayoutMapTo"
+    "ocl=$channelLayoutMapTo"  # Leave input unchanged, pan filter will remap
     'dither_method=0'
     'resampler=soxr'
     'linear_interp=0'
@@ -84,5 +84,5 @@ function FFmpeg::Audio.filters:resample {
   )
 
   local IFS=":"
-  echo "aresample=${Parameters[*]}"
+  echo "aresample=${parameters[*]}"
 }

@@ -31,44 +31,45 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Video.filters:colorspace() {
-  local ColorPrimaries
-  local ColorRange
-  local ColorSpace
-  local ColorTransfer
-  local File="$2"
-  local InputColorPrimaries
-  local InputColorRange
-  local InputColorSpace
-  local InputColorTransfer
-  local -a Paramaters
-  local Stream="$1"
+function ffmpeg_video_filters_colorspace {
+  stl_func_reqargs '2' "$#"
+  local colorPrimaries
+  local colorRange
+  local colorSpace
+  local colorTransfer
+  local file="$2"
+  local inputColorPrimaries
+  local inputColorRange
+  local inputColorSpace
+  local inputColorTransfer
+  local -a paramaters
+  local stream="$1"
 
-  InputColorPrimaries="$(Video::ColorPrimaries "$Stream" "$File")"
-  InputColorRange="$(Video::ColorRange "$Stream" "$File")"
-  InputColorSpace="$(Video::ColorSpace "$Stream" "$File")"
-  InputColorTransfer="$(Video::ColorTransfer "$Stream" "$File")"
+  inputColorPrimaries="$(arkive_video_color_primaries "$stream" "$file")"
+  inputColorRange="$(arkive_video_color_range "$stream" "$file")"
+  inputColorSpace="$(arkive_video_color_space "$stream" "$file")"
+  inputColorTransfer="$(arkive_video_color_transfer "$stream" "$file")"
 
   if [ $FFMPEG_VIDEO_BITDEPTH -gt 8 ]; then
-    ColorPrimaries='bt2020'
-    ColorRange='mpeg'
-    ColorSpace='bt2020ncl'
-    ColorTransfer="bt2020-$FFMPEG_VIDEO_BITDEPTH"
-    PixelFormat="yuv${FFMPEG_VIDEO_CHROMASUBSAMPLING}p$FFMPEG_VIDEO_BITDEPTH"
+    colorPrimaries='bt2020'
+    colorRange='mpeg'
+    colorSpace='bt2020ncl'
+    colorTransfer="bt2020-$FFMPEG_VIDEO_BITDEPTH"
+    pixelFormat="yuv${FFMPEG_VIDEO_CHROMASUBSAMPLING}p$FFMPEG_VIDEO_BITDEPTH"
   else
-    ColorPrimaries='bt709'
-    ColorRange='mpeg'
-    ColorSpace='bt709'
-    ColorTransfer='bt709'
-    PixelFormat="yuv${FFMPEG_VIDEO_CHROMASUBSAMPLING}p"
+    colorPrimaries='bt709'
+    colorRange='mpeg'
+    colorSpace='bt709'
+    colorTransfer='bt709'
+    pixelFormat="yuv${FFMPEG_VIDEO_CHROMASUBSAMPLING}p"
   fi
 
-  Paramaters=(
-    "space=$ColorSpace"
-    "trc=$ColorTransfer"
-    "primaries=$ColorPrimaries"
-    "range=$ColorRange"
-    "format=$PixelFormat"
+  paramaters=(
+    "space=$colorSpace"
+    "trc=$colorTransfer"
+    "primaries=$colorPrimaries"
+    "range=$colorRange"
+    "format=$pixelFormat"
     # Don't try to apply Gamma/Primary correction, causes color distortion
     # (faded picture)
     'fast=0'
@@ -78,22 +79,22 @@ function FFmpeg::Video.filters:colorspace() {
     # specify them.
   )
 
-  if [ "$InputColorSpace" != 'unknown' ]; then
-    Paramaters+=("ispace=$InputColorSpace")
+  if [ "$inputColorSpace" != 'unknown' ]; then
+    paramaters+=("ispace=$inputColorSpace")
   fi
 
-  if [ "$InputColorPrimaries" != 'unknown' ]; then
-    Paramaters+=("iprimaries=$InputColorPrimaries")
+  if [ "$inputColorPrimaries" != 'unknown' ]; then
+    paramaters+=("iprimaries=$inputColorPrimaries")
   fi
 
-  if [ "$InputColorTransfer" != 'unknown' ]; then
-    Paramaters+=("itrc=$InputColorTransfer")
+  if [ "$inputColorTransfer" != 'unknown' ]; then
+    paramaters+=("itrc=$inputColorTransfer")
   fi
 
-  if [ "$InputColorRange" != 'unknown' ]; then
-    Paramaters+=("irange=$InputColorRange")
+  if [ "$inputColorRange" != 'unknown' ]; then
+    paramaters+=("irange=$inputColorRange")
   fi
 
   local IFS=":"
-  echo "colorspace=${Paramaters[*]}"
+  echo "colorspace=${paramaters[*]}"
 }

@@ -31,21 +31,21 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio.bitrate {
-  Function::RequiredArgs '3' "$#"
-  local Bitrate
-  local Channels
-  local -r File="$2"
-  local -r Index="$3"
-  local -r Stream="$1"
+function ffmpeg_audio_bitrate {
+  stl_func_reqargs '3' "$#"
+  local bitrate
+  local channels
+  local -r file="$2"
+  local -r index="$3"
+  local -r stream="$1"
 
   if [ "$FFMPEG_AUDIO_ENCODER" != 'flac' ]; then
-    Channels="$(FFmpeg::Audio.channels "$Stream" "$File")"
+    channels="$(ffmpeg_audio_channels "$stream" "$file")"
 
-    Bitrate=$(( $Channels * $FFMPEG_AUDIO_CHANNEL_BITRATE ))
+    bitrate=$(( $channels * $FFMPEG_AUDIO_CHANNEL_BITRATE ))
 
-    [ $Bitrate -ge 16 ]
+    [ $bitrate -ge 16 ]
 
-    echo "-b:$Index" "${Bitrate}k"
+    echo "-b:$index" "${bitrate}k"
   fi
 }

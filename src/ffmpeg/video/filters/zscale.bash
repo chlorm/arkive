@@ -31,52 +31,53 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Video.filters:zscale {
-  local AspectRatio
-  local -r File="$2"
-  local Height
-  local HeightTarget
-  local -a Parameters=()
-  local -r Stream="$1"
-  local Width
-  local WidthTarget
+function ffmpeg_video_filters_zscale {
+  stl_func_reqargs '2' "$#"
+  local aspectRatio
+  local -r file="$2"
+  local height
+  local heightTarget
+  local -a parameters=()
+  local -r stream="$1"
+  local width
+  local widthTarget
 
   if [ "$FFMPEG_VIDEO_HEIGHT" != 'source' ] || \
      [ "$FFMPEG_VIDEO_WIDTH" != 'source' ]; then
-    Height="$(Video::Height "$Stream" "$File")"
-    Width="$(Video::Width "$Stream" "$File")"
+    height="$(arkive_video_height "$stream" "$file")"
+    width="$(arkive_video_width "$stream" "$file")"
 
     if [ "$FFMPEG_VIDEO_HEIGHT" == 'source' ]; then
-      HeightTarget=$Height
+      heightTarget=$height
     else
-      HeightTarget=$FFMPEG_VIDEO_HEIGHT
+      heightTarget=$FFMPEG_VIDEO_HEIGHT
     fi
 
     if [ "$FFMPEG_VIDEO_WIDTH" == 'source' ]; then
-      WidthTarget=$Width
+      widthTarget=$width
     else
-      WidthTarget=$FFMPEG_VIDEO_WIDTH
+      widthTarget=$FFMPEG_VIDEO_WIDTH
     fi
 
-    if [ $Height -eq $HeightTarget ] && \
-       [ $Width -eq $WidthTarget ]; then
+    if [ $height -eq $heightTarget ] && \
+       [ $width -eq $widthTarget ]; then
       return 0
     fi
 
-    AspectRatio="$(Video::AspectRatio "$Stream" "$File" | sed 's,:,/,')"
+    aspectRatio="$(arkive_video_aspect_ratio "$stream" "$file" | sed 's,:,/,')"
 
-    Var::Type.integer "$Height"
-    Var::Type.integer "$Width"
+    stl_type_int "$height"
+    stl_type_int "$width"
 
-    Var::Type.integer "$HeightTarget"
-    Var::Type.integer "$WidthTarget"
+    stl_type_int "$heightTarget"
+    stl_type_int "$widthTarget"
 
-    Parameters+=(
-      "height=if(gt(a\,$AspectRatio)\,$HeightTarget\,-1)"
-      "width=if(gt(a\,$AspectRatio)\,-1\,$WidthTarget)"
+    parameters+=(
+      "height=if(gt(a\,$aspectRatio)\,$heightTarget\,-1)"
+      "width=if(gt(a\,$aspectRatio)\,-1\,$widthTarget)"
     )
   fi
 
   local IFS=":"
-  echo "zscale=${Parameters[*]}"
+  echo "zscale=${parameters[*]}"
 }

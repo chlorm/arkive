@@ -33,53 +33,53 @@
 
 # This is a rudimentary system for setting the minimum decoder level, it
 # is in no way precise.  Level 3.0 is the minimum supported level.
-function FFmpeg::Video.level:h265 {
-  Function::RequiredArgs '2' "$#"
-  local -r File="${2}"
-  local -r Stream="${1}"
+function ffmpeg_video_level_h265 {
+  stl_func_reqargs '2' "$#"
+  local -r file="${2}"
+  local -r stream="${1}"
 
   # FIXME: use cropped width
-  FrameWidth="$(Video::Width "${Stream}" "${File}")"
+  frameWidth="$(arkive_video_width "${stream}" "${file}")"
 
-  Log::Message 'debug' "frame width: ${FrameWidth}"
+  stl_log_debug "frame width: ${frameWidth}"
 
   # Evaluate frame rate incase a fractional number is returned
-  FrameRate="$(echo "$(FFmpeg::Video.frame_rate "${Stream}" "${File}")" | bc -l | xargs printf "%1.0f")"
+  frameRate="$(echo "$(ffmpeg_video_frame_rate "${stream}" "${file}")" | bc -l | xargs printf "%1.0f")"
 
-  Log::Message 'debug' "frame rate: ${FrameRate}"
+  stl_log_debug "frame rate: ${frameRate}"
 
-  if [ ${FrameWidth} -le 352 ] && [ ${FrameRate} -le 60 ]; then
+  if [ ${frameWidth} -le 352 ] && [ ${frameRate} -le 60 ]; then
     echo "3"
-  elif [ ${FrameWidth} -le 960 ] && [ ${FrameRate} -le 60 ]; then
+  elif [ ${frameWidth} -le 960 ] && [ ${frameRate} -le 60 ]; then
     echo "3.1"
-  elif [ ${FrameWidth} -le 1280 ] && [ ${FrameRate} -le 60 ]; then
+  elif [ ${frameWidth} -le 1280 ] && [ ${frameRate} -le 60 ]; then
     echo "4"
-  elif [ ${FrameWidth} -le 1280 ] && [ ${FrameRate} -le 136 ]; then
+  elif [ ${frameWidth} -le 1280 ] && [ ${frameRate} -le 136 ]; then
     echo "4.1"
-  elif [ ${FrameWidth} -le 1920 ] && [ ${FrameRate} -le 32 ]; then
+  elif [ ${frameWidth} -le 1920 ] && [ ${frameRate} -le 32 ]; then
     echo "4"
-  elif [ ${FrameWidth} -le 1920 ] && [ ${FrameRate} -le 64 ]; then
+  elif [ ${frameWidth} -le 1920 ] && [ ${frameRate} -le 64 ]; then
     echo "4.1"
-  elif [ ${FrameWidth} -le 1920 ] && [ ${FrameRate} -le 128 ]; then
+  elif [ ${frameWidth} -le 1920 ] && [ ${frameRate} -le 128 ]; then
     echo "5"
-  elif [ ${FrameWidth} -le 1920 ] && [ ${FrameRate} -le 256 ]; then
+  elif [ ${frameWidth} -le 1920 ] && [ ${frameRate} -le 256 ]; then
     echo "5.1"
-  elif [ ${FrameWidth} -le 1920 ] && [ ${FrameRate} -le 300 ]; then
+  elif [ ${frameWidth} -le 1920 ] && [ ${frameRate} -le 300 ]; then
     echo "5.2"
-  elif [ ${FrameWidth} -le 4096 ] && [ ${FrameRate} -le 30 ]; then
+  elif [ ${frameWidth} -le 4096 ] && [ ${frameRate} -le 30 ]; then
     echo "5"
-  elif [ ${FrameWidth} -le 4096 ] && [ ${FrameRate} -le 60 ]; then
+  elif [ ${frameWidth} -le 4096 ] && [ ${frameRate} -le 60 ]; then
     echo "5.1"
-  elif [ ${FrameWidth} -le 4096 ] && [ ${FrameRate} -le 120 ]; then
+  elif [ ${frameWidth} -le 4096 ] && [ ${frameRate} -le 120 ]; then
     echo "5.2"
-  elif [ ${FrameWidth} -le 8192 ] && [ ${FrameRate} -le 30 ]; then
+  elif [ ${frameWidth} -le 8192 ] && [ ${frameRate} -le 30 ]; then
     echo "6"
-  elif [ ${FrameWidth} -le 8192 ] && [ ${FrameRate} -le 60 ]; then
+  elif [ ${frameWidth} -le 8192 ] && [ ${frameRate} -le 60 ]; then
     echo "6.1"
-  elif [ ${FrameWidth} -le 8192 ] && [ ${FrameRate} -le 120 ]; then
+  elif [ ${frameWidth} -le 8192 ] && [ ${frameRate} -le 120 ]; then
     echo "6.2"
   else
-    Log::Message 'error' 'failed to detect decoder level'
+    stl_log_error 'failed to detect decoder level'
     return 1
   fi
 }

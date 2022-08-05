@@ -34,7 +34,7 @@
 # FIXME: merge audio specific portion into arkive itself
 
 function arkive_run {
-  Function::RequiredArgs '0' "$#"
+  stl_func_reqargs '0' "$#"
   local __filename__
   local __filenamefmt__
   local __outputdir__
@@ -43,19 +43,19 @@ function arkive_run {
   local __subtitlestreams__
   local __tmpdir__
 
-  local -a Audio
-  local AudioPass
-  local FFmpegArg
-  local -a FFmpegArgs
-  local FFmpegArgsList
-  local File
-  local Index=0
-  local Subtitle
-  local Chapter
-  local Metadata
-  local OutputFile
-  local -a StreamIndexMap=()
-  local -a VideoArgs
+  local -a audio
+  local audioPass
+  local ffmpegArg
+  local -a ffmpegArgs
+  local ffmpegArgsList
+  local file
+  local index=0
+  local subtitle
+  local chapter
+  local metadata
+  local outputFile
+  local -a streamIndexMap=()
+  local -a videoArgs
 
   # Stream identifiers
   local as
@@ -65,84 +65,84 @@ function arkive_run {
   local ssa
   local vs
 
-  File="${INPUTFILE}"
-  __filename__="$(Filename::Original.base "${File}")"
-  __filenamefmt__="$(Filename::Formatted "${File}")"
-  __tmpdir__="${TMPDIR}"
-  __outputdir__="${OUTPUTDIR}"
-  OutputFile="${__outputdir__}/${__filenamefmt__}.${FFMPEG_CONTAINER_FORMAT}"
+  file="$INPUTFILE"
+  __filename__="$(arkive_filename_original_base "$file")"
+  __filenamefmt__="$(arkive_filename_formatted "$file")"
+  __tmpdir__="$TMPDIR"
+  __outputdir__="$OUTPUTDIR"
+  outputFile="${__outputdir__}/${__filenamefmt__}.${FFMPEG_CONTAINER_FORMAT}"
 
-  #FFprobe 'v' '-' 'stream' 'index' "${File}"
+  #arkive_ffprobe 'v' '-' 'stream' 'index' "${file}"
 
-  # FIXME: Stream::Select may return multiple values in the future so
+  # FIXME: arkive_stream_select may return multiple values in the future so
   #        vs should be an array, Indexs will also have to be fixed for
   #        audio and video streams.
   if $ARKIVE_VIDEO; then
-    vs="$(Stream::Select 'video' "${File}")"
+    vs="$(arkive_stream_select 'video' "$file")"
     # Assign the video stream index 0
-    StreamIndexMap[0]="-map 0:${vs}"
+    streamIndexMap[0]="-map 0:${vs}"
     if [ "${FFMPEG_VIDEO_ENCODER}" != 'copy' ]; then
-      VideoArgs+=('-b:0' "$(FFmpeg::Video.bitrate "${vs}" "${File}")k")
+      videoArgs+=('-b:0' "$(ffmpeg_video_bitrate "$vs" "$file")k")
       # Force constant frame rate
-      VideoArgs+=('-vsync:0' 'cfr')
-      VideoArgs+=('-r:0' "$(FFmpeg::Video.frame_rate "${vs}" "${File}")")
-      VideoArgs+=("$(FFmpeg::Video.filters "${vs}" "${File}" '0')")
-      VideoArgs+=('-pix_fmt' "$(FFmpeg::Video.pixel_format)")
+      videoArgs+=('-vsync:0' 'cfr')
+      videoArgs+=('-r:0' "$(ffmpeg_video_frame_rate "$vs" "$file")")
+      videoArgs+=("$(ffmpeg_video_filters "$vs" "$file" '0')")
+      videoArgs+=('-pix_fmt' "$(ffmpeg_video_pixel_format)")
       # if [ ${FFMPEG_VIDEO_BITDEPTH} -gt 8 ] ; then
-      #   VideoArgs+=('-colorspace:0' 'bt2020')
+      #   videoArgs+=('-colorspace:0' 'bt2020')
       # else
-      #   VideoArgs+=('-colorspace:0' 'bt709')
+      #   videoArgs+=('-colorspace:0' 'bt709')
       # fi
-      #VideoArgs+=('-color_range' 'mpeg')
+      #videoArgs+=('-color_range' 'mpeg')
     fi
   fi
 
   if $ARKIVE_AUDIO; then
-    asa=($(Stream::Select 'audio' "${File}"))
+    asa=($(arkive_stream_select 'audio' "${file}"))
     [[ ${#asa[@]} == @(1|2) ]] || {
-      Log::Message 'error' "unsupported number of audio streams: ${#asa[@]}"
-      Log::Message 'error' "${asa[*]}"
+      stl_log_error "unsupported number of audio streams: ${#asa[@]}"
+      stl_log_error "${asa[*]}"
       return 1
     }
     for as in ${asa[@]}; do
-      Index=${#StreamIndexMap[@]}
+      index=${#streamIndexMap[@]}
       # Assign stream index, assuming video is 0, and audio starts from 1 ->
       # number of streams + 1.
-      StreamIndexMap[${Index}]="-map 0:${as}"
-      Audio+=($(FFmpeg::Audio "${as}" "${File}" "${Index}"))
+      streamIndexMap[${index}]="-map 0:${as}"
+      audio+=($(ffmpeg_audio "$as" "$file" "$index"))
     done
   fi
 
   # if $ARKIVE_SUBTITLES; then
-  #   ssa=($(Stream::Select 'subtitle' "${File}"))
+  #   ssa=($(arkive_stream_select 'subtitle' "$file"))
   #   [[ ${#ssa[@]} == +(1|2) ]]
-  #   for ss in ${ssa[@]} ; do
-  #     Subtitle="${Subtitle:+${Subtitle} }$(FFmpeg::Subtitle "${ss}" "${File}")"
+  #   for ss in ${ssa[@]}; do
+  #     subtitle="${subtitle:+${subtitle} }$(ffmpeg_subtitle "$ss" "$file")"
   #   done
   # fi
 
-  #Chapter="$(FFmpeg::Chapter)"
+  #chapter="$(ffmpeg_chapter)"
 
   # Metadata
-  #Metadata="$(FFmpeg::Metadata)"
+  #metadata="$(ffmpeg_metadata)"
 
   if ! $ARKIVE_VIDEO; then
     FFMPEG_VIDEO_ENCODER_PASSES=1
   fi
 
-  while [ ${__pass__} -le ${FFMPEG_VIDEO_ENCODER_PASSES} ]; do
+  while [ $__pass__ -le $FFMPEG_VIDEO_ENCODER_PASSES ]; do
     # Always overwrite the file for multipass encodes or if requestedaaaaaa
-    if [ ${__pass__} -gt 1 ] || ${ARKIVE_ALLOW_OVERWRITING_FILES}; then
-      FFmpegArgs+=('-y')
+    if [ $__pass__ -gt 1 ] || $ARKIVE_ALLOW_OVERWRITING_FILES; then
+      ffmpegArgs+=('-y')
     else
-      FFmpegArgs+=('-n')
+      ffmpegArgs+=('-n')
     fi
-    FFmpegArgs+=(
+    ffmpegArgs+=(
       '-nostdin'
       '-hide_banner'
       '-stats'
       '-loglevel' 'info'
-      '-i' "${File}"
+      '-i' "$file"
       # FIXME: specify thread count per stream
       # Video encoders specify their own thread count seperate from FFmpeg's
       '-threads' '1'
@@ -151,32 +151,32 @@ function arkive_run {
 
       '-map_metadata' '0'
     )
-    if [ ${FFMPEG_VIDEO_ENCODER_PASSES} -gt 1 ]; then
-      FFmpegArgs+=(
-        '-pass' "${__pass__}"
+    if [ $FFMPEG_VIDEO_ENCODER_PASSES -gt 1 ]; then
+      ffmpegArgs+=(
+        '-pass' "$__pass__"
         '-passlogfile' "${__tmpdir__}/ffmpeg-passlog"
       )
     fi
-    FFmpegArgs+=(${StreamIndexMap[0]})
+    ffmpegArgs+=(${streamIndexMap[0]})
     # Only encode non-video streams on the final pass
     if $ARKIVE_VIDEO; then
-      FFmpegArgs+=(${VideoArgs[@]})
-      FFmpegArgs+=($(FFmpeg::Video.codec "${vs}" "${File}" '0'))
+      ffmpegArgs+=(${videoArgs[@]})
+      ffmpegArgs+=($(ffmpeg_video_codec "$vs" "$file" '0'))
     fi
-    if [[ "${FFMPEG_CONTAINER_FORMAT}" == @('m4a'|'m4v'|'mp4'|'mov') ]]; then
-      FFmpegArgs+=('-movflags' '+faststart')
+    if [[ "$FFMPEG_CONTAINER_FORMAT" == @('m4a'|'m4v'|'mp4'|'mov') ]]; then
+      ffmpegArgs+=('-movflags' '+faststart')
     fi
     # Only encode audio on last pass
-    if ! $ARKIVE_VIDEO || [ ${__pass__} -eq ${FFMPEG_VIDEO_ENCODER_PASSES} ]; then
-      FFmpegArgs+=("${Audio[@]}")
+    if ! $ARKIVE_VIDEO || [ $__pass__ -eq $FFMPEG_VIDEO_ENCODER_PASSES ]; then
+      ffmpegArgs+=("${audio[@]}")
     fi
-    FFmpegArgs+=("${OutputFile}")
+    ffmpegArgs+=("$outputFile")
 
-    echo "ffmpeg ${FFmpegArgs[@]}"
-    ffmpeg "${FFmpegArgs[@]}"
+    echo "ffmpeg ${ffmpegArgs[@]}"
+    ffmpeg "${ffmpegArgs[@]}"
 
-    unset FFmpegArg FFmpegArgs FFmpegArgsList
-    __pass__=$(( ${__pass__} + 1 ))
+    unset ffmpegArg ffmpegArgs ffmpegArgsList
+    __pass__=$(( $__pass__ + 1 ))
   done
 }
 
@@ -184,7 +184,7 @@ function arkive_main {
   set -o errexit
   set -o errtrace
   set -o functrace
-  #set -o nounset
+  set -o nounset
   set -o pipefail
 
   LOG_LEVEL='debug'
@@ -193,18 +193,18 @@ function arkive_main {
 
   PROGRAM_NAME='arkive'
 
-  trap 'Log::Func' DEBUG
+  trap 'stl_log_func' DEBUG
   trap 'Tmp::Cleanup' SIGINT SIGTERM
-  trap -- 'Tmp::Cleanup ; Log::Trace ; exit 1' ERR
+  trap -- 'Tmp::Cleanup ; stl_log_trace ; exit 1' ERR
 
-  #Requires::Check
+  arkive_requires_check
 
   arkive_declare_defaults
 
-  Input::Parser "${@}"
+  arkive_cli_parser "${@}"
 
   if [ -n "${RAW_BITPERPIXEL}" ]; then
-    FFmpeg::Video.bpp "${RAW_BITPERPIXEL}"
+    ffmpeg_video_bpp "${RAW_BITPERPIXEL}"
     exit 0
   fi
 

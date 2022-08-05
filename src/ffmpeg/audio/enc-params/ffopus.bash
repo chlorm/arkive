@@ -31,21 +31,21 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio.encoder:ffopus {
-  Function::RequiredArgs '1' "$#"
-  local -r Index="$1"
-  local Parameter
-  local ParameterList
-  local -a Parameters
+function ffmpeg_audio_encoder_ffopus {
+  stl_func_reqargs '1' "$#"
+  local -r index="$1"
+  local parameter
+  local parameterList
+  local -a parameters
 
-  Parameters=(
+  parameters=(
     '-opus_delay' '20ms'
   )
 
   # Opus isom muxing is still experimental
   if [ "$FFMPEG_CONTAINER_FORMAT" == 'mp4' ]; then
-    Parameters+=('-strict' '-2')
+    parameters+=('-strict' '-2')
   fi
 
-  echo "${Parameters[@]}"
+  echo "${parameters[@]}"
 }

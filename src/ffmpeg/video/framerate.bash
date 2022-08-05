@@ -31,27 +31,27 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Video.frame_rate {
-  Function::RequiredArgs '2' "$#"
-  local -r File="$2"
-  local SourceFrameRate
-  local -r Stream="$1"
+function ffmpeg_video_frame_rate {
+  stl_func_reqargs '2' "$#"
+  local -r file="$2"
+  local sourceFrameRate
+  local -r stream="$1"
 
   if [ "$FFMPEG_VIDEO_FRAMERATE" != 'source' ]; then
     echo "$FFMPEG_VIDEO_FRAMERATE"
   else
-    SourceFrameRate="$(Video::FrameRate "$Stream" "$File")"
-    Var::Type.string "$SourceFrameRate"
-    echo "$SourceFrameRate"
+    sourceFrameRate="$(arkive_video_frame_rate "$stream" "$file")"
+    stl_type_str "$sourceFrameRate"
+    echo "$sourceFrameRate"
   fi
 }
 
-function FFmpeg::Video.frame_rate:float {
-  local File="$2"
-  local FrameRateFloat
-  local Stream="$1"
+function ffmpeg_video_frame_rate_float {
+  local file="$2"
+  local frameRateFloat
+  local stream="$1"
 
-  FrameRateFloat="$(FFmpeg::Video.frame_rate "$Stream" "$File" | bc -l)"
+  frameRateFloat="$(ffmpeg_video_frame_rate "$stream" "$file" | bc -l)"
 
-  echo "$FrameRateFloat"
+  echo "$frameRateFloat"
 }

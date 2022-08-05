@@ -31,43 +31,43 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio.encoder {
-  Function::RequiredArgs '3' "$#"
-  local Encoder EncoderParams
-  local -r File="$2"
-  local -r Index="$3"
-  local -r Stream="$1"
+function ffmpeg_audio_encoder {
+  stl_func_reqargs '3' "$#"
+  local encoder encoderParams
+  local -r file="$2"
+  local -r index="$3"
+  local -r stream="$1"
 
   case "$FFMPEG_AUDIO_ENCODER" in
     'copy')
-      Encoder='copy'
-      EncoderParams=()
+      encoder='copy'
+      encoderParams=()
       ;;
     'fdk-aac')
-      Encoder='libfdk_aac'
-      EncoderParams=("$(FFmpeg::Audio.encoder:fdk_aac "$Index")")
+      encoder='libfdk_aac'
+      encoderParams=("$(ffmpeg_audio_encoder_fdk_aac "$index")")
       ;;
     'ffaac')
-      Encoder='aac'
-      EncoderParams=("$(FFmpeg::Audio.encoder:ffaac "$Index")")
+      encoder='aac'
+      encoderParams=("$(ffmpeg_audio_encoder_ffaac "$index")")
       ;;
     'ffopus')
-      Encoder='opus'
-      EncoderParams=("$(FFmpeg::Audio.encoder:ffopus "$Index")")
+      encoder='opus'
+      encoderParams=("$(ffmpeg_audio_encoder_ffopus "$index")")
       ;;
     'flac')
-      Encoder='flac'
-      EncoderParams=("$(FFmpeg::Audio.encoder:flac "$Index")")
+      encoder='flac'
+      encoderParams=("$(ffmpeg_audio_encoder_flac "$index")")
       ;;
     'opus')
-      Encoder='libopus'
-      EncoderParams=("$(FFmpeg::Audio.encoder:opus "$Index")")
+      encoder='libopus'
+      encoderParams=("$(ffmpeg_audio_encoder_opus "$index")")
       ;;
     *)
-      Log::Message 'error' "invalid audio encoder \`$FFMPEG_AUDIO_ENCODER' specified"
+      stl_log_error "invalid audio encoder \`$FFMPEG_AUDIO_ENCODER' specified"
       return 1
       ;;
   esac
 
-  echo "-c:$Index" "$Encoder" "${EncoderParams[@]}"
+  echo "-c:$index" "$encoder" "${encoderParams[@]}"
 }

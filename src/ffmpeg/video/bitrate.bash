@@ -31,40 +31,40 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-# Bitrate from a fixed bpp value:
+# bitrate from a fixed bpp value:
 # bitrate = (w * h * fps * bpp) / 1024
-function FFmpeg::Video.bitrate {
-  Function::RequiredArgs '2' "$#"
-  local -r Bpp="$FFMPEG_VIDEO_BITSPERPIXEL"
-  local -r File="$2"
-  local FrameRate
-  local Height
-  local -r Stream="$1"
-  local Width
+function ffmpeg_video_bitrate {
+  stl_func_reqargs '2' "$#"
+  local -r bpp="$FFMPEG_VIDEO_BITSPERPIXEL"
+  local -r file="$2"
+  local frameRate
+  local height
+  local -r stream="$1"
+  local width
 
   if [ "$FFMPEG_VIDEO_FRAMERATE" == 'source' ]; then
-    FrameRate="$(FFmpeg::Video.frame_rate "$Stream" "$File")"
+    frameRate="$(ffmpeg_video_frame_rate "$stream" "$file")"
   else
-    FrameRate="$FFMPEG_VIDEO_FRAMERATE"
+    frameRate="$FFMPEG_VIDEO_FRAMERATE"
   fi
   # FIXME: use output width/height (factor based on crop & scale filters)
   if [ "$FFMPEG_VIDEO_HEIGHT" != 'source' ]; then
-    Height=$FFMPEG_VIDEO_HEIGHT
+    height=$FFMPEG_VIDEO_HEIGHT
   else
-    Height=$(Video::Height "$Stream" "$File")
+    height=$(arkive_video_height "$stream" "$file")
   fi
-  Var::Type.integer "$Height"
+  stl_type_int "$height"
   if [ "$FFMPEG_VIDEO_WIDTH" != 'source' ]; then
-    Width=$FFMPEG_VIDEO_WIDTH
+    width=$FFMPEG_VIDEO_WIDTH
   else
-    Width=$(Video::Width "$Stream" "$File")
+    width=$(arkive_video_width "$stream" "$file")
   fi
-  Var::Type.integer "$Width"
+  stl_type_int "$width"
 
   # XXX: BC defaults to a scale of 0, which will result in a rounding error,
   #      meaning the number may be much lower than it should be.
-  Bitrate="$(
-    echo "scale=10;(($Width*$Height*($FrameRate)*$Bpp)/1024)" | bc -l
+  bitrate="$(
+    echo "scale=10;(($width*$height*($frameRate)*$bpp)/1024)" | bc -l
   )"
 
   # TODO: refactor the bpp -> bitrate equation to work on a curve.  This is
@@ -80,39 +80,40 @@ function FFmpeg::Video.bitrate {
   # x x
   #
   # Quadruple the bitrate for 360p and below
-  if [ $Width -lt 640 ] && [ $Height -lt 480 ]; then
-    Bitrate="$(echo "scale=10;($Bitrate*4)" | bc -l)"
+  if [ $width -lt 640 ] && [ $height -lt 480 ]; then
+    bitrate="$(echo "scale=10;($bitrate*4)" | bc -l)"
   # Triple the bitrate for 640p
-  elif [ $Width -lt 1280 ] && [ $Height -lt 720 ]; then
-    Bitrate="$(echo "scale=10;($Bitrate*3)" | bc -l)"
+  elif [ $width -lt 1280 ] && [ $height -lt 720 ]; then
+    bitrate="$(echo "scale=10;($bitrate*3)" | bc -l)"
   # Cut the bitrate in half for >=4k
-  elif [ $Width -gt 3000 ] && [ $Height -gt 1080 ]; then
-    Bitrate="$(echo "scale=10;($Bitrate*0.5)" | bc -l)"
+  elif [ $width -gt 3000 ] && [ $height -gt 1080 ]; then
+    bitrate="$(echo "scale=10;($bitrate*0.5)" | bc -l)"
   fi
 
   # Round to nearest whole number
-  Bitrate="$(printf "%1.0f" "$Bitrate")"
+  bitrate="$(printf "%1.0f" "$bitrate")"
 
-  Var::Type.integer "$Bitrate"
+  stl_type_int "$bitrate"
 
-  echo "$Bitrate"
+  echo "$bitrate"
 }
 
 # Calculate the bits per pixel value based on a fixed resolution and fps
 # This formula uses 1920x1080@23.976
 # bpp = (bitrate * 1024) / (1920 * 1080 * (24000 / 1001))
-function FFmpeg::Video.bpp {
-  local -r Bitrate="${1}"
-  local Bpp
+function ffmpeg_video_bpp {
+  stl_func_reqargs '1' "$#"
+  local -r bitrate="$1"
+  local bpp
 
-  Bpp="$(echo "(($Bitrate*1024)/(1920*1080*(24000/1001)))" | bc -l)"
+  bpp="$(echo "(($bitrate*1024)/(1920*1080*(24000/1001)))" | bc -l)"
 
   # BC truncates leading zeros, make sure to add one if necessary
-  if [[ "$Bpp" =~ ^. ]]; then
-    Bpp="0$Bpp"
+  if [[ "$bpp" =~ ^. ]]; then
+    bpp="0$bpp"
   fi
 
-  Var::Type.float "$Bpp"
+  stl_type_float "$bpp"
 
-  echo "$Bpp"
+  echo "$bpp"
 }

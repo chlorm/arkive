@@ -31,45 +31,45 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function Subtitle::Codec {
-  Function::RequiredArgs '2' "$#"
-  local Codec
-  local -r File="$2"
-  local -r Stream="$1"
+function arkive_subtitle_codec {
+  stl_func_reqargs '2' "$#"
+  local codec
+  local -r file="$2"
+  local -r stream="$1"
 
-  Codec="$(FFprobe '-' "$Stream" 'stream' 'codec_name' "$File")"
+  codec="$(arkive_ffprobe '-' "$stream" 'stream' 'codec_name' "$file")"
 
-  Var::Type.string "$Codec"
+  stl_type_str "$codec"
 
-  echo "$Codec"
+  echo "$codec"
 }
 
 # Return true is the codec is a bitmap format, false if plaintext
-function Subtitle::IsBitmap {
-  Function::RequiredArgs '2' "$#"
-  local Codec
-  local -r File="$2"
-  local IsBitmap='null'
-  local -r Stream="$1"
+function arkive_subtitle_is_bitmap {
+  stl_func_reqargs '2' "$#"
+  local codec
+  local -r file="$2"
+  local isBitmap='null'
+  local -r stream="$1"
 
-  Codec="$(Subtitle::Codec "$Stream" "$File")"
+  codec="$(arkive_subtitle_codec "$stream" "$file")"
 
-  case "$Codec" in
+  case "$codec" in
     'ass'|'jacosub'|'microdvd'|'mov_text'|'mpl2'|'pjs'|'realtext'|'sami'|\
     'srt'|'stl'|'ssa'|'subrip'|'subviewer'|'subviewer1'|'text'|'vplayer'|\
     'webvtt')
-      IsBitmap='false'
+      isBitmap='false'
       ;;
     'dvb_subtitle'|'dvb_teletext'|'dvd_subtitle'|'hdmv_pgs_subtitle'|'xsub')
-      IsBitmap='true'
+      isBitmap='true'
       ;;
     *)
-      Log::Message 'error' "unsupported subtitle codec: $Codec"
+      stl_log_error "unsupported subtitle codec: $Codec"
       return 1
       ;;
   esac
 
-  [[ "$IsBitmap" == 'true' || "$IsBitmap" == 'false' ]]
+  [[ "$isBitmap" == 'true' || "$isBitmap" == 'false' ]]
 
-  echo "$IsBitmap"
+  echo "$isBitmap"
 }

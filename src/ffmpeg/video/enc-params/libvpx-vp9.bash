@@ -31,20 +31,20 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Video.codec:vp9_params {
-  Function::RequiredArgs '2' "$#"
-  local -r File="$2"
-  local Key
-  local KeyInt
-  local Parameter
-  local -a Parameters
+function ffmpeg_video_codec_vp9_params {
+  stl_func_reqargs '2' "$#"
+  local -r file="$2"
+  local key
+  local keyInt
+  local parameter
+  local -a parameters
   local -r Stream="$1"
-  local Value
-  local Vp9Params
+  local value
+  local vp9Params
 
-  KeyInt=$(FFmpeg::Video.min_keyframe_interval "$Stream" "$File")
+  keyInt=$(FFmpeg::Video.min_keyframe_interval "$Stream" "$file")
 
-  Parameters=(
+  parameters=(
     # Quality Deadline
     'deadline=best'
     #threads FIXME: need ffmpeg's thread count to not be 1
@@ -77,7 +77,7 @@ function FFmpeg::Video.codec:vp9_params {
 #             --minsection-pct=<arg>      GOP min bitrate (% of target)
 #             --maxsection-pct=<arg>      GOP max bitrate (% of target)
 
-# Keyframe Placement Options:
+# keyframe Placement Options:
 #             --kf-min-dist=<arg>         Minimum keyframe interval (frames)
 #             --kf-max-dist=<arg>         Maximum keyframe interval (frames)
 #             --disable-kf                Disable keyframe placement
@@ -127,25 +127,25 @@ function FFmpeg::Video.codec:vp9_params {
 
     #'g=9999'
     'g=250'
-    "keyint_min=$KeyInt"
+    "keyint_min=$keyInt"
     'bufsize=31250'
     'maxrate=31250'
   )
 
   if [ $FFMPEG_VIDEO_ENCODER_PASSES -gt 1 ]; then
     if [ $__pass__ -eq 1 ] ; then
-      Parameters+=(
+      parameters+=(
         #  'speed=4'
       )
     else
-      Parameters+=(
+      parameters+=(
         #'speed=0'
         'auto-alt-ref=1'
         'lag-in-frames=25'
       )
     fi
   else
-    Parameters+=(
+    parameters+=(
       'speed=0'
       'auto-alt-ref=1'
       'lag-in-frames=25'
@@ -153,18 +153,18 @@ function FFmpeg::Video.codec:vp9_params {
   fi
 
   # FIXME: interpret booleans (true/false -> 1/0)
-  for Parameter in "${Parameters[@]}"; do
-    Key="$(echo "$Parameter" | awk -F'=' '{print $1 ; exit}')"
-    Value="$(echo "$Parameter" | awk -F'=' '{print $2 ; exit}')"
-    if [ "$Value" == 'null' ]; then
-      unset Value
-    elif [ "$Value" == true ]; then
-      Value=1
-    elif [ "$Value" == false ]; then
-      Value=0
+  for parameter in "${parameters[@]}"; do
+    key="$(echo "$parameter" | awk -F'=' '{print $1 ; exit}')"
+    value="$(echo "$parameter" | awk -F'=' '{print $2 ; exit}')"
+    if [ "$value" == 'null' ]; then
+      unset value
+    elif [ "$value" == true ]; then
+      value=1
+    elif [ "$value" == false ]; then
+      value=0
     fi
-    Vp9Params="${Vp9Params:+$Vp9Params }-$Key${Value:+ $Value}"
+    vp9Params="${vp9Params:+$vp9Params }-$key${value:+ $value}"
   done
 
-  echo "$Vp9Params"
+  echo "$vp9Params"
 }

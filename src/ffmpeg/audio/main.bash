@@ -31,21 +31,21 @@
 # This mock-up implementation in shell is for testing and demonstration
 # purposes only.
 
-function FFmpeg::Audio {
-  Function::RequiredArgs '3' "$#"
-  local -a AudioArgs
-  local -r File="$2"
-  local -r Index="$3"
-  local -r Stream="$1"
+function ffmpeg_audio {
+  stl_func_reqargs '3' "$#"
+  local -a audioArgs
+  local -r file="$2"
+  local -r index="$3"
+  local -r stream="$1"
 
   if [ "$FFMPEG_AUDIO_ENCODER" != 'copy' ]; then
-    AudioArgs+=("$(FFmpeg::Audio.filters "$Stream" "$File" "$Index")")
-    #AudioArgs+=("$(FFmpeg::Audio.cutoff "$Index")")
-    AudioArgs+=("$(FFmpeg::Audio.bitrate "$Stream" "$File" "$Index")")
-    #AudioArgs+=("-ac:${Index} $(FFmpeg::Audio.channels "$Stream" "$File")")
-    #AudioArgs+=("$(FFmpeg::Audio.sample_rate "$Stream" "$File" "$Index")")
+    audioArgs+=("$(ffmpeg_audio_filters "$stream" "$file" "$index")")
+    #audioArgs+=("$(ffmpeg_audio_cutoff "$index")")
+    audioArgs+=("$(ffmpeg_audio_bitrate "$stream" "$file" "$index")")
+    #audioArgs+=("-ac:${index} $(ffmpeg_audio_channels "$stream" "$file")")
+    #audioArgs+=("$(ffmpeg_audio_sample_rate "$stream" "$file" "$index")")
   fi
-  AudioArgs+=("$(FFmpeg::Audio.encoder "$Stream" "$File" "$Index")")
+  audioArgs+=("$(ffmpeg_audio_encoder "$stream" "$file" "$index")")
 
-  echo "${AudioArgs[@]}"
+  echo "${audioArgs[@]}"
 }
