@@ -32,7 +32,7 @@
 # purposes only.
 
 function Tmp::Cleanup {
-  Function::RequiredArgs '0' "$#"
+  stl_func_reqargs '0' "$#"
   # Remove tmp directory if one was specified
   TMPDIR="${TMPDIR:-/some/non-exsistant/path}"
   if [ -d "$TMPDIR" ]; then

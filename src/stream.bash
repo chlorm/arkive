@@ -62,9 +62,9 @@ function arkive_stream_select {
     ['video']=1
   )
 
-  [ ${#streams[@]} -ge ${reqMinsStm[$Type]} ] || {
+  [ ${#streams[@]} -ge ${reqMinsStm[$type]} ] || {
     stl_log_error \
-        "At least \`${reqMinsStm[$Type]}\` $type stream is required, but \`${#streams[@]}\` found"
+        "At least \`${reqMinsStm[$type]}\` $type stream is required, but \`${#streams[@]}\` found"
     return 1
   }
 
@@ -77,9 +77,9 @@ function arkive_stream_select {
   )
 
   # FIXME
-  # [ ${#Streams[@]} -le ${ReqMaxsStm[$Type]} ] || {
+  # [ ${#Streams[@]} -le ${ReqMaxsStm[$type]} ] || {
   #   Log::Message 'error' \
-  #       "A maximum of \`${ReqMaxsStm[$Type]}\` $Type streams are allowed, but found \`${#Streams[@]}\`"
+  #       "A maximum of \`${ReqMaxsStm[$type]}\` $type streams are allowed, but found \`${#Streams[@]}\`"
   #   return 1
   # }
 
