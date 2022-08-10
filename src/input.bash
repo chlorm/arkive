@@ -95,14 +95,6 @@ function arkive_cli_parser {
       export OUTPUTDIR="$INPUTDIR"
     fi
 
-    if [ -n "$RAW_PROFILE" ]; then
-      if [ -f "$ARKIVE_LIB_DIR/profiles/$RAW_PROFILE.profile" ]; then
-        ARKIVE_PROFILE="$ARKIVE_LIB_DIR/profiles/$RAW_PROFILE.profile"
-      else
-        stl_log_error "specified profile does not exist: $RAW_PROFILE"
-      fi
-    fi
-
     export TMPDIR="$INPUTDIR/.arkive.$RANDOM"
     arkive_input_check_tmp "$TMPDIR"
   fi
