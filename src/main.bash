@@ -203,7 +203,7 @@ function arkive_main {
 
   arkive_cli_parser "${@}"
 
-  if [ -n "${RAW_BITPERPIXEL}" ]; then
+  if [ -n "${RAW_BITPERPIXEL:-}" ]; then
     ffmpeg_video_bpp "${RAW_BITPERPIXEL}"
     exit 0
   fi

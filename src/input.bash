@@ -84,7 +84,7 @@ function arkive_cli_parser {
     return 1
   fi
 
-  if [ -z "$RAW_BITPERPIXEL" ]; then
+  if [ -z "${RAW_BITPERPIXEL:-}" ]; then
     arkive_input_check "$RAW_INPUTFILE"
     INPUTFILE="$(readlink -f "$RAW_INPUTFILE")"
     INPUTDIR="$(dirname "$INPUTFILE")"

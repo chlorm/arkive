@@ -63,7 +63,7 @@ function arkive_ffprobe {
 
   ffprobeArgsList=(
     '-v' 'error'
-    '-select_streams' "$streamType${streamType:+${stream:+:}}$stream"
+    '-select_streams' "${streamType:-}${streamType:+${stream:+:}}${stream:-}"
     '-show_entries' "$entKey=$entVal"
     '-print_format' 'json'
     "$file"
