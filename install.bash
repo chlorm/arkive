@@ -79,14 +79,7 @@ for Path in "${ARKIVE_PATHS_FILTERED[@]}"; do
   ARKIVE_PATH+="${ARKIVE_PATH:+:}$Path"
 done
 
-# TODO: allow passing lib-bash path to override using git submodule
-if ! type git; then
-  echo "need lib-bash or git to use vendored lib-bash git submodule" >&2
-  exit 1
-fi
 cd "$DIR"
-git submodule update --init --recursive
-
 # FIXME: include all lib-bash utils
 SRCDIRS='../bash-stl/,src/' \
 ENTRYPOINTS='arkive=arkive_main' \
