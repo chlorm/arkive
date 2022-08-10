@@ -61,10 +61,26 @@ function arkive_input_check_tmp {
 function arkive_cli_parser {
   local -r input="$@"   # Only for testing for input
 
-  stl_arg_define 'short=i' 'long=input'  'variable=RAW_INPUTFILE' 'desc=Input video file'
-  stl_arg_define 'short=o' 'long=output' 'variable=RAW_OUTPUTDIR' 'desc=Output directory'
-  stl_arg_define 'short=p' 'long=profile' 'variable=RAW_PROFILE' 'desc=Specify profile to use'
-  stl_arg_define 'short=b' 'long=bpp' 'variable=RAW_BITPERPIXEL' 'desc=Calculate bits per pixel'
+  stl_arg_define \
+      'short=i' \
+      'long=input' \
+      'variable=RAW_INPUTFILE' \
+      'desc=Input video file'
+  stl_arg_define \
+      'short=o' \
+      'long=output' \
+      'variable=RAW_OUTPUTDIR' \
+      'desc=Output directory'
+  stl_arg_define \
+      'short=p' \
+      'long=profile' \
+      'variable=RAW_PROFILE' \
+      'desc=Specify profile to use'
+  stl_arg_define \
+      'short=b' \
+      'long=bpp' \
+      'variable=RAW_BITPERPIXEL' \
+      'desc=Calculate bits per pixel'
   # Build and source script that parses $@
   source "$(stl_args_build)"
 
