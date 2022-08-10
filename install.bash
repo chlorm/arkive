@@ -88,14 +88,14 @@ cd "$DIR"
 git submodule update --init --recursive
 
 # FIXME: include all lib-bash utils
-SRCDIRS='src/,vendor/lib-bash/src/share' \
+SRCDIRS='../bash-stl/,src/' \
 ENTRYPOINTS='arkive=arkive_main' \
 LICENSE=LICENSE \
 INTERPRETER=$(type -P bash) \
 RUNTIMEPATH="$ARKIVE_PATH" \
-shell-packer
+./../shell-packer/shell-packer
 
-for bin in 'arkive' 'arkive-audio'; do
+for bin in 'arkive'; do
   install -D -m755 -v "$bin" "$PREFIX/bin/$bin"
   rm "$bin"
 done
